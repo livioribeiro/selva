@@ -1,3 +1,4 @@
+from types import FunctionType
 from typing import List
 
 
@@ -31,3 +32,23 @@ class IncompatibleTypesError(DependencyInjectionError):
             f"service '{service.__qualname__}'"
             f" does not derive from '{interface.__qualname__}'"
         )
+
+
+class UnknownServiceError(DependencyInjectionError):
+    def __init__(self, service: type):
+        super().__init__(f"Service '{service.__qualname__}' is not known")
+
+
+class MissingDependentContextError(DependencyInjectionError):
+    def __init__(self):
+        super().__init__("context is required for DEPENDENT scope")
+
+
+class NonInjectableTypeError(DependencyInjectionError):
+    def __init__(self, service: type):
+        super().__init__(f"'{service}' is not injectable")
+
+
+class FactoryMissingReturnTypeError(DependencyInjectionError):
+    def __init__(self, factory: FunctionType):
+        super().__init__(f"factory '{factory.__qualname__}' is missing return type")

@@ -1,10 +1,10 @@
 import pytest
 
+from dependency_injector import Scope
 from dependency_injector.errors import (
-    IncompatibleTypesError,
+    FactoryMissingReturnTypeError,
     MissingDependentContextError,
 )
-from dependency_injector.service import Scope
 
 from . import ioc
 from .utils import Context
@@ -13,15 +13,16 @@ pytestmark = pytest.mark.asyncio
 
 
 def test_has_service(ioc):
-    from .services.service_class import has_service as module
+    from .services.service_function import has_service as module
 
     ioc.scan_packages(module)
+
     result = ioc.has(module.Service)
     assert result
 
 
 def test_has_service_with_scope(ioc):
-    from .services.service_class import has_service_with_scope as module
+    from .services.service_function import has_service_with_scope as module
 
     ioc.scan_packages(module)
 
@@ -35,7 +36,7 @@ def test_has_service_with_scope(ioc):
 
 
 async def test_inject_singleton(ioc):
-    from .services.service_class import inject_singleton as module
+    from .services.service_function import inject_singleton as module
 
     ioc.scan_packages(module)
 
@@ -49,7 +50,7 @@ async def test_inject_singleton(ioc):
 
 
 async def test_inject_transient(ioc):
-    from .services.service_class import inject_transient as module
+    from .services.service_function import inject_transient as module
 
     ioc.scan_packages(module)
 
@@ -63,7 +64,7 @@ async def test_inject_transient(ioc):
 
 
 async def test_inject_dependent(ioc):
-    from .services.service_class import inject_dependent as module
+    from .services.service_function import inject_dependent as module
 
     ioc.scan_packages(module)
     context = Context()
@@ -83,7 +84,9 @@ async def test_inject_dependent(ioc):
 
 
 async def test_dependent_without_context_should_fail(ioc):
-    from .services.service_class import dependent_without_context_should_fail as module
+    from .services.service_function import (
+        dependent_without_context_should_fail as module,
+    )
 
     ioc.scan_packages(module)
 
@@ -92,7 +95,7 @@ async def test_dependent_without_context_should_fail(ioc):
 
 
 async def test_interface_implementation(ioc):
-    from .services.service_class import interface_implementation as module
+    from .services.service_function import interface_implementation as module
 
     ioc.scan_packages(module)
 
@@ -100,16 +103,35 @@ async def test_interface_implementation(ioc):
     assert isinstance(service, module.Implementation)
 
 
-def test_incompatible_types_should_fail():
-    with pytest.raises(IncompatibleTypesError):
-        from .services.service_class import incompatible_types_should_fail
+def test_factory_function_without_return_type_should_fail():
+    with pytest.raises(FactoryMissingReturnTypeError):
+        from .services.service_function import (
+            factory_function_without_return_type_should_fail,
+        )
+
+
+def test_provides_option_should_raise_warning(ioc):
+    with pytest.warns(UserWarning):
+        from .services.service_function import provides_option_should_raise_warning
+
+
+async def test_sync_factory(ioc):
+    from .services.service_function import sync_factory as module
+
+    ioc.scan_packages(module)
+
+    service = await ioc.get(module.Service)
+    assert isinstance(service, module.Service)
 
 
 async def test_register(ioc):
     class Service:
         pass
 
-    ioc.register(Service, Scope.SINGLETON)
+    def factory() -> Service:
+        return Service()
+
+    ioc.register(factory, Scope.SINGLETON)
     assert ioc.has(Service, Scope.SINGLETON)
 
     service = await ioc.get(Service)
@@ -123,8 +145,25 @@ async def test_register_with_provides(ioc):
     class Implementation(Interface):
         pass
 
-    ioc.register(Implementation, Scope.SINGLETON, provides=Interface)
+    def factory() -> Interface:
+        return Implementation()
+
+    ioc.register(factory, Scope.SINGLETON)
     assert ioc.has(Interface, Scope.SINGLETON)
 
     service = await ioc.get(Interface)
     assert isinstance(service, Implementation)
+
+
+def test_register_with_provides_option_should_raise_warning(ioc):
+    class Interface:
+        pass
+
+    class Implementation(Interface):
+        pass
+
+    def factory() -> Interface:
+        return Implementation()
+
+    with pytest.warns(UserWarning):
+        ioc.register(factory, Scope.SINGLETON, provides=Interface)

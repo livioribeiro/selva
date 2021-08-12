@@ -1,22 +1,35 @@
-from dependency_injector import Container
+import pytest
 
-c = Container()
+from dependency_injector import transient
+
+from . import ioc
+from .services import call as module
+
+pytestmark = pytest.mark.asyncio
 
 
-@c.transient
-class Service1:
-    pass
+async def test_call_function(ioc):
+    ioc.scan_packages(module)
 
-
-def test_call_function():
-    def caller(service1: Service1):
+    def caller(service1: module.Service):
         pass
 
-    c.call(caller)
+    await ioc.call(caller)
 
 
-def test_call_function_args():
-    def caller(service1: Service1, a: int):
+async def test_call_function_args(ioc):
+    ioc.scan_packages(module)
+
+    def caller(service1: module.Service, a: int):
         pass
 
-    c.call(caller, kwargs={"a": 1})
+    await ioc.call(caller, kwargs={"a": 1})
+
+
+async def test_call_async_function(ioc):
+    ioc.scan_packages(module)
+
+    async def caller(service1: module.Service):
+        pass
+
+    await ioc.call(caller)

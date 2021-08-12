@@ -6,10 +6,8 @@ from dependency_injector.errors import (
 )
 from dependency_injector.service import Scope
 
+from ..utils import Context
 from . import ioc
-from .utils import Context
-
-pytestmark = pytest.mark.asyncio
 
 
 def test_has_service(ioc):
@@ -34,69 +32,69 @@ def test_has_service_with_scope(ioc):
     assert result_singleton
 
 
-async def test_inject_singleton(ioc):
+def test_inject_singleton(ioc):
     from .services.service_class import inject_singleton as module
 
     ioc.scan_packages(module)
 
-    service = await ioc.get(module.Service2)
+    service = ioc.get(module.Service2)
     assert isinstance(service, module.Service2)
     assert isinstance(service.service1, module.Service1)
 
-    other_service = await ioc.get(module.Service2)
+    other_service = ioc.get(module.Service2)
     assert other_service is service
     assert other_service.service1 is service.service1
 
 
-async def test_inject_transient(ioc):
+def test_inject_transient(ioc):
     from .services.service_class import inject_transient as module
 
     ioc.scan_packages(module)
 
-    service = await ioc.get(module.Service2)
+    service = ioc.get(module.Service2)
     assert isinstance(service, module.Service2)
     assert type(service.service1) == module.Service1
 
-    other_service = await ioc.get(module.Service2)
+    other_service = ioc.get(module.Service2)
     assert other_service is not service
     assert other_service.service1 is not service.service1
 
 
-async def test_inject_dependent(ioc):
+def test_inject_dependent(ioc):
     from .services.service_class import inject_dependent as module
 
     ioc.scan_packages(module)
     context = Context()
 
-    service = await ioc.get(module.Service2, context=context)
+    service = ioc.get(module.Service2, context=context)
     assert isinstance(service, module.Service2)
     assert type(service.service1) == module.Service1
 
-    other_service = await ioc.get(module.Service2, context=context)
+    other_service = ioc.get(module.Service2, context=context)
     assert other_service is service
     assert other_service.service1 is service.service1
 
     context2 = Context()
-    another_service = await ioc.get(module.Service2, context=context2)
+    another_service = ioc.get(module.Service2, context=context2)
     assert another_service is not service
     assert another_service.service1 is not service.service1
 
 
-async def test_dependent_without_context_should_fail(ioc):
+def test_dependent_without_context_should_fail(ioc):
     from .services.service_class import dependent_without_context_should_fail as module
 
     ioc.scan_packages(module)
 
     with pytest.raises(MissingDependentContextError):
-        await ioc.get(module.Service)
+        ioc.get(module.Service)
 
 
-async def test_interface_implementation(ioc):
+def test_interface_implementation(ioc):
     from .services.service_class import interface_implementation as module
 
     ioc.scan_packages(module)
 
-    service = await ioc.get(module.Interface)
+    service = ioc.get(module.Interface)
     assert isinstance(service, module.Implementation)
 
 
@@ -105,18 +103,18 @@ def test_incompatible_types_should_fail():
         from .services.service_class import incompatible_types_should_fail
 
 
-async def test_register(ioc):
+def test_register(ioc):
     class Service:
         pass
 
     ioc.register(Service, Scope.SINGLETON)
     assert ioc.has(Service, Scope.SINGLETON)
 
-    service = await ioc.get(Service)
+    service = ioc.get(Service)
     assert isinstance(service, Service)
 
 
-async def test_register_with_provides(ioc):
+def test_register_with_provides(ioc):
     class Interface:
         pass
 
@@ -126,5 +124,5 @@ async def test_register_with_provides(ioc):
     ioc.register(Implementation, Scope.SINGLETON, provides=Interface)
     assert ioc.has(Interface, Scope.SINGLETON)
 
-    service = await ioc.get(Interface)
+    service = ioc.get(Interface)
     assert isinstance(service, Implementation)
