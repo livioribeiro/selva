@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import inspect
+import typing
 import warnings
 from types import FunctionType
-import typing
 from typing import Union
 
 from .errors import (

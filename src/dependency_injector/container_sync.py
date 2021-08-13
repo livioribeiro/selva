@@ -1,5 +1,5 @@
 import asyncio
-from typing import Any, Callable, Dict
+from typing import Any
 
 from dependency_injector.container import Container
 from dependency_injector.service import InjectableType, Scope
@@ -24,13 +24,5 @@ class SyncContainer:
             self._container.get(service_type, context=context)
         )
 
-    def call(
-        self,
-        func: Callable,
-        *,
-        context: Any = None,
-        kwargs: Dict[str, Any] = None,
-    ) -> Any:
-        return self._loop.run_until_complete(
-            self._container.call(func, context=context, kwargs=kwargs)
-        )
+    def call(self, *args, **kwargs) -> Any:
+        return self._loop.run_until_complete(self._container.call(*args, **kwargs))

@@ -57,8 +57,7 @@ class Container:
         if not definition:
             raise UnknownServiceError(service_type)
 
-        if not valid_scope:
-            valid_scope = definition.scope
+        valid_scope = valid_scope or definition.scope
 
         if not definition.accept_scope(valid_scope):
             requester = stack[0] if stack else None
@@ -66,13 +65,12 @@ class Container:
                 service_type, definition.scope.name, valid_scope.name, requester
             )
 
-        if not stack:
-            stack = list()
+        stack = stack or list()
 
         if service_type in stack:
             raise DependencyLoopError(stack + [service_type])
-        else:
-            stack.append(service_type)
+
+        stack.append(service_type)
 
         if definition.scope == Scope.SINGLETON:
             service = self.store_singleton.get(service_type)
@@ -119,8 +117,8 @@ class Container:
 
         if asyncio.iscoroutinefunction(factory):
             return await factory(**params)
-        else:
-            return await asyncio.wrap_future(self.executor.submit(factory, **params))
+
+        return await asyncio.wrap_future(self.executor.submit(factory, **params))
 
     async def call(
         self,
@@ -147,7 +145,7 @@ class Container:
 
         if asyncio.iscoroutinefunction(func):
             return await func(*func_args.args, **func_args.kwargs)
-        else:
-            return await asyncio.wrap_future(
-                self.executor.submit(func, *func_args.args, **func_args.kwargs)
-            )
+
+        return await asyncio.wrap_future(
+            self.executor.submit(func, *func_args.args, **func_args.kwargs)
+        )
