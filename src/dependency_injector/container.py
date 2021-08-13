@@ -140,10 +140,14 @@ class Container:
             if self.has(svc)
         }
 
-        # kwargs takes precedence
         params.update(kwargs)
 
+        func_args = inspect.signature(func).bind(**params)
+        func_args.apply_defaults()
+
         if asyncio.iscoroutinefunction(func):
-            return await func(**params)
+            return await func(*func_args.args, **func_args.kwargs)
         else:
-            return asyncio.wrap_future(self.executor.submit(func, kwargs=params))
+            return await asyncio.wrap_future(
+                self.executor.submit(func, *func_args.args, **func_args.kwargs)
+            )

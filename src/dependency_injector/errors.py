@@ -1,5 +1,5 @@
 from types import FunctionType
-from typing import List
+from typing import List, Any
 
 
 class DependencyInjectionError(Exception):
@@ -45,7 +45,7 @@ class MissingDependentContextError(DependencyInjectionError):
 
 
 class NonInjectableTypeError(DependencyInjectionError):
-    def __init__(self, service: type):
+    def __init__(self, service: Any):
         super().__init__(f"'{service}' is not injectable")
 
 

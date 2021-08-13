@@ -1,7 +1,10 @@
+from __future__ import annotations
+
 import inspect
 import warnings
 from types import FunctionType
-from typing import Union, get_type_hints
+import typing
+from typing import Union
 
 from .errors import (
     FactoryMissingReturnTypeError,
@@ -28,17 +31,19 @@ def transient(service: InjectableType = None, *, provides: type = None):
 def register(service: InjectableType = None, *, scope: Scope, provides: type = None):
     def register_func(service: InjectableType):
         if inspect.isclass(service):
+            service = typing.cast(type, service)
             if provides and not issubclass(service, provides):
                 raise IncompatibleTypesError(service, provides)
 
             provided_service = provides or service
         elif inspect.isfunction(service):
+            service = typing.cast(FunctionType, service)
             if provides:
                 warnings.warn(
                     UserWarning("option 'provides' on a factory function has no effect")
                 )
 
-            service_type = get_type_hints(service).get("return")
+            service_type = typing.get_type_hints(service).get("return")
             if service_type is None:
                 raise FactoryMissingReturnTypeError(service)
             provided_service = service_type
