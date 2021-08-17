@@ -2,23 +2,20 @@ import importlib
 import inspect
 import pkgutil
 from types import ModuleType
-from typing import Generator, Iterable, Tuple, Union
-
-from .service import ServiceDefinition
+from typing import Generator, Iterable, Union
 
 
 def find_injectables(
     module: ModuleType,
-) -> Generator[Tuple[type, ServiceDefinition], None, None]:
+) -> Generator[type, None, None]:
     for _, i in inspect.getmembers(module):
         if hasattr(i, "__dependency_injector__"):
-            service_definition = i.__dependency_injector__
-            yield (service_definition.provides, service_definition)
+            yield i
 
 
 def scan_packages(
     *modules_to_scan: Union[str, ModuleType],
-) -> Iterable[Tuple[type, ServiceDefinition]]:
+) -> Iterable[type]:
     for module_to_scan in modules_to_scan:
         if isinstance(module_to_scan, str):
             module_to_scan = importlib.import_module(module_to_scan)

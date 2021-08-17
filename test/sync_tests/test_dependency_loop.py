@@ -7,6 +7,6 @@ from .services import dependency_loop as module
 
 
 def test_dependency_loop(ioc):
-    ioc.scan_packages(module)
+    ioc.scan(module)
     with pytest.raises(DependencyLoopError):
         ioc.get(module.Service2)

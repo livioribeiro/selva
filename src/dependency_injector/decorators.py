@@ -1,15 +1,7 @@
-import inspect
-import typing
-import warnings
 from types import FunctionType
 from typing import Union
 
-from .errors import (
-    FactoryMissingReturnTypeError,
-    IncompatibleTypesError,
-    NonInjectableTypeError,
-)
-from .service import Scope, ServiceDefinition
+from .service import Scope, ServiceInfo
 
 InjectableType = Union[type, FunctionType]
 
@@ -28,30 +20,7 @@ def transient(service: InjectableType = None, *, provides: type = None):
 
 def register(service: InjectableType = None, *, scope: Scope, provides: type = None):
     def register_func(service: InjectableType):
-        if inspect.isclass(service):
-            service = typing.cast(type, service)
-            if provides and not issubclass(service, provides):
-                raise IncompatibleTypesError(service, provides)
-
-            provided_service = provides or service
-        elif inspect.isfunction(service):
-            service = typing.cast(FunctionType, service)
-            if provides:
-                warnings.warn(
-                    UserWarning("option 'provides' on a factory function has no effect")
-                )
-
-            service_type = typing.get_type_hints(service).get("return")
-            if service_type is None:
-                raise FactoryMissingReturnTypeError(service)
-            provided_service = service_type
-        else:
-            raise NonInjectableTypeError(service)
-
-        service_info = ServiceDefinition(
-            provides=provided_service, scope=scope, factory=service
-        )
-        setattr(service, "__dependency_injector__", service_info)
+        setattr(service, "__dependency_injector__", ServiceInfo(scope, provides))
         return service
 
     return register_func(service) if service else register_func

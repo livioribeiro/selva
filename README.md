@@ -66,11 +66,11 @@ async def main():
     ioc = Container()
 
     # Tell container to scan package for services
-    ioc.scan_packages("app.services")
+    ioc.scan("app.services")
 
     # also works with module instances
     from app import services
-    ioc.scan_packages(services)
+    ioc.scan(services)
 
     # Get an instance of Service2
     service2 = await ioc.get(Service2)
@@ -87,7 +87,7 @@ from app.services import Service1, Service2
 
 ioc = SyncContainer()
 
-ioc.scan_packages("app.services")
+ioc.scan("app.services")
 
 service2 = ioc.get(Service2)
 assert isinstance(service2.service1, Service1)
@@ -100,6 +100,7 @@ Interface with implementation
 
 from abc import ABC, abstractmethod
 from dependency_injector import singleton
+
 
 class Interface(ABC):
     @abstractmethod
@@ -127,7 +128,7 @@ from app.services import Interface, Implementation
 
 async def main():
     ioc = Container()
-    ioc.scan_packages("app.services")
+    ioc.scan("app.services")
     service = ioc.get(Interface)
     assert isinstance(service, Implementation)
 ```
@@ -173,6 +174,7 @@ Transient services
 
 from dependency_injector import transient
 
+
 @transient
 class TransientService:
     pass
@@ -187,7 +189,7 @@ from app.services import TransientService
 
 async def main():
     ioc = Container()
-    ioc.scan_packages("app.services")
+    ioc.scan("app.services")
 
     instance1 = await ioc.get(TransientService)
     instance2 = await ioc.get(TransientService)
@@ -216,6 +218,7 @@ class DependentService:
 from dependency_injector import Container
 from app.services import DependentService
 
+
 # Define a context object
 class MyContext:
     pass
@@ -223,7 +226,7 @@ class MyContext:
 
 async def main():
     ioc = Container()
-    ioc.scan_packages("app.services")
+    ioc.scan("app.services")
 
     context1 = MyContext()
 

@@ -9,6 +9,6 @@ pytestmark = pytest.mark.asyncio
 
 
 async def test_dependency_loop(ioc):
-    ioc.scan_packages(module)
+    ioc.scan(module)
     with pytest.raises(DependencyLoopError):
         await ioc.get(module.Service2)

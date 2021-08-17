@@ -52,3 +52,8 @@ class NonInjectableTypeError(DependencyInjectionError):
 class FactoryMissingReturnTypeError(DependencyInjectionError):
     def __init__(self, factory: FunctionType):
         super().__init__(f"factory '{factory.__qualname__}' is missing return type")
+
+
+class ServiceAlreadyRegisteredError(DependencyInjectionError):
+    def __init__(self, service: type):
+        super().__init__(f"service '{service.__qualname__}' is already registered")

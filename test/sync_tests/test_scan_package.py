@@ -6,7 +6,7 @@ def test_scan_package(ioc):
     from .services.scan_package.service1 import Service1
     from .services.scan_package.service2 import Service2
 
-    ioc.scan_packages(module)
+    ioc.scan(module)
 
     assert ioc.has(Service1)
     assert ioc.has(Service2)
@@ -22,7 +22,7 @@ def test_scan_package_name(ioc):
     from .services.scan_package.service1 import Service1
     from .services.scan_package.service2 import Service2
 
-    ioc.scan_packages("test.sync_tests.services.scan_package")
+    ioc.scan("test.sync_tests.services.scan_package")
 
     assert ioc.has(Service1)
     assert ioc.has(Service2)
@@ -39,7 +39,7 @@ def test_scan_multiple_packages(ioc):
     from .services.scan_package.service1 import Service1
     from .services.scan_package.service2 import Service2
 
-    ioc.scan_packages(service1, "test.sync_tests.services.scan_package.service2")
+    ioc.scan(service1, "test.sync_tests.services.scan_package.service2")
 
     assert ioc.has(Service1)
     assert ioc.has(Service2)

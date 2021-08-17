@@ -1,14 +1,20 @@
 import asyncio
 import inspect
+import typing
+import warnings
 from concurrent.futures import ThreadPoolExecutor
-from typing import Any, Callable, Dict, List, Optional, get_type_hints
+from types import FunctionType, ModuleType
+from typing import Any, Callable, Dict, List, Optional, Union
 from weakref import finalize
 
-from dependency_injector import decorators
 from dependency_injector.errors import (
     DependencyLoopError,
+    FactoryMissingReturnTypeError,
+    IncompatibleTypesError,
     InvalidScopeError,
     MissingDependentContextError,
+    NonInjectableTypeError,
+    ServiceAlreadyRegisteredError,
     UnknownServiceError,
 )
 from dependency_injector.scan import scan_packages
@@ -23,12 +29,43 @@ class Container:
         self.executor = ThreadPoolExecutor()
 
     def register(self, service: InjectableType, scope: Scope, *, provides: type = None):
-        decorators.register(service, scope=scope, provides=provides)
-        service_definition = getattr(service, "__dependency_injector__")
-        self.registry[service_definition.provides] = service_definition
+        # decorators.register(service, scope=scope, provides=provides)
+        # service_definition = getattr(service, "__dependency_injector__")
+        # self.registry[service_definition.provides] = service_definition
+        self._register(service, scope, provides)
 
-    def scan_packages(self, *packages):
-        self.registry.update(scan_packages(*packages))
+    def _register(self, service: InjectableType, scope: Scope, provides: type = None):
+        if inspect.isclass(service):
+            service = typing.cast(type, service)
+            if provides and not issubclass(service, provides):
+                raise IncompatibleTypesError(service, provides)
+
+            provided_service = provides or service
+        elif inspect.isfunction(service):
+            service = typing.cast(FunctionType, service)
+            if provides:
+                warnings.warn(
+                    UserWarning("option 'provides' on a factory function has no effect")
+                )
+
+            service_type = typing.get_type_hints(service).get("return")
+            if service_type is None:
+                raise FactoryMissingReturnTypeError(service)
+            provided_service = service_type
+        else:
+            raise NonInjectableTypeError(service)
+
+        if provided_service in self.registry:
+            raise ServiceAlreadyRegisteredError(provided_service)
+
+        self.registry[provided_service] = ServiceDefinition(
+            provides=provided_service, scope=scope, factory=service
+        )
+
+    def scan(self, *packages: Union[str, ModuleType]):
+        for service in scan_packages(*packages):
+            scope, provides = getattr(service, "__dependency_injector__")
+            self._register(service, scope, provides)
 
     def _get_definition(self, service_type: type) -> Optional[ServiceDefinition]:
         return self.registry.get(service_type)
@@ -105,7 +142,7 @@ class Container:
     ):
         factory = definition.factory
 
-        types = get_type_hints(
+        types = typing.get_type_hints(
             factory.__init__ if inspect.isclass(factory) else factory
         )
         types.pop("return", None)
@@ -129,7 +166,7 @@ class Container:
     ) -> Any:
         kwargs = kwargs or dict()
 
-        types = get_type_hints(func)
+        types = typing.get_type_hints(func)
         types.pop("return", None)
 
         params = {

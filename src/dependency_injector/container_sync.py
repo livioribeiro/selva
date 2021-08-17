@@ -1,5 +1,6 @@
 import asyncio
-from typing import Any
+from types import ModuleType
+from typing import Any, Union
 
 from dependency_injector.container import Container
 from dependency_injector.service import InjectableType, Scope
@@ -13,8 +14,8 @@ class SyncContainer:
     def register(self, service: InjectableType, scope: Scope, *, provides: type = None):
         self._container.register(service, scope, provides=provides)
 
-    def scan_packages(self, *packages):
-        return self._container.scan_packages(*packages)
+    def scan(self, *packages: Union[str, ModuleType]):
+        return self._container.scan(*packages)
 
     def has(self, service_type: type, scope: Scope = None) -> bool:
         return self._container.has(service_type, scope)

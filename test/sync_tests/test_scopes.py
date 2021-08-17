@@ -9,7 +9,7 @@ from . import ioc
 def test_inject_transient_into_dependent_should_fail(ioc):
     from .services.scopes import inject_transient_into_dependent_should_fail as module
 
-    ioc.scan_packages(module)
+    ioc.scan(module)
     context = Context()
 
     with pytest.raises(InvalidScopeError):
@@ -19,7 +19,7 @@ def test_inject_transient_into_dependent_should_fail(ioc):
 def test_inject_dependent_into_singleton_should_fail(ioc):
     from .services.scopes import inject_dependent_into_singleton_should_fail as module
 
-    ioc.scan_packages(module)
+    ioc.scan(module)
     with pytest.raises(InvalidScopeError):
         ioc.get(module.Service2)
 
@@ -27,7 +27,7 @@ def test_inject_dependent_into_singleton_should_fail(ioc):
 def test_inject_transient_into_singleton_should_fail(ioc):
     from .services.scopes import inject_transient_into_singleton_should_fail as module
 
-    ioc.scan_packages(module)
+    ioc.scan(module)
     with pytest.raises(InvalidScopeError):
         ioc.get(module.Service2)
 
@@ -35,7 +35,7 @@ def test_inject_transient_into_singleton_should_fail(ioc):
 def test_dependent_scope_cleanup(ioc):
     from .services.scopes import dependent_scope_cleanup as module
 
-    ioc.scan_packages(module)
+    ioc.scan(module)
     context = Context()
 
     ioc.get(module.Service1, context=context)

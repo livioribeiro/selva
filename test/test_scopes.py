@@ -11,7 +11,7 @@ pytestmark = pytest.mark.asyncio
 async def test_inject_transient_into_dependent_should_fail(ioc):
     from .services.scopes import inject_transient_into_dependent_should_fail as module
 
-    ioc.scan_packages(module)
+    ioc.scan(module)
     context = Context()
 
     with pytest.raises(InvalidScopeError):
@@ -21,7 +21,7 @@ async def test_inject_transient_into_dependent_should_fail(ioc):
 async def test_inject_dependent_into_singleton_should_fail(ioc):
     from .services.scopes import inject_dependent_into_singleton_should_fail as module
 
-    ioc.scan_packages(module)
+    ioc.scan(module)
     with pytest.raises(InvalidScopeError):
         await ioc.get(module.Service2)
 
@@ -29,7 +29,7 @@ async def test_inject_dependent_into_singleton_should_fail(ioc):
 async def test_inject_transient_into_singleton_should_fail(ioc):
     from .services.scopes import inject_transient_into_singleton_should_fail as module
 
-    ioc.scan_packages(module)
+    ioc.scan(module)
     with pytest.raises(InvalidScopeError):
         await ioc.get(module.Service2)
 
@@ -37,7 +37,7 @@ async def test_inject_transient_into_singleton_should_fail(ioc):
 async def test_dependent_scope_cleanup(ioc):
     from .services.scopes import dependent_scope_cleanup as module
 
-    ioc.scan_packages(module)
+    ioc.scan(module)
     context = Context()
 
     await ioc.get(module.Service1, context=context)

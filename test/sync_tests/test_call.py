@@ -4,7 +4,7 @@ from .services import call as module
 
 
 def test_call_function(ioc):
-    ioc.scan_packages(module)
+    ioc.scan(module)
 
     def func(service1: module.Service1):
         return service1
@@ -14,7 +14,7 @@ def test_call_function(ioc):
 
 
 def test_call_async_function(ioc):
-    ioc.scan_packages(module)
+    ioc.scan(module)
 
     async def func(service1: module.Service1):
         return service1
@@ -24,7 +24,7 @@ def test_call_async_function(ioc):
 
 
 def test_call_function_multipe_services(ioc):
-    ioc.scan_packages(module)
+    ioc.scan(module)
 
     def func(service1: module.Service1, service2: module.Service2):
         return service1, service2
@@ -35,7 +35,7 @@ def test_call_function_multipe_services(ioc):
 
 
 def test_call_async_function_multipe_services(ioc):
-    ioc.scan_packages(module)
+    ioc.scan(module)
 
     async def func(service1: module.Service1, service2: module.Service2):
         return service1, service2
@@ -46,7 +46,7 @@ def test_call_async_function_multipe_services(ioc):
 
 
 def test_call_function_args(ioc):
-    ioc.scan_packages(module)
+    ioc.scan(module)
 
     def func(service1: module.Service1, a):
         return service1, a
@@ -57,7 +57,7 @@ def test_call_function_args(ioc):
 
 
 def test_call_async_function_args(ioc):
-    ioc.scan_packages(module)
+    ioc.scan(module)
 
     async def func(service1: module.Service1, a):
         return service1, a
@@ -68,7 +68,7 @@ def test_call_async_function_args(ioc):
 
 
 def test_call_function_args_order(ioc):
-    ioc.scan_packages(module)
+    ioc.scan(module)
 
     def func(a, service1: module.Service1):
         return a, service1
@@ -79,7 +79,7 @@ def test_call_function_args_order(ioc):
 
 
 def test_call_async_function_args_order(ioc):
-    ioc.scan_packages(module)
+    ioc.scan(module)
 
     async def func(a, service1: module.Service1):
         return a, service1
@@ -90,7 +90,7 @@ def test_call_async_function_args_order(ioc):
 
 
 def test_call_function_args_keyword_only(ioc):
-    ioc.scan_packages(module)
+    ioc.scan(module)
 
     def func1(service1: module.Service1, *, a: int):
         return service1, a
@@ -109,7 +109,7 @@ def test_call_function_args_keyword_only(ioc):
 
 
 def test_call_async_function_args_keyword_only(ioc):
-    ioc.scan_packages(module)
+    ioc.scan(module)
 
     async def func1(service1: module.Service1, *, a: int):
         return service1, a
@@ -128,7 +128,7 @@ def test_call_async_function_args_keyword_only(ioc):
 
 
 def test_call_function_with_context(ioc):
-    ioc.scan_packages(module)
+    ioc.scan(module)
 
     def func(service: module.ServiceDependent):
         return service
@@ -140,7 +140,7 @@ def test_call_function_with_context(ioc):
 
 
 def test_call_async_function_with_context(ioc):
-    ioc.scan_packages(module)
+    ioc.scan(module)
 
     async def func(service: module.ServiceDependent):
         return service
