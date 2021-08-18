@@ -39,8 +39,8 @@ def test_dependent_scope_cleanup(ioc):
     context = Context()
 
     ioc.get(module.Service1, context=context)
-    assert id(context) in ioc._container.store_dependent
+    assert id(context) in ioc.container.store_dependent
 
     del context
 
-    assert len(ioc._container.store_dependent) == 0
+    assert len(ioc.container.store_dependent) == 0

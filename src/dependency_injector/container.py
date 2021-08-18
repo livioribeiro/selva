@@ -2,7 +2,9 @@ import asyncio
 import inspect
 import typing
 import warnings
-from concurrent.futures import ThreadPoolExecutor
+from asyncio import AbstractEventLoop
+from concurrent.futures import Executor, ThreadPoolExecutor
+from functools import partial
 from types import FunctionType, ModuleType
 from typing import Any, Callable, Dict, List, Optional, Union
 from weakref import finalize
@@ -22,19 +24,14 @@ from dependency_injector.service import InjectableType, Scope, ServiceDefinition
 
 
 class Container:
-    def __init__(self):
+    def __init__(self, loop: AbstractEventLoop = None, executor: Executor = None):
         self.registry: Dict[type, ServiceDefinition] = dict()
         self.store_singleton: Dict[type, Any] = dict()
         self.store_dependent: Dict[int, Dict[type, Any]] = dict()
-        self.executor = ThreadPoolExecutor()
+        self.loop = loop or asyncio.get_event_loop()
+        self.executor = executor or ThreadPoolExecutor()
 
     def register(self, service: InjectableType, scope: Scope, *, provides: type = None):
-        # decorators.register(service, scope=scope, provides=provides)
-        # service_definition = getattr(service, "__dependency_injector__")
-        # self.registry[service_definition.provides] = service_definition
-        self._register(service, scope, provides)
-
-    def _register(self, service: InjectableType, scope: Scope, provides: type = None):
         if inspect.isclass(service):
             service = typing.cast(type, service)
             if provides and not issubclass(service, provides):
@@ -65,7 +62,7 @@ class Container:
     def scan(self, *packages: Union[str, ModuleType]):
         for service in scan_packages(*packages):
             scope, provides = getattr(service, "__dependency_injector__")
-            self._register(service, scope, provides)
+            self.register(service, scope, provides=provides)
 
     def _get_definition(self, service_type: type) -> Optional[ServiceDefinition]:
         return self.registry.get(service_type)
@@ -155,29 +152,28 @@ class Container:
         if asyncio.iscoroutinefunction(factory):
             return await factory(**params)
 
-        return await asyncio.wrap_future(self.executor.submit(factory, **params))
+        return await self.loop.run_in_executor(
+            self.executor, partial(factory, **params)
+        )
 
     async def call(
         self,
         func: Callable,
         *,
         context: Any = None,
+        args: List[Any] = None,
         kwargs: Dict[str, Any] = None,
     ) -> Any:
+        args = args or list()
         kwargs = kwargs or dict()
 
-        types = typing.get_type_hints(func)
-        types.pop("return", None)
+        types = [(k, v) for k, v in typing.get_type_hints(func).items() if self.has(v)]
 
-        params = {
-            name: await self.get(svc, context=context)
-            for name, svc in types.items()
-            if self.has(svc)
-        }
+        params = {name: await self.get(svc, context=context) for name, svc in types}
 
         params.update(kwargs)
 
-        func_args = inspect.signature(func).bind(**params)
+        func_args = inspect.signature(func).bind(*args, **params)
         func_args.apply_defaults()
 
         if asyncio.iscoroutinefunction(func):

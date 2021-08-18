@@ -1,3 +1,5 @@
+import pytest
+
 from ..utils import Context
 from . import ioc
 from .services import call as module
@@ -45,7 +47,7 @@ def test_call_async_function_multipe_services(ioc):
     assert isinstance(service2, module.Service2)
 
 
-def test_call_function_args(ioc):
+def test_call_function_kwargs(ioc):
     ioc.scan(module)
 
     def func(service1: module.Service1, a):
@@ -56,7 +58,7 @@ def test_call_function_args(ioc):
     assert a == 1
 
 
-def test_call_async_function_args(ioc):
+def test_call_async_function_kwargs(ioc):
     ioc.scan(module)
 
     async def func(service1: module.Service1, a):
@@ -67,24 +69,24 @@ def test_call_async_function_args(ioc):
     assert a == 1
 
 
-def test_call_function_args_order(ioc):
+def test_call_function_args(ioc):
     ioc.scan(module)
 
     def func(a, service1: module.Service1):
         return a, service1
 
-    a, service1 = ioc.call(func, kwargs={"a": 1})
+    a, service1 = ioc.call(func, args=[1])
     assert isinstance(service1, module.Service1)
     assert a == 1
 
 
-def test_call_async_function_args_order(ioc):
+def test_call_async_function_args(ioc):
     ioc.scan(module)
 
     async def func(a, service1: module.Service1):
         return a, service1
 
-    a, service1 = ioc.call(func, kwargs={"a": 1})
+    a, service1 = ioc.call(func, args=[1])
     assert isinstance(service1, module.Service1)
     assert a == 1
 
@@ -127,6 +129,26 @@ def test_call_async_function_args_keyword_only(ioc):
     assert a2 == 2
 
 
+def test_call_function_param_after_dependencies_should_fail(ioc):
+    ioc.scan(module)
+
+    def func(a, service1: module.Service1):
+        pass
+
+    with pytest.raises(Exception):
+        ioc.call(func, [1])
+
+
+def test_call_async_function_param_after_dependencies_should_fail(ioc):
+    ioc.scan(module)
+
+    async def func(a, service1: module.Service1):
+        pass
+
+    with pytest.raises(Exception):
+        ioc.call(func, [1])
+
+
 def test_call_function_with_context(ioc):
     ioc.scan(module)
 
@@ -137,6 +159,7 @@ def test_call_function_with_context(ioc):
 
     result = ioc.call(func, context=context)
     assert isinstance(result, module.ServiceDependent)
+    assert id(context) in ioc.container.store_dependent
 
 
 def test_call_async_function_with_context(ioc):
@@ -149,3 +172,4 @@ def test_call_async_function_with_context(ioc):
 
     result = ioc.call(func, context=context)
     assert isinstance(result, module.ServiceDependent)
+    assert id(context) in ioc.container.store_dependent
