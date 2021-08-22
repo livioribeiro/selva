@@ -10,6 +10,7 @@ from typing import Any, Callable, Dict, List, Optional, Union
 from weakref import finalize
 
 from dependency_injector.errors import (
+    CalledNonCallableError,
     DependencyLoopError,
     FactoryMissingReturnTypeError,
     IncompatibleTypesError,
@@ -130,13 +131,20 @@ class Container:
 
         return service
 
+    async def create(self, service: type, *, context: Any = None) -> Any:
+        dependencies = {
+            n: (await self._get(s, context, Scope.TRANSIENT))
+            for n, s in typing.get_type_hints(service.__init__).items()
+        }
+        return service(**dependencies)
+
     async def _create_service(
         self,
         valid_scope: Scope,
         stack: List[type],
         definition: ServiceDefinition,
         context: Any = None,
-    ):
+    ) -> Any:
         factory = definition.factory
 
         types = typing.get_type_hints(
@@ -158,7 +166,7 @@ class Container:
 
     async def call(
         self,
-        func: Callable,
+        callable_obj: Callable,
         *,
         context: Any = None,
         args: List[Any] = None,
@@ -166,6 +174,14 @@ class Container:
     ) -> Any:
         args = args or list()
         kwargs = kwargs or dict()
+
+        if not callable(callable_obj):
+            raise CalledNonCallableError(callable_obj)
+
+        if inspect.isfunction(callable_obj):
+            func = callable_obj
+        else:
+            func = callable_obj.__call__
 
         types = [(k, v) for k, v in typing.get_type_hints(func).items() if self.has(v)]
 
@@ -179,6 +195,6 @@ class Container:
         if asyncio.iscoroutinefunction(func):
             return await func(*func_args.args, **func_args.kwargs)
 
-        return await asyncio.wrap_future(
-            self.executor.submit(func, *func_args.args, **func_args.kwargs)
+        return await self.loop.run_in_executor(
+            self.executor, partial(func, *func_args.args, **func_args.kwargs)
         )

@@ -1,5 +1,6 @@
 import asyncio
 from asyncio import AbstractEventLoop
+from concurrent.futures import Executor, ThreadPoolExecutor
 from types import ModuleType
 from typing import Any, Union
 
@@ -8,9 +9,10 @@ from dependency_injector.service import InjectableType, Scope
 
 
 class SyncContainer:
-    def __init__(self, loop: AbstractEventLoop = None):
+    def __init__(self, loop: AbstractEventLoop = None, executor: Executor = None):
         self.loop = loop or asyncio.get_event_loop()
-        self.container = Container(loop=self.loop)
+        executor = executor or ThreadPoolExecutor()
+        self.container = Container(loop=self.loop, executor=executor)
 
     def register(self, service: InjectableType, scope: Scope, *, provides: type = None):
         self.container.register(service, scope, provides=provides)
@@ -24,6 +26,11 @@ class SyncContainer:
     def get(self, service_type: type, *, context: Any = None) -> Any:
         return self.loop.run_until_complete(
             self.container.get(service_type, context=context)
+        )
+
+    def create(self, service_type: type, *, context: Any = None) -> Any:
+        return self.loop.run_until_complete(
+            self.container.create(service_type, context=context)
         )
 
     def call(self, *args, **kwargs) -> Any:

@@ -57,3 +57,8 @@ class FactoryMissingReturnTypeError(DependencyInjectionError):
 class ServiceAlreadyRegisteredError(DependencyInjectionError):
     def __init__(self, service: type):
         super().__init__(f"service '{service.__qualname__}' is already registered")
+
+
+class CalledNonCallableError(DependencyInjectionError):
+    def __init__(self, called: Any):
+        super().__init__(f"{called} is not callable")

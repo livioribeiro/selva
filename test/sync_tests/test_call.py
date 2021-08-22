@@ -1,5 +1,7 @@
 import pytest
 
+from dependency_injector.errors import CalledNonCallableError
+
 from ..utils import Context
 from . import ioc
 from .services import call as module
@@ -173,3 +175,39 @@ def test_call_async_function_with_context(ioc):
     result = ioc.call(func, context=context)
     assert isinstance(result, module.ServiceDependent)
     assert id(context) in ioc.container.store_dependent
+
+
+def test_call_callable_object(ioc):
+    ioc.scan(module)
+
+    class CallableClass:
+        def __call__(self, service: module.Service1):
+            return service
+
+    callable_object = CallableClass()
+
+    result = ioc.call(callable_object)
+    assert isinstance(result, module.Service1)
+
+
+def test_call_async_callable_object(ioc):
+    ioc.scan(module)
+
+    class CallableClass:
+        async def __call__(self, service: module.Service1):
+            return service
+
+    callable_object = CallableClass()
+
+    result = ioc.call(callable_object)
+    assert isinstance(result, module.Service1)
+
+
+def test_call_non_callable_object_should_fail(ioc):
+    class NonCallableClass:
+        pass
+
+    non_callable_object = NonCallableClass()
+
+    with pytest.raises(CalledNonCallableError):
+        ioc.call(non_callable_object)
