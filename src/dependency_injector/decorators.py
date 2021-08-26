@@ -3,6 +3,8 @@ from typing import Union
 
 from .service import Scope, ServiceInfo
 
+DEPENDENCY_ATRIBUTE = "__dependency__"
+
 InjectableType = Union[type, FunctionType]
 
 
@@ -20,7 +22,7 @@ def transient(service: InjectableType = None, *, provides: type = None):
 
 def register(service: InjectableType = None, *, scope: Scope, provides: type = None):
     def register_func(service: InjectableType):
-        setattr(service, "__dependency_injector__", ServiceInfo(scope, provides))
+        setattr(service, DEPENDENCY_ATRIBUTE, ServiceInfo(scope, provides))
         return service
 
     return register_func(service) if service else register_func

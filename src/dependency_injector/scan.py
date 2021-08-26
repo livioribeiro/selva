@@ -4,12 +4,14 @@ import pkgutil
 from types import ModuleType
 from typing import Generator, Iterable, Union
 
+from dependency_injector.decorators import DEPENDENCY_ATRIBUTE
+
 
 def find_injectables(
     module: ModuleType,
 ) -> Generator[type, None, None]:
     for _, i in inspect.getmembers(module):
-        if hasattr(i, "__dependency_injector__"):
+        if hasattr(i, DEPENDENCY_ATRIBUTE):
             yield i
 
 

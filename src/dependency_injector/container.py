@@ -9,6 +9,7 @@ from types import FunctionType, ModuleType
 from typing import Any, Callable, Dict, List, Optional, Union
 from weakref import finalize
 
+from dependency_injector.decorators import DEPENDENCY_ATRIBUTE
 from dependency_injector.errors import (
     CalledNonCallableError,
     DependencyLoopError,
@@ -26,9 +27,9 @@ from dependency_injector.service import InjectableType, Scope, ServiceDefinition
 
 class Container:
     def __init__(self, loop: AbstractEventLoop = None, executor: Executor = None):
-        self.registry: Dict[type, ServiceDefinition] = dict()
-        self.store_singleton: Dict[type, Any] = dict()
-        self.store_dependent: Dict[int, Dict[type, Any]] = dict()
+        self.registry: Dict[type, ServiceDefinition] = {}
+        self.store_singleton: Dict[type, Any] = {}
+        self.store_dependent: Dict[int, Dict[type, Any]] = {}
         self.loop = loop or asyncio.get_event_loop()
         self.executor = executor or ThreadPoolExecutor()
 
@@ -42,9 +43,8 @@ class Container:
         elif inspect.isfunction(service):
             service = typing.cast(FunctionType, service)
             if provides:
-                warnings.warn(
-                    UserWarning("option 'provides' on a factory function has no effect")
-                )
+                msg = "option 'provides' on a factory function has no effect"
+                warnings.warn(UserWarning(msg))
 
             service_type = typing.get_type_hints(service).get("return")
             if service_type is None:
@@ -62,7 +62,7 @@ class Container:
 
     def scan(self, *packages: Union[str, ModuleType]):
         for service in scan_packages(*packages):
-            scope, provides = getattr(service, "__dependency_injector__")
+            scope, provides = getattr(service, DEPENDENCY_ATRIBUTE)
             self.register(service, scope, provides=provides)
 
     def _get_definition(self, service_type: type) -> Optional[ServiceDefinition]:
