@@ -159,6 +159,7 @@ class Interface:
 class Implementation(Interface):
     pass
 
+
 async def main():
     ioc.register(Implementation, Scope.SINGLETON, provides=Interface)
 
@@ -262,4 +263,28 @@ def function_with_params(service1: Service1, parameter: int):
 
 ioc.call(function, kwargs={"parameter": 1})
 
+```
+
+Define generic services
+
+```python
+from typing import Generic, TypeVar
+from dependency_injector import Container, Scope
+
+T = TypeVar("T")
+
+
+class Interface(Generic[T]):
+    pass
+
+
+class Implementation(Interface[int]):
+    pass
+
+
+async def main():
+    ioc.register(Implementation, Scope.SINGLETON, provides=Interface[int])
+
+    service = await ioc.get(Interface[int])
+    assert isinstance(service, Implementation)
 ```

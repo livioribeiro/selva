@@ -1,5 +1,13 @@
+import inspect
 from types import FunctionType
 from typing import Any, List
+
+
+def _type_name(service):
+    if inspect.isclass(service) or inspect.isfunction(service):
+        return service.__qualname__
+
+    return str(service)
 
 
 class DependencyInjectionError(Exception):
@@ -10,10 +18,10 @@ class InvalidScopeError(DependencyInjectionError):
     def __init__(
         self, service: type, scope: str, requested_scope: str, requester: type = None
     ):
-        msg = f"service '{service.__qualname__}' with scope '{scope}'"
+        msg = f"service '{_type_name(service)}' with scope '{scope}'"
 
         if requester:
-            msg += f", requested from '{service.__qualname__}'"
+            msg += f", requested from '{_type_name(service)}'"
 
         msg += f" cannot be requested from scope '{requested_scope}'."
 
@@ -27,16 +35,16 @@ class DependencyLoopError(DependencyInjectionError):
 
 
 class IncompatibleTypesError(DependencyInjectionError):
-    def __init__(self, service: type, interface: type):
+    def __init__(self, implementation: type, interface: type):
         super().__init__(
-            f"service '{service.__qualname__}'"
-            f" does not derive from '{interface.__qualname__}'"
+            f"service '{_type_name(implementation)}'"
+            f" does not derive from '{_type_name(interface)}'"
         )
 
 
 class UnknownServiceError(DependencyInjectionError):
     def __init__(self, service: type):
-        super().__init__(f"Service '{service.__qualname__}' is not known")
+        super().__init__(f"Service '{_type_name(service)}' is not known")
 
 
 class MissingDependentContextError(DependencyInjectionError):
@@ -51,14 +59,19 @@ class NonInjectableTypeError(DependencyInjectionError):
 
 class FactoryMissingReturnTypeError(DependencyInjectionError):
     def __init__(self, factory: FunctionType):
-        super().__init__(f"factory '{factory.__qualname__}' is missing return type")
+        super().__init__(f"factory '{_type_name(factory)}' is missing return type")
 
 
 class ServiceAlreadyRegisteredError(DependencyInjectionError):
     def __init__(self, service: type):
-        super().__init__(f"service '{service.__qualname__}' is already registered")
+        super().__init__(f"service '{_type_name(service)}' is already registered")
 
 
 class CalledNonCallableError(DependencyInjectionError):
     def __init__(self, called: Any):
-        super().__init__(f"{called} is not callable")
+        super().__init__(f"{_type_name(called)} is not callable")
+
+
+class TypeVarInGenericServiceError(DependencyInjectionError):
+    def __init__(self, provided: type):
+        super().__init__(f"{_type_name(provided)} has generic types")

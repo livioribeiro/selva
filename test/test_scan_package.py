@@ -39,11 +39,11 @@ async def test_scan_package_name(ioc):
 
 
 async def test_scan_multiple_packages(ioc):
-    from .services.scan_package import service1
+    from .services.scan_package import service1 as module
     from .services.scan_package.service1 import Service1
     from .services.scan_package.service2 import Service2
 
-    ioc.scan(service1, "test.services.scan_package.service2")
+    ioc.scan(module, "test.services.scan_package.service2")
 
     assert ioc.has(Service1)
     assert ioc.has(Service2)
@@ -53,3 +53,13 @@ async def test_scan_multiple_packages(ioc):
 
     assert isinstance(service1, Service1)
     assert isinstance(service2, Service2)
+
+
+async def test_scan_generic_class(ioc):
+    from .services.scan_package import generic as module
+
+    ioc.scan(module)
+    assert ioc.has(module.Interface[int])
+
+    service = await ioc.get(module.Interface[int])
+    assert isinstance(service, module.Implementation)

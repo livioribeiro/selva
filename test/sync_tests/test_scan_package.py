@@ -49,3 +49,13 @@ def test_scan_multiple_packages(ioc):
 
     assert isinstance(service1, Service1)
     assert isinstance(service2, Service2)
+
+
+def test_scan_generic_class(ioc):
+    from .services.scan_package import generic as module
+
+    ioc.scan(module)
+    assert ioc.has(module.Interface[int])
+
+    service = ioc.get(module.Interface[int])
+    assert isinstance(service, module.Implementation)

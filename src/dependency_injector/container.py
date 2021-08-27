@@ -6,7 +6,7 @@ from asyncio import AbstractEventLoop
 from concurrent.futures import Executor, ThreadPoolExecutor
 from functools import partial
 from types import FunctionType, ModuleType
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, TypeVar, Union
 from weakref import finalize
 
 from dependency_injector.decorators import DEPENDENCY_ATRIBUTE
@@ -19,6 +19,7 @@ from dependency_injector.errors import (
     MissingDependentContextError,
     NonInjectableTypeError,
     ServiceAlreadyRegisteredError,
+    TypeVarInGenericServiceError,
     UnknownServiceError,
 )
 from dependency_injector.scan import scan_packages
@@ -36,8 +37,17 @@ class Container:
     def register(self, service: InjectableType, scope: Scope, *, provides: type = None):
         if inspect.isclass(service):
             service = typing.cast(type, service)
-            if provides and not issubclass(service, provides):
-                raise IncompatibleTypesError(service, provides)
+            if provides:
+                origin = typing.get_origin(provides)
+                if origin:
+                    if any(isinstance(a, TypeVar) for a in typing.get_args(provides)):
+                        raise TypeVarInGenericServiceError(provides)
+
+                    if provides not in service.__orig_bases__:
+                        raise IncompatibleTypesError(service, provides)
+
+                if not issubclass(service, origin or provides):
+                    raise IncompatibleTypesError(service, provides)
 
             provided_service = provides or service
         elif inspect.isfunction(service):
