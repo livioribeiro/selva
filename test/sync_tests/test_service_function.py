@@ -11,128 +11,152 @@ from ..utils import Context
 from . import ioc
 
 
+class Service1:
+    pass
+
+
+def service1_factory() -> Service1:
+    return Service1()
+
+
+class Service2:
+    def __init__(self, service1: Service1):
+        self.service1 = service1
+
+
+def service2_factory(service1: Service1) -> Service2:
+    return Service2(service1)
+
+
+class Service3:
+    pass
+
+
+def service3_factory() -> Service3:
+    return Service3()
+
+
+class Interface:
+    pass
+
+
+class Implementation(Interface):
+    pass
+
+
+def interface_factory() -> Interface:
+    return Implementation()
+
+
 def test_has_service(ioc):
-    from .services.service_function import has_service as module
-
-    ioc.scan(module)
-
-    result = ioc.has(module.Service)
-    assert result
+    ioc.register(service1_factory, Scope.SINGLETON)
+    assert ioc.has(Service1)
 
 
 def test_has_service_with_scope(ioc):
-    from .services.service_function import has_service_with_scope as module
+    ioc.register(service1_factory, Scope.SINGLETON)
+    ioc.register(service2_factory, Scope.DEPENDENT)
+    ioc.register(service3_factory, Scope.TRANSIENT)
 
-    ioc.scan(module)
+    assert ioc.has(Service1, Scope.SINGLETON)
+    assert ioc.has(Service2, Scope.DEPENDENT)
+    assert ioc.has(Service3, Scope.TRANSIENT)
 
-    result_transient = ioc.has(module.ServiceTransient, Scope.TRANSIENT)
-    result_dependent = ioc.has(module.ServiceDependent, Scope.DEPENDENT)
-    result_singleton = ioc.has(module.ServiceSingleton, Scope.SINGLETON)
 
-    assert result_transient
-    assert result_dependent
-    assert result_singleton
+def test_service_with_provided_interface(ioc):
+    ioc.register(interface_factory, Scope.SINGLETON)
+
+    service = ioc.get(Interface)
+    assert isinstance(service, Implementation)
 
 
 def test_inject_singleton(ioc):
-    from .services.service_function import inject_singleton as module
+    ioc.register(service1_factory, Scope.SINGLETON)
+    ioc.register(service2_factory, Scope.SINGLETON)
 
-    ioc.scan(module)
+    service = ioc.get(Service2)
+    assert isinstance(service, Service2)
+    assert isinstance(service.service1, Service1)
 
-    service = ioc.get(module.Service2)
-    assert isinstance(service, module.Service2)
-    assert isinstance(service.service1, module.Service1)
-
-    other_service = ioc.get(module.Service2)
+    other_service = ioc.get(Service2)
     assert other_service is service
     assert other_service.service1 is service.service1
 
 
 def test_inject_transient(ioc):
-    from .services.service_function import inject_transient as module
+    ioc.register(service1_factory, Scope.TRANSIENT)
+    ioc.register(service2_factory, Scope.TRANSIENT)
 
-    ioc.scan(module)
+    service = ioc.get(Service2)
+    assert isinstance(service, Service2)
+    assert type(service.service1) == Service1
 
-    service = ioc.get(module.Service2)
-    assert isinstance(service, module.Service2)
-    assert type(service.service1) == module.Service1
-
-    other_service = ioc.get(module.Service2)
+    other_service = ioc.get(Service2)
     assert other_service is not service
     assert other_service.service1 is not service.service1
 
 
 def test_inject_dependent(ioc):
-    from .services.service_function import inject_dependent as module
+    ioc.register(service1_factory, Scope.DEPENDENT)
+    ioc.register(service2_factory, Scope.DEPENDENT)
 
-    ioc.scan(module)
     context = Context()
 
-    service = ioc.get(module.Service2, context=context)
-    assert isinstance(service, module.Service2)
-    assert type(service.service1) == module.Service1
+    service = ioc.get(Service2, context=context)
+    assert isinstance(service, Service2)
+    assert type(service.service1) == Service1
 
-    other_service = ioc.get(module.Service2, context=context)
+    other_service = ioc.get(Service2, context=context)
     assert other_service is service
     assert other_service.service1 is service.service1
 
     context2 = Context()
-    another_service = ioc.get(module.Service2, context=context2)
+    another_service = ioc.get(Service2, context=context2)
     assert another_service is not service
     assert another_service.service1 is not service.service1
 
 
 def test_dependent_without_context_should_fail(ioc):
-    from .services.service_function import (
-        dependent_without_context_should_fail as module,
-    )
-
-    ioc.scan(module)
+    ioc.register(service1_factory, Scope.DEPENDENT)
 
     with pytest.raises(MissingDependentContextError):
-        ioc.get(module.Service)
+        ioc.get(Service1)
 
 
 def test_interface_implementation(ioc):
-    from .services.service_function import interface_implementation as module
+    ioc.register(interface_factory, Scope.SINGLETON)
 
-    ioc.scan(module)
-
-    service = ioc.get(module.Interface)
-    assert isinstance(service, module.Implementation)
+    service = ioc.get(Interface)
+    assert isinstance(service, Implementation)
 
 
 def test_factory_function_without_return_type_should_fail(ioc):
-    from .services.service_function import (
-        factory_function_without_return_type_should_fail as module,
-    )
+    async def service_factory():
+        return Service1()
 
     with pytest.raises(FactoryMissingReturnTypeError):
-        ioc.scan(module)
+        ioc.register(service_factory, Scope.SINGLETON)
 
 
 def test_provides_option_should_raise_warning(ioc):
-    from .services.service_function import (
-        provides_option_should_raise_warning as module,
-    )
-
     with pytest.warns(UserWarning):
-        ioc.scan(module)
+        ioc.register(interface_factory, Scope.SINGLETON, provides=Interface)
 
 
-def test_async_factory(ioc):
-    from .services.service_function import async_factory as module
+def test_sync_factory(ioc):
+    def sync_factory() -> Service1:
+        return Service1()
 
-    ioc.scan(module)
+    ioc.register(sync_factory, Scope.SINGLETON)
 
-    service = ioc.get(module.Service)
-    assert isinstance(service, module.Service)
+    service = ioc.get(Service1)
+    assert isinstance(service, Service1)
 
 
 def test_service_registered_twice_should_fail(ioc):
-    from .services.service_function import (
-        service_registered_twice_should_fail as module,
-    )
+    async def duplicate_factory() -> Service1:
+        return Service1()
 
     with pytest.raises(ServiceAlreadyRegisteredError):
-        ioc.scan(module)
+        ioc.register(service1_factory, Scope.SINGLETON)
+        ioc.register(duplicate_factory, Scope.SINGLETON)

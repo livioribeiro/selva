@@ -1,44 +1,52 @@
 import pytest
 
+from dependency_injector import Scope
 from dependency_injector.errors import InvalidScopeError
 
 from ..utils import Context
 from . import ioc
 
 
-def test_inject_transient_into_dependent_should_fail(ioc):
-    from .services.scopes import inject_transient_into_dependent_should_fail as module
+class Service1:
+    pass
 
-    ioc.scan(module)
+
+class Service2:
+    def __init__(self, service1: Service1):
+        self.service1 = service1
+
+
+def test_inject_transient_into_dependent_should_fail(ioc):
+    ioc.register(Service1, Scope.TRANSIENT)
+    ioc.register(Service2, Scope.DEPENDENT)
     context = Context()
 
     with pytest.raises(InvalidScopeError):
-        ioc.get(module.Service2, context=context)
+        ioc.get(Service2, context=context)
 
 
 def test_inject_dependent_into_singleton_should_fail(ioc):
-    from .services.scopes import inject_dependent_into_singleton_should_fail as module
+    ioc.register(Service1, Scope.DEPENDENT)
+    ioc.register(Service2, Scope.SINGLETON)
 
-    ioc.scan(module)
     with pytest.raises(InvalidScopeError):
-        ioc.get(module.Service2)
+        ioc.get(Service2)
 
 
 def test_inject_transient_into_singleton_should_fail(ioc):
-    from .services.scopes import inject_transient_into_singleton_should_fail as module
+    ioc.register(Service1, Scope.TRANSIENT)
+    ioc.register(Service2, Scope.SINGLETON)
 
-    ioc.scan(module)
     with pytest.raises(InvalidScopeError):
-        ioc.get(module.Service2)
+        ioc.get(Service2)
 
 
 def test_dependent_scope_cleanup(ioc):
-    from .services.scopes import dependent_scope_cleanup as module
+    ioc.register(Service1, Scope.DEPENDENT)
 
-    ioc.scan(module)
     context = Context()
 
-    ioc.get(module.Service1, context=context)
+    ioc.get(Service1, context=context)
     assert id(context) in ioc.container.store_dependent
 
     del context

@@ -1,16 +1,16 @@
 from dependency_injector import dependent, singleton, transient
 
 
-@transient
-class ServiceTransient:
+@singleton
+class SingletonService:
     pass
 
 
 @dependent
-class ServiceDependent:
+class DependentService:
     pass
 
 
-@singleton
-class ServiceSingleton:
+@transient
+class TransientService:
     pass

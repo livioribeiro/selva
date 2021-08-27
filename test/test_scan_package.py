@@ -1,5 +1,7 @@
 import pytest
 
+from dependency_injector.service import Scope
+
 from . import ioc
 
 pytestmark = pytest.mark.asyncio
@@ -63,3 +65,12 @@ async def test_scan_generic_class(ioc):
 
     service = await ioc.get(module.Interface[int])
     assert isinstance(service, module.Implementation)
+
+
+async def test_scan_scopes(ioc):
+    from .services.scan_package import scopes as module
+
+    ioc.scan(module)
+    assert ioc.has(module.SingletonService, Scope.SINGLETON)
+    assert ioc.has(module.DependentService, Scope.DEPENDENT)
+    assert ioc.has(module.TransientService, Scope.TRANSIENT)

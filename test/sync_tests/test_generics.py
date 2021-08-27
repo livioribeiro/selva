@@ -1,8 +1,12 @@
 from typing import Generic, TypeVar
 
 import pytest
+
 from dependency_injector import Scope
-from dependency_injector.errors import IncompatibleTypesError, TypeVarInGenericServiceError
+from dependency_injector.errors import (
+    IncompatibleTypesError,
+    TypeVarInGenericServiceError,
+)
 
 from . import ioc
 
