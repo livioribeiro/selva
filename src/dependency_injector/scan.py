@@ -1,15 +1,16 @@
+from collections.abc import Iterable
 import importlib
 import inspect
 import pkgutil
 from types import ModuleType
-from typing import Generator, Iterable, Union
+from typing import Union
 
 from dependency_injector.decorators import DEPENDENCY_ATRIBUTE
 
 
 def find_injectables(
     module: ModuleType,
-) -> Generator[type, None, None]:
+) -> Iterable[type]:
     for _, i in inspect.getmembers(module):
         if hasattr(i, DEPENDENCY_ATRIBUTE):
             yield i

@@ -2,15 +2,17 @@ import asyncio
 import inspect
 import typing
 import warnings
+from collections.abc import Callable
 from asyncio import AbstractEventLoop
 from concurrent.futures import Executor, ThreadPoolExecutor
 from functools import partial
 from types import FunctionType, ModuleType
-from typing import Any, Callable, Dict, List, Optional, TypeVar, Union
+from typing import Annotated, Any, Optional, TypeVar, Union
 from weakref import finalize
 
-from dependency_injector.decorators import DEPENDENCY_ATRIBUTE
-from dependency_injector.errors import (
+from .annotations import Dependency
+from .decorators import DEPENDENCY_ATRIBUTE
+from .errors import (
     CalledNonCallableError,
     DependencyLoopError,
     FactoryMissingReturnTypeError,
@@ -22,15 +24,15 @@ from dependency_injector.errors import (
     TypeVarInGenericServiceError,
     UnknownServiceError,
 )
-from dependency_injector.scan import scan_packages
-from dependency_injector.service import InjectableType, Scope, ServiceDefinition
+from .scan import scan_packages
+from .service import get_dependencies, InjectableType, Scope, ServiceDependency, ServiceDefinition
 
 
 class Container:
     def __init__(self, loop: AbstractEventLoop = None, executor: Executor = None):
-        self.registry: Dict[type, ServiceDefinition] = {}
-        self.store_singleton: Dict[type, Any] = {}
-        self.store_dependent: Dict[int, Dict[type, Any]] = {}
+        self.registry: dict[type, ServiceDefinition] = {}
+        self.store_singleton: dict[type, Any] = {}
+        self.store_dependent: dict[int, dict[type, Any]] = {}
         self.loop = loop or asyncio.get_event_loop()
         self.executor = executor or ThreadPoolExecutor()
 
@@ -66,8 +68,10 @@ class Container:
         if provided_service in self.registry:
             raise ServiceAlreadyRegisteredError(provided_service)
 
+        dependencies = get_dependencies(service)
+
         self.registry[provided_service] = ServiceDefinition(
-            provides=provided_service, scope=scope, factory=service
+            provides=provided_service, scope=scope, factory=service, dependencies=dependencies
         )
 
     def scan(self, *packages: Union[str, ModuleType]):
@@ -97,9 +101,12 @@ class Container:
         context: Any = None,
         valid_scope: Scope = None,
         stack: list = None,
-    ) -> Any:
+        optional: bool = False
+    ) -> Optional[Any]:
         definition = self.registry.get(service_type)
         if not definition:
+            if optional:
+                return None
             raise UnknownServiceError(service_type)
 
         valid_scope = valid_scope or definition.scope
@@ -151,7 +158,7 @@ class Container:
     async def _create_service(
         self,
         valid_scope: Scope,
-        stack: List[type],
+        stack: list[type],
         definition: ServiceDefinition,
         context: Any = None,
     ) -> Any:
@@ -162,16 +169,16 @@ class Container:
         )
         types.pop("return", None)
 
-        params = {
-            name: await self._get(svc, context, valid_scope, stack)
-            for name, svc in types.items()
+        dependencies = {
+            name: await self._get(dep.service, context, valid_scope, stack, optional=dep.optional)
+            for name, dep in definition.dependencies
         }
 
         if asyncio.iscoroutinefunction(factory):
-            return await factory(**params)
+            return await factory(**dependencies)
 
         return await self.loop.run_in_executor(
-            self.executor, partial(factory, **params)
+            self.executor, partial(factory, **dependencies)
         )
 
     async def call(
@@ -179,8 +186,8 @@ class Container:
         callable_obj: Callable,
         *,
         context: Any = None,
-        args: List[Any] = None,
-        kwargs: Dict[str, Any] = None,
+        args: list[Any] = None,
+        kwargs: dict[str, Any] = None,
     ) -> Any:
         args = args or list()
         kwargs = kwargs or dict()

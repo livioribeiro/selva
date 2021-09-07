@@ -1,6 +1,6 @@
 import inspect
 from types import FunctionType
-from typing import Any, List
+from typing import Any, Union
 
 
 def _type_name(service):
@@ -29,7 +29,7 @@ class InvalidScopeError(DependencyInjectionError):
 
 
 class DependencyLoopError(DependencyInjectionError):
-    def __init__(self, dependency_stack: List[type]):
+    def __init__(self, dependency_stack: list[type]):
         loop = " -> ".join([dep.__name__ for dep in dependency_stack])
         super().__init__(f"dependency loop detected: {loop}")
 
@@ -75,3 +75,11 @@ class CalledNonCallableError(DependencyInjectionError):
 class TypeVarInGenericServiceError(DependencyInjectionError):
     def __init__(self, provided: type):
         super().__init__(f"{_type_name(provided)} has generic types")
+
+
+class MultipleDependencyAnnotationError(DependencyInjectionError):
+    def __init__(self, service: Union[type, FunctionType], parameter: str):
+        super().__init__(
+            f"{_type_name(service)} has multiple Dependency annotations"
+            f"in parameter '{parameter}'"
+        )
