@@ -75,11 +75,3 @@ class CalledNonCallableError(DependencyInjectionError):
 class TypeVarInGenericServiceError(DependencyInjectionError):
     def __init__(self, provided: type):
         super().__init__(f"{_type_name(provided)} has generic types")
-
-
-class MultipleDependencyAnnotationError(DependencyInjectionError):
-    def __init__(self, service: Union[type, FunctionType], parameter: str):
-        super().__init__(
-            f"{_type_name(service)} has multiple Dependency annotations"
-            f"in parameter '{parameter}'"
-        )

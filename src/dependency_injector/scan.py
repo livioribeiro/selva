@@ -1,7 +1,7 @@
-from collections.abc import Iterable
 import importlib
 import inspect
 import pkgutil
+from collections.abc import Iterable
 from types import ModuleType
 from typing import Union
 
