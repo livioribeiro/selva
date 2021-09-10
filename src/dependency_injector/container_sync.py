@@ -4,8 +4,8 @@ from concurrent.futures import Executor, ThreadPoolExecutor
 from types import ModuleType
 from typing import Any, Union
 
-from dependency_injector.container import Container
-from dependency_injector.service import InjectableType, Scope
+from .container import Container
+from .service.model import InjectableType, Scope
 
 
 class SyncContainer(Container):
@@ -25,9 +25,7 @@ class SyncContainer(Container):
         return super().has(service_type, scope)
 
     def get(self, service_type: type, *, context: Any = None) -> Any:
-        return self.loop.run_until_complete(
-            super().get(service_type, context=context)
-        )
+        return self.loop.run_until_complete(super().get(service_type, context=context))
 
     def create(self, service_type: type, *, context: Any = None) -> Any:
         return self.loop.run_until_complete(

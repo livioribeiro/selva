@@ -1,11 +1,11 @@
 import pytest
 
+from dependency_injector import Scope
 from dependency_injector.errors import (
     IncompatibleTypesError,
     MissingDependentContextError,
     ServiceAlreadyRegisteredError,
 )
-from dependency_injector.service import Scope
 
 from . import ioc
 from .utils import Context

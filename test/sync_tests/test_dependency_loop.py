@@ -2,9 +2,8 @@ from __future__ import annotations
 
 import pytest
 
-from dependency_injector import Scope
+from dependency_injector import Lazy, Scope
 from dependency_injector.errors import DependencyLoopError
-from dependency_injector.lazy import Lazy
 
 from . import ioc
 

@@ -1,7 +1,7 @@
 from types import FunctionType
 from typing import Union
 
-from .service import Scope, ServiceInfo
+from .service.model import Scope, ServiceInfo
 
 DEPENDENCY_ATRIBUTE = "__dependency__"
 

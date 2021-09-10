@@ -1,6 +1,6 @@
 import pytest
 
-from dependency_injector.service import Scope
+from dependency_injector import Scope
 
 from . import ioc
 

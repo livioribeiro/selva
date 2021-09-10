@@ -2,8 +2,7 @@ from typing import Optional
 
 import pytest
 
-from dependency_injector import Scope
-from dependency_injector.lazy import Lazy
+from dependency_injector import Lazy, Scope
 
 from . import ioc
 

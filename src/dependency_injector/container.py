@@ -1,37 +1,26 @@
 import asyncio
 import inspect
-import typing
-import warnings
 from asyncio import AbstractEventLoop
 from collections.abc import Callable
 from concurrent.futures import Executor, ThreadPoolExecutor
 from functools import partial
-from types import FunctionType, ModuleType
-from typing import Any, Optional, TypeVar, Union
+from types import ModuleType
+from typing import Any, Optional, Union
 from weakref import finalize
 
 from .decorators import DEPENDENCY_ATRIBUTE
 from .errors import (
     CalledNonCallableError,
     DependencyLoopError,
-    FactoryMissingReturnTypeError,
-    IncompatibleTypesError,
     InvalidScopeError,
     MissingDependentContextError,
-    NonInjectableTypeError,
     ServiceAlreadyRegisteredError,
-    TypeVarInGenericServiceError,
     UnknownServiceError,
 )
-from .lazy import Lazy
 from .scan import scan_packages
-from .service import (
-    InjectableType,
-    Scope,
-    ServiceDefinition,
-    ServiceDependency,
-    get_dependencies,
-)
+from .service.lazy import Lazy
+from .service.model import InjectableType, Scope, ServiceDefinition, ServiceDependency
+from .service.parse import get_dependencies, parse_definition
 
 
 class Container:
@@ -43,45 +32,13 @@ class Container:
         self.executor = executor or ThreadPoolExecutor()
 
     def register(self, service: InjectableType, scope: Scope, *, provides: type = None):
-        if inspect.isclass(service):
-            service = typing.cast(type, service)
-            if provides:
-                origin = typing.get_origin(provides)
-                if origin:
-                    if any(isinstance(a, TypeVar) for a in typing.get_args(provides)):
-                        raise TypeVarInGenericServiceError(provides)
-
-                    if provides not in service.__orig_bases__:
-                        raise IncompatibleTypesError(service, provides)
-
-                if not issubclass(service, origin or provides):
-                    raise IncompatibleTypesError(service, provides)
-
-            provided_service = provides or service
-        elif inspect.isfunction(service):
-            service = typing.cast(FunctionType, service)
-            if provides:
-                msg = "option 'provides' on a factory function has no effect"
-                warnings.warn(UserWarning(msg))
-
-            service_type = typing.get_type_hints(service).get("return")
-            if service_type is None:
-                raise FactoryMissingReturnTypeError(service)
-            provided_service = service_type
-        else:
-            raise NonInjectableTypeError(service)
+        definition = parse_definition(service, scope, provides)
+        provided_service = definition.provides
 
         if provided_service in self.registry:
             raise ServiceAlreadyRegisteredError(provided_service)
 
-        dependencies = get_dependencies(service)
-
-        self.registry[provided_service] = ServiceDefinition(
-            provides=provided_service,
-            scope=scope,
-            factory=service,
-            dependencies=dependencies,
-        )
+        self.registry[provided_service] = definition
 
     def scan(self, *packages: Union[str, ModuleType]):
         for service in scan_packages(*packages):
@@ -139,7 +96,7 @@ class Container:
         if definition.scope == Scope.SINGLETON:
             service = self.store_singleton.get(service_type)
             if not service:
-                service = await self._create_service(valid_scope, stack, definition)
+                service = await self._create_service(definition, valid_scope, stack)
                 self.store_singleton[service_type] = service
         elif definition.scope == Scope.DEPENDENT:
             if context is None:
@@ -152,34 +109,29 @@ class Container:
             service = self.store_dependent[context_id].get(service_type)
             if not service:
                 service = await self._create_service(
-                    valid_scope, stack, definition, context
+                    definition, valid_scope, stack, context
                 )
                 self.store_dependent[context_id][service_type] = service
         else:
-            service = await self._create_service(valid_scope, stack, definition)
+            service = await self._create_service(definition, valid_scope, stack)
 
         return service
 
     async def create(self, service: type, *, context: Any = None) -> Any:
         dependencies = {
-            n: (await self._get(s, context, Scope.TRANSIENT))
-            for n, s in get_dependencies(service)
+            name: (await self._get(dep, context, Scope.TRANSIENT))
+            for name, dep in get_dependencies(service)
         }
         return service(**dependencies)
 
     async def _create_service(
         self,
+        definition: ServiceDefinition,
         valid_scope: Scope,
         stack: list[type],
-        definition: ServiceDefinition,
         context: Any = None,
     ) -> Any:
         factory = definition.factory
-
-        types = typing.get_type_hints(
-            factory.__init__ if inspect.isclass(factory) else factory
-        )
-        types.pop("return", None)
 
         dependencies = {
             name: await self._get(dep, context, valid_scope, stack)
@@ -212,9 +164,11 @@ class Container:
         else:
             func = callable_obj.__call__
 
-        types = [(k, v) for k, v in typing.get_type_hints(func).items() if self.has(v)]
-
-        params = {name: await self._get(ServiceDependency(svc), context=context) for name, svc in types}
+        params = {
+            name: await self._get(dep, context=context)
+            for name, dep in get_dependencies(func)
+            if self.has(dep.service)
+        }
 
         params.update(kwargs)
 
