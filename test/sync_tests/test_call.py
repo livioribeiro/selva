@@ -155,7 +155,7 @@ def test_call_function_with_context(ioc):
 
     result = ioc.call(func, context=context)
     assert isinstance(result, ServiceDependent)
-    assert id(context) in ioc.container.store_dependent
+    assert id(context) in ioc.store_dependent
 
 
 def test_call_async_function_with_context(ioc):
@@ -166,7 +166,7 @@ def test_call_async_function_with_context(ioc):
 
     result = ioc.call(func, context=context)
     assert isinstance(result, ServiceDependent)
-    assert id(context) in ioc.container.store_dependent
+    assert id(context) in ioc.store_dependent
 
 
 def test_call_callable_object(ioc):

@@ -214,7 +214,7 @@ class Container:
 
         types = [(k, v) for k, v in typing.get_type_hints(func).items() if self.has(v)]
 
-        params = {name: await self.get(svc, context=context) for name, svc in types}
+        params = {name: await self._get(ServiceDependency(svc), context=context) for name, svc in types}
 
         params.update(kwargs)
 

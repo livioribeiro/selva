@@ -8,30 +8,31 @@ from dependency_injector.container import Container
 from dependency_injector.service import InjectableType, Scope
 
 
-class SyncContainer:
+class SyncContainer(Container):
     def __init__(self, loop: AbstractEventLoop = None, executor: Executor = None):
-        self.loop = loop or asyncio.get_event_loop()
         executor = executor or ThreadPoolExecutor()
-        self.container = Container(loop=self.loop, executor=executor)
+        self.loop = loop or asyncio.new_event_loop()
+        super().__init__(loop=loop, executor=executor)
+        # self.container = Container(loop=self.loop, executor=executor)
 
     def register(self, service: InjectableType, scope: Scope, *, provides: type = None):
-        self.container.register(service, scope, provides=provides)
+        super().register(service, scope, provides=provides)
 
     def scan(self, *packages: Union[str, ModuleType]):
-        return self.container.scan(*packages)
+        return super().scan(*packages)
 
     def has(self, service_type: type, scope: Scope = None) -> bool:
-        return self.container.has(service_type, scope)
+        return super().has(service_type, scope)
 
     def get(self, service_type: type, *, context: Any = None) -> Any:
         return self.loop.run_until_complete(
-            self.container.get(service_type, context=context)
+            super().get(service_type, context=context)
         )
 
     def create(self, service_type: type, *, context: Any = None) -> Any:
         return self.loop.run_until_complete(
-            self.container.create(service_type, context=context)
+            super().create(service_type, context=context)
         )
 
     def call(self, *args, **kwargs) -> Any:
-        return self.loop.run_until_complete(self.container.call(*args, **kwargs))
+        return self.loop.run_until_complete(super().call(*args, **kwargs))
