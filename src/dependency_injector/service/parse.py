@@ -7,10 +7,12 @@ from typing import Annotated, Any, Optional, TypeVar, Union
 from dependency_injector.errors import (
     FactoryMissingReturnTypeError,
     IncompatibleTypesError,
+    MultipleNameAnnotationsError,
     NonInjectableTypeError,
     TypeVarInGenericServiceError,
 )
 
+from ..annotations import Name
 from .lazy import Lazy
 from .model import InjectableType, Scope, ServiceDefinition, ServiceDependency
 
@@ -48,10 +50,20 @@ def get_dependencies(service: InjectableType) -> list[tuple[str, ServiceDependen
 
     for name, type_hint in types.items():
         type_hint, optional = _get_optional(type_hint)
-        type_hint, _annotations = _get_annotations(type_hint)  # for future use
+        type_hint, annotations = _get_annotations(type_hint)
+        # in case Optional is wrapped in Annotated
+        if not optional:
+            type_hint, optional = _get_optional(type_hint)
         type_hint, lazy = _get_lazy(type_hint)
 
-        service_dependency = ServiceDependency(type_hint, lazy=lazy, optional=optional)
+        dependency_names = [a.value for a in annotations if isinstance(a, Name)]
+        if len(dependency_names) > 1:
+            raise MultipleNameAnnotationsError(dependency_names, name, service)
+        dependency_name = dependency_names[0] if len(dependency_names) == 1 else None
+
+        service_dependency = ServiceDependency(
+            type_hint, lazy=lazy, optional=optional, name=dependency_name
+        )
         result.append((name, service_dependency))
 
     return result
@@ -78,8 +90,8 @@ def parse_definition(
     elif inspect.isfunction(service):
         service = typing.cast(FunctionType, service)
         if provides:
-            msg = "option 'provides' on a factory function has no effect"
-            warnings.warn(UserWarning(msg))
+            message = "option 'provides' on a factory function has no effect"
+            warnings.warn(message)
 
         service_type = typing.get_type_hints(service).get("return")
         if service_type is None:

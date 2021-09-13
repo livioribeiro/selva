@@ -1,3 +1,4 @@
+from .annotations import Name
 from .container import Container
 from .container_sync import SyncContainer
 from .decorators import dependent, singleton, transient

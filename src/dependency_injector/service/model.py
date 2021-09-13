@@ -14,10 +14,12 @@ class Scope(IntEnum):
 class ServiceInfo(NamedTuple):
     scope: Scope
     provides: Optional[type]
+    name: Optional[str]
 
 
 class ServiceDependency(NamedTuple):
     service: type
+    name: Optional[str]
     lazy: bool = False
     optional: bool = False
 

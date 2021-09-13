@@ -14,42 +14,41 @@ from .errors import (
     DependencyLoopError,
     InvalidScopeError,
     MissingDependentContextError,
-    ServiceAlreadyRegisteredError,
-    UnknownServiceError,
 )
 from .scan import scan_packages
 from .service.lazy import Lazy
 from .service.model import InjectableType, Scope, ServiceDefinition, ServiceDependency
 from .service.parse import get_dependencies, parse_definition
+from .service.registry import ServiceRegistry
 
 
 class Container:
     def __init__(self, loop: AbstractEventLoop = None, executor: Executor = None):
-        self.registry: dict[type, ServiceDefinition] = {}
+        self.registry = ServiceRegistry()
         self.store_singleton: dict[type, Any] = {}
         self.store_dependent: dict[int, dict[type, Any]] = {}
         self.loop = loop or asyncio.get_event_loop()
         self.executor = executor or ThreadPoolExecutor()
 
-    def register(self, service: InjectableType, scope: Scope, *, provides: type = None):
+    def register(
+        self,
+        service: InjectableType,
+        scope: Scope,
+        *,
+        provides: type = None,
+        name: str = None,
+    ):
         definition = parse_definition(service, scope, provides)
         provided_service = definition.provides
-
-        if provided_service in self.registry:
-            raise ServiceAlreadyRegisteredError(provided_service)
-
-        self.registry[provided_service] = definition
+        self.registry[provided_service, name] = definition
 
     def scan(self, *packages: Union[str, ModuleType]):
         for service in scan_packages(*packages):
-            scope, provides = getattr(service, DEPENDENCY_ATRIBUTE)
-            self.register(service, scope, provides=provides)
-
-    def _get_definition(self, service_type: type) -> Optional[ServiceDefinition]:
-        return self.registry.get(service_type)
+            scope, provides, name = getattr(service, DEPENDENCY_ATRIBUTE)
+            self.register(service, scope, provides=provides, name=name)
 
     def has(self, service_type: type, scope: Scope = None) -> bool:
-        definition = self._get_definition(service_type)
+        definition = self.registry.get(service_type, optional=True)
         if not definition:
             return False
 
@@ -58,8 +57,10 @@ class Container:
 
         return True
 
-    async def get(self, service_type: type, *, context: Any = None) -> Any:
-        return await self._get(ServiceDependency(service_type), context)
+    async def get(
+        self, service_type: type, *, context: Any = None, name: str = None
+    ) -> Any:
+        return await self._get(ServiceDependency(service_type, name=name), context)
 
     async def _get(
         self,
@@ -68,12 +69,10 @@ class Container:
         valid_scope: Scope = None,
         stack: list = None,
     ) -> Optional[Any]:
-        service_type = dependency.service
-        definition = self.registry.get(service_type)
-        if not definition:
-            if dependency.optional:
-                return None
-            raise UnknownServiceError(service_type)
+        service_type, name = dependency.service, dependency.name
+        definition = self.registry.get(service_type, name, dependency.optional)
+        if definition is None:
+            return None
 
         if dependency.lazy:
             return Lazy(self, service_type, context)

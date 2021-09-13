@@ -1,7 +1,5 @@
 from typing import Optional
 
-import pytest
-
 from dependency_injector import Lazy, Scope
 
 from . import ioc

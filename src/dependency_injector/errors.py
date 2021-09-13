@@ -1,6 +1,8 @@
 import inspect
 from types import FunctionType
-from typing import Any, Union
+from typing import Any
+
+from .service.model import InjectableType
 
 
 def _type_name(service):
@@ -42,9 +44,17 @@ class IncompatibleTypesError(DependencyInjectionError):
         )
 
 
-class UnknownServiceError(DependencyInjectionError):
-    def __init__(self, service: type):
-        super().__init__(f"Service '{_type_name(service)}' is not known")
+class ServiceNotFoundError(DependencyInjectionError):
+    def __init__(
+        self,
+        service: type,
+        name: str = None,
+    ):
+        message = f"unable to find service '{_type_name(service)}'"
+        if name is not None:
+            message += f" with name '{name}'"
+
+        super().__init__(message)
 
 
 class MissingDependentContextError(DependencyInjectionError):
@@ -63,8 +73,12 @@ class FactoryMissingReturnTypeError(DependencyInjectionError):
 
 
 class ServiceAlreadyRegisteredError(DependencyInjectionError):
-    def __init__(self, service: type):
-        super().__init__(f"service '{_type_name(service)}' is already registered")
+    def __init__(self, service: type, name: str = None):
+        message = f"service '{_type_name(service)}' is already registered"
+        if name:
+            message += f" with name '{name}'"
+
+        super().__init__(message)
 
 
 class CalledNonCallableError(DependencyInjectionError):
@@ -75,3 +89,13 @@ class CalledNonCallableError(DependencyInjectionError):
 class TypeVarInGenericServiceError(DependencyInjectionError):
     def __init__(self, provided: type):
         super().__init__(f"{_type_name(provided)} has generic types")
+
+
+class MultipleNameAnnotationsError(DependencyInjectionError):
+    def __init__(self, names: list[str], parameter: str, service: InjectableType):
+        super().__init__(
+            f"multiple 'Name' annotations"
+            f" for parameter '{parameter}"
+            f" on service '{_type_name(service)}':"
+            f" {', '.join(names)}"
+        )
