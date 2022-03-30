@@ -1,6 +1,7 @@
 from typing import Annotated
+import warnings
 
-import pytest
+from ward import test, raises
 
 from dependency_injector import Name, Scope
 from dependency_injector.errors import (
@@ -8,9 +9,7 @@ from dependency_injector.errors import (
     ServiceAlreadyRegisteredError,
 )
 
-from . import ioc
-
-pytestmark = pytest.mark.asyncio
+from .fixtures import ioc
 
 
 class DependentService:
@@ -27,7 +26,8 @@ class ServiceWithMultiNameAnnotations:
         self.dependent = dependent
 
 
-async def test_dependency_with_name(ioc):
+@test("dependency with name")
+async def _(ioc=ioc):
     ioc.register(DependentService, Scope.TRANSIENT, name="1")
     ioc.register(ServiceWithNamedDep, Scope.TRANSIENT)
 
@@ -36,23 +36,30 @@ async def test_dependency_with_name(ioc):
     assert isinstance(dependent, DependentService)
 
 
-async def test_default_dependency(ioc):
+@test("default dependency")
+async def _(ioc=ioc):
     ioc.register(DependentService, Scope.TRANSIENT)
     ioc.register(ServiceWithNamedDep, Scope.TRANSIENT)
 
-    with pytest.warns(UserWarning):
+    with warnings.catch_warnings(record=True) as w:
         service = await ioc.get(ServiceWithNamedDep)
+        assert (
+            f"using default service instead of '1' for '{DependentService.__name__}'"
+            == str(w[0].message)
+        )
 
     dependent = service.dependent
     assert isinstance(dependent, DependentService)
 
 
-async def test_multiple_name_annotations_should_fail(ioc):
-    with pytest.raises(MultipleNameAnnotationsError):
+@test("multiple name annotations should fail")
+async def _(ioc=ioc):
+    with raises(MultipleNameAnnotationsError):
         ioc.register(ServiceWithMultiNameAnnotations, Scope.TRANSIENT)
 
 
-async def test_already_registerd_with_name_should_fail(ioc):
+@test("register two services with the same name should fail")
+async def test_(ioc=ioc):
     ioc.register(DependentService, Scope.TRANSIENT, name="1")
-    with pytest.raises(ServiceAlreadyRegisteredError):
+    with raises(ServiceAlreadyRegisteredError):
         ioc.register(DependentService, Scope.TRANSIENT, name="1")

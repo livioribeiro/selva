@@ -1,7 +1,9 @@
+from ward import test
+
 from dependency_injector import Scope
 
-from ..utils import Context
-from . import ioc
+from .fixtures import ioc
+from .utils import Context
 
 
 class Service1:
@@ -26,38 +28,41 @@ class Creatable:
         self.service2 = service2
 
 
-def test_create_object_register_class(ioc):
+@test("create object with class")
+async def _(ioc=ioc):
     ioc.register(Service1, Scope.TRANSIENT)
     ioc.register(Service2, Scope.TRANSIENT)
 
-    result = ioc.create(Creatable)
+    result = await ioc.create(Creatable)
 
     assert isinstance(result.service2, Service2)
     assert isinstance(result.service2.service1, Service1)
 
 
-def test_create_object_register_factory(ioc):
+@test("create object with factory")
+async def _(ioc=ioc):
     ioc.register(service1_factory, Scope.TRANSIENT)
     ioc.register(service2_factory, Scope.TRANSIENT)
 
-    result = ioc.create(Creatable)
+    result = await ioc.create(Creatable)
 
     assert isinstance(result.service2, Service2)
     assert isinstance(result.service2.service1, Service1)
 
 
-def test_create_object_with_context(ioc):
+@test("create object with context")
+async def _(ioc=ioc):
     ioc.register(Service1, Scope.DEPENDENT)
     ioc.register(Service2, Scope.DEPENDENT)
 
     context = Context()
 
-    result1 = ioc.create(Creatable, context=context)
+    result1 = await ioc.create(Creatable, context=context)
 
     assert isinstance(result1.service2, Service2)
     assert isinstance(result1.service2.service1, Service1)
 
-    result2 = ioc.create(Creatable, context=context)
+    result2 = await ioc.create(Creatable, context=context)
 
     assert result2 is not result1
     assert result2.service2 is result1.service2

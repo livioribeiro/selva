@@ -1,4 +1,4 @@
-import pytest
+from ward import test, raises
 
 from dependency_injector import Scope
 from dependency_injector.errors import (
@@ -7,10 +7,8 @@ from dependency_injector.errors import (
     ServiceAlreadyRegisteredError,
 )
 
-from . import ioc
+from .fixtures import ioc
 from .utils import Context
-
-pytestmark = pytest.mark.asyncio
 
 
 class Service1:
@@ -34,12 +32,14 @@ class Implementation(Interface):
     pass
 
 
-def test_has_service(ioc):
+@test("has service")
+def _(ioc=ioc):
     ioc.register(Service1, Scope.SINGLETON)
     assert ioc.has(Service1)
 
 
-def test_has_service_with_scope(ioc):
+@test("has service with scope")
+def _(ioc=ioc):
     ioc.register(Service1, Scope.SINGLETON)
     ioc.register(Service2, Scope.DEPENDENT)
     ioc.register(Service3, Scope.TRANSIENT)
@@ -49,14 +49,16 @@ def test_has_service_with_scope(ioc):
     assert ioc.has(Service3, Scope.TRANSIENT)
 
 
-async def test_service_with_provided_interface(ioc):
+@test("service with provided interface")
+async def _(ioc=ioc):
     ioc.register(Implementation, Scope.SINGLETON, provides=Interface)
 
     service = await ioc.get(Interface)
     assert isinstance(service, Implementation)
 
 
-async def test_inject_singleton(ioc):
+@test("inject singleton")
+async def test_inject_singleton(ioc=ioc):
     ioc.register(Service1, Scope.SINGLETON)
     ioc.register(Service2, Scope.SINGLETON)
 
@@ -69,7 +71,8 @@ async def test_inject_singleton(ioc):
     assert other_service.service1 is service.service1
 
 
-async def test_inject_transient(ioc):
+@test("inject transient")
+async def _(ioc=ioc):
     ioc.register(Service1, Scope.TRANSIENT)
     ioc.register(Service2, Scope.TRANSIENT)
 
@@ -82,7 +85,8 @@ async def test_inject_transient(ioc):
     assert other_service.service1 is not service.service1
 
 
-async def test_inject_dependent(ioc):
+@test("inject dependent")
+async def _(ioc=ioc):
     ioc.register(Service1, Scope.DEPENDENT)
     ioc.register(Service2, Scope.DEPENDENT)
 
@@ -102,32 +106,36 @@ async def test_inject_dependent(ioc):
     assert another_service.service1 is not service.service1
 
 
-async def test_dependent_without_context_should_fail(ioc):
+@test("dependent scope without context should fail")
+async def _(ioc=ioc):
     ioc.register(Service1, Scope.DEPENDENT)
 
-    with pytest.raises(MissingDependentContextError):
+    with raises(MissingDependentContextError):
         await ioc.get(Service1)
 
 
-async def test_interface_implementation(ioc):
+@test("interface and implementation")
+async def _(ioc=ioc):
     ioc.register(Implementation, Scope.SINGLETON, provides=Interface)
 
     service = await ioc.get(Interface)
     assert isinstance(service, Implementation)
 
 
-def test_incompatible_types_should_fail(ioc):
+@test("incompatible types should fail")
+def test_(ioc=ioc):
     class NotImplementation:
         pass
 
-    with pytest.raises(IncompatibleTypesError):
+    with raises(IncompatibleTypesError):
         ioc.register(NotImplementation, Scope.SINGLETON, provides=Interface)
 
 
-async def test_service_registered_twice_should_fail(ioc):
+@test("register a service twice should fail")
+async def test_(ioc=ioc):
     class Implementation2(Interface):
         pass
 
-    with pytest.raises(ServiceAlreadyRegisteredError):
-        ioc.register(Implementation, Scope.SINGLETON, provides=Interface)
+    ioc.register(Implementation, Scope.SINGLETON, provides=Interface)
+    with raises(ServiceAlreadyRegisteredError):
         ioc.register(Implementation2, Scope.SINGLETON, provides=Interface)

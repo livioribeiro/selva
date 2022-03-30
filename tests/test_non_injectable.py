@@ -1,14 +1,15 @@
 from types import SimpleNamespace
 
-import pytest
+from ward import test, raises
 
 from dependency_injector import Scope
 from dependency_injector.errors import NonInjectableTypeError
 
-from . import ioc
+from .fixtures import ioc
 
 
-def test_non_injectable(ioc):
+@test("non injectable type should fail")
+def test_non_injectable(ioc=ioc):
     obj = SimpleNamespace()
-    with pytest.raises(NonInjectableTypeError):
+    with raises(NonInjectableTypeError):
         ioc.register(obj, Scope.SINGLETON)

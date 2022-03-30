@@ -1,28 +1,29 @@
-import pytest
+from ward import test, raises
 
 from dependency_injector import Scope
 from dependency_injector.errors import ServiceNotFoundError
 
-from . import ioc
-
-pytestmark = pytest.mark.asyncio
+from .fixtures import ioc
 
 
 class Service:
     pass
 
 
-def test_has_unknwon_service(ioc):
+@test("has unknwon service")
+def _(ioc=ioc):
     result = ioc.has(Service)
     assert not result
 
 
-async def test_get_unknwon_service(ioc):
-    with pytest.raises(ServiceNotFoundError):
+@test("get unknwon service")
+async def _(ioc=ioc):
+    with raises(ServiceNotFoundError):
         await ioc.get(Service)
 
 
-async def test_service_with_name_not_found(ioc):
+@test("service with name not found")
+async def _(ioc=ioc):
     ioc.register(Service, Scope.TRANSIENT, name="1")
-    with pytest.raises(ServiceNotFoundError):
+    with raises(ServiceNotFoundError):
         await ioc.get(Service, name="2")

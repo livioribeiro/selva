@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-import pytest
+from ward import test, raises
 
 from dependency_injector import Lazy, Scope
 from dependency_injector.errors import DependencyLoopError
 
-from . import ioc
+from .fixtures import ioc
 
 
 class Service1:
@@ -28,19 +28,21 @@ class ServiceWithLazyDependency:
         self.service = service
 
 
-def test_dependency_loop(ioc):
+@test("dependency_loop_should_fail")
+async def _(ioc=ioc):
     ioc.register(Service1, Scope.SINGLETON)
     ioc.register(Service2, Scope.SINGLETON)
 
-    with pytest.raises(DependencyLoopError):
-        ioc.get(Service2)
+    with raises(DependencyLoopError):
+        await ioc.get(Service2)
 
 
-def test_break_dependency_loop_with_lazy(ioc):
+@test("break dependency loop with lazy")
+async def _(ioc=ioc):
     ioc.register(LazyService, Scope.SINGLETON)
     ioc.register(ServiceWithLazyDependency, Scope.SINGLETON)
 
-    result = ioc.get(LazyService)
-    dependent = result.service.service.get()
+    result = await ioc.get(LazyService)
+    dependent = await result.service.service.get()
     assert isinstance(result.service, ServiceWithLazyDependency)
     assert isinstance(dependent, LazyService)

@@ -1,12 +1,10 @@
-import pytest
+from ward import test, raises
 
 from dependency_injector import Scope
 from dependency_injector.errors import InvalidScopeError
 
-from . import ioc
+from .fixtures import ioc
 from .utils import Context
-
-pytestmark = pytest.mark.asyncio
 
 
 class Service1:
@@ -18,32 +16,36 @@ class Service2:
         self.service1 = service1
 
 
-async def test_inject_transient_into_dependent_should_fail(ioc):
+@test("inject transient into dependent should fail")
+async def _(ioc=ioc):
     ioc.register(Service1, Scope.TRANSIENT)
     ioc.register(Service2, Scope.DEPENDENT)
     context = Context()
 
-    with pytest.raises(InvalidScopeError):
+    with raises(InvalidScopeError):
         await ioc.get(Service2, context=context)
 
 
-async def test_inject_dependent_into_singleton_should_fail(ioc):
+@test("inject dependent into singleton should fail")
+async def test_(ioc=ioc):
     ioc.register(Service1, Scope.DEPENDENT)
     ioc.register(Service2, Scope.SINGLETON)
 
-    with pytest.raises(InvalidScopeError):
+    with raises(InvalidScopeError):
         await ioc.get(Service2)
 
 
-async def test_inject_transient_into_singleton_should_fail(ioc):
+@test("inject transient into singleton should fail")
+async def _(ioc=ioc):
     ioc.register(Service1, Scope.TRANSIENT)
     ioc.register(Service2, Scope.SINGLETON)
 
-    with pytest.raises(InvalidScopeError):
+    with raises(InvalidScopeError):
         await ioc.get(Service2)
 
 
-async def test_dependent_scope_cleanup(ioc):
+@test("dependent scope cleanup")
+async def _(ioc=ioc):
     ioc.register(Service1, Scope.DEPENDENT)
 
     context = Context()

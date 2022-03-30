@@ -1,4 +1,6 @@
-import pytest
+import warnings
+
+from ward import test, raises
 
 from dependency_injector import Scope
 from dependency_injector.errors import (
@@ -7,10 +9,8 @@ from dependency_injector.errors import (
     ServiceAlreadyRegisteredError,
 )
 
-from . import ioc
+from .fixtures import ioc
 from .utils import Context
-
-pytestmark = pytest.mark.asyncio
 
 
 class Service1:
@@ -50,12 +50,14 @@ async def interface_factory() -> Interface:
     return Implementation()
 
 
-def test_has_service(ioc):
+@test("has service")
+def _(ioc=ioc):
     ioc.register(service1_factory, Scope.SINGLETON)
     assert ioc.has(Service1)
 
 
-def test_has_service_with_scope(ioc):
+@test("has service with scope")
+def _(ioc=ioc):
     ioc.register(service1_factory, Scope.SINGLETON)
     ioc.register(service2_factory, Scope.DEPENDENT)
     ioc.register(service3_factory, Scope.TRANSIENT)
@@ -65,14 +67,16 @@ def test_has_service_with_scope(ioc):
     assert ioc.has(Service3, Scope.TRANSIENT)
 
 
-async def test_service_with_provided_interface(ioc):
+@test("service with provided interface")
+async def _(ioc=ioc):
     ioc.register(interface_factory, Scope.SINGLETON)
 
     service = await ioc.get(Interface)
     assert isinstance(service, Implementation)
 
 
-async def test_inject_singleton(ioc):
+@test("inject singleton")
+async def _(ioc=ioc):
     ioc.register(service1_factory, Scope.SINGLETON)
     ioc.register(service2_factory, Scope.SINGLETON)
 
@@ -85,7 +89,8 @@ async def test_inject_singleton(ioc):
     assert other_service.service1 is service.service1
 
 
-async def test_inject_transient(ioc):
+@test("inject transient")
+async def _(ioc=ioc):
     ioc.register(service1_factory, Scope.TRANSIENT)
     ioc.register(service2_factory, Scope.TRANSIENT)
 
@@ -98,7 +103,8 @@ async def test_inject_transient(ioc):
     assert other_service.service1 is not service.service1
 
 
-async def test_inject_dependent(ioc):
+@test("inject dependent")
+async def _(ioc=ioc):
     ioc.register(service1_factory, Scope.DEPENDENT)
     ioc.register(service2_factory, Scope.DEPENDENT)
 
@@ -118,34 +124,42 @@ async def test_inject_dependent(ioc):
     assert another_service.service1 is not service.service1
 
 
-async def test_dependent_without_context_should_fail(ioc):
+@test("dependent scope without context should fail")
+async def _(ioc=ioc):
     ioc.register(service1_factory, Scope.DEPENDENT)
 
-    with pytest.raises(MissingDependentContextError):
+    with raises(MissingDependentContextError):
         await ioc.get(Service1)
 
 
-async def test_interface_implementation(ioc):
+@test("interface implementation")
+async def _(ioc=ioc):
     ioc.register(interface_factory, Scope.SINGLETON)
 
     service = await ioc.get(Interface)
     assert isinstance(service, Implementation)
 
 
-def test_factory_function_without_return_type_should_fail(ioc):
+@test("factory function without return type should fail")
+def _(ioc=ioc):
     async def service_factory():
         return Service1()
 
-    with pytest.raises(FactoryMissingReturnTypeError):
+    with raises(FactoryMissingReturnTypeError):
         ioc.register(service_factory, Scope.SINGLETON)
 
 
-def test_provides_option_should_raise_warning(ioc):
-    with pytest.warns(UserWarning):
+@test("provides option should raise warning")
+def _(ioc=ioc):
+    with warnings.catch_warnings(record=True) as w:
         ioc.register(interface_factory, Scope.SINGLETON, provides=Interface)
+        assert "option 'provides' on a factory function has no effect" == str(
+            w[0].message
+        )
 
 
-async def test_sync_factory(ioc):
+@test("sync factory")
+async def _(ioc=ioc):
     def sync_factory() -> Service1:
         return Service1()
 
@@ -155,10 +169,11 @@ async def test_sync_factory(ioc):
     assert isinstance(service, Service1)
 
 
-async def test_service_registered_twice_should_fail(ioc):
+@test("register a service twice should fail")
+async def _(ioc=ioc):
     async def duplicate_factory() -> Service1:
         return Service1()
 
-    with pytest.raises(ServiceAlreadyRegisteredError):
+    with raises(ServiceAlreadyRegisteredError):
         ioc.register(service1_factory, Scope.SINGLETON)
         ioc.register(duplicate_factory, Scope.SINGLETON)

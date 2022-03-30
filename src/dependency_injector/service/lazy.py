@@ -1,15 +1,19 @@
-from collections.abc import Awaitable
-from typing import Any, Generic, TypeVar, Union
+from typing import Any, Generic, TypeVar
 
 T = TypeVar("T")
 
 
 class Lazy(Generic[T]):
     def __init__(self, container, service: type, context: Any = None):
-        self._container = container
-        self._service = service
-        self._context = context
-        self._instance = None
+        self.__container = container
+        self.__service = service
+        self.__context = context
+        self.__instance: T = None
 
-    def get(self) -> Union[T, Awaitable[T]]:
-        return self._container.get(self._service, context=self._context)
+    async def get(self) -> T:
+        if self.__instance is None:
+            self.__instance = await self.__container.get(
+                self.__service, context=self.__context
+            )
+
+        return self.__instance

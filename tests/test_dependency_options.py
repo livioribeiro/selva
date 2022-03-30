@@ -1,8 +1,10 @@
 from typing import Optional
 
+from ward import test
+
 from dependency_injector import Lazy, Scope
 
-from . import ioc
+from .fixtures import ioc
 
 
 class DependentService:
@@ -29,31 +31,34 @@ class ServiceWithLazyDep:
         self.dependent = dependent
 
 
-def test_optional_dependency(ioc):
+@test("optional dependency")
+async def _(ioc=ioc):
     ioc.register(ServiceWithOptionalDep, Scope.TRANSIENT)
-    service = ioc.get(ServiceWithOptionalDep)
+    service = await ioc.get(ServiceWithOptionalDep)
     assert service.dependent is None
 
     ioc.register(DependentService, Scope.TRANSIENT)
-    service = ioc.get(ServiceWithOptionalDep)
+    service = await ioc.get(ServiceWithOptionalDep)
     assert isinstance(service.dependent, DependentService)
 
 
-def test_optional_dependency_default_none(ioc):
+@test("optional dependency with None as default value")
+async def _(ioc=ioc):
     ioc.register(ServiceWithOptionalDepNone, Scope.TRANSIENT)
-    service = ioc.get(ServiceWithOptionalDepNone)
+    service = await ioc.get(ServiceWithOptionalDepNone)
     assert service.dependent is None
 
     ioc.register(DependentService, Scope.TRANSIENT)
-    service = ioc.get(ServiceWithOptionalDepNone)
+    service = await ioc.get(ServiceWithOptionalDepNone)
     assert isinstance(service.dependent, DependentService)
 
 
-def test_lazy_dependency(ioc):
+@test("lazy dependency")
+async def _(ioc=ioc):
     ioc.register(LazyDependency, Scope.TRANSIENT)
     ioc.register(ServiceWithLazyDep, Scope.TRANSIENT)
 
-    service = ioc.get(ServiceWithLazyDep)
-    dependent = service.dependent.get()
+    service = await ioc.get(ServiceWithLazyDep)
+    dependent = await service.dependent.get()
     assert isinstance(dependent, LazyDependency)
     assert 1 == dependent.method()

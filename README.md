@@ -77,22 +77,6 @@ async def main():
     assert isinstance(service2.service1, Service1)
 ```
 
-There is also a sync container
-
-```python
-### app/main.py
-
-from depedency_injector import SyncContainer
-from app.services import Service1, Service2
-
-ioc = SyncContainer()
-
-ioc.scan("app.services")
-
-service2 = ioc.get(Service2)
-assert isinstance(service2.service1, Service1)
-```
-
 Interface with implementation
 
 ```python
