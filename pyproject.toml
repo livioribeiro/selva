@@ -1,3 +1,7 @@
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
 [tool.poetry]
 name = "dependency_injector"
 version = "0.1.0"
@@ -12,6 +16,7 @@ packages = [
 python = "^3.10"
 
 [tool.poetry.dev-dependencies]
+pylint = "^2.13.4"
 black = "^22.3.0"
 isort = "^5.10.1"
 flake8 = "^4.0.1"
@@ -23,11 +28,10 @@ coverage = {version = "^6.3.2", extras = ["toml"]}
 path = ["tests"]
 
 [tool.coverage.run]
-source = "src/dependency_injector"
+source = ["src/dependency_injector"]
 
 [tool.pylint.MASTER]
-disable = "C0114,C0115,C0116" # ignore missing docstrings
+disable = ["C0114", "C0115", "C0116"] # ignore missing docstrings
 
-[build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
+[tool.mypy]
+ignore_missing_imports = true
