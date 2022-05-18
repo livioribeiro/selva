@@ -1,6 +1,6 @@
 from ward import test, raises
 
-from dependency_injector import Scope
+from dependency_injector import Container, Scope
 from dependency_injector.errors import InvalidScopeError
 
 from .fixtures import ioc
@@ -17,7 +17,7 @@ class Service2:
 
 
 @test("inject transient into dependent should fail")
-async def _(ioc=ioc):
+async def _(ioc: Container = ioc):
     ioc.register(Service1, Scope.TRANSIENT)
     ioc.register(Service2, Scope.DEPENDENT)
     context = Context()
@@ -27,7 +27,7 @@ async def _(ioc=ioc):
 
 
 @test("inject dependent into singleton should fail")
-async def test_(ioc=ioc):
+async def test_(ioc: Container = ioc):
     ioc.register(Service1, Scope.DEPENDENT)
     ioc.register(Service2, Scope.SINGLETON)
 
@@ -36,7 +36,7 @@ async def test_(ioc=ioc):
 
 
 @test("inject transient into singleton should fail")
-async def _(ioc=ioc):
+async def _(ioc: Container = ioc):
     ioc.register(Service1, Scope.TRANSIENT)
     ioc.register(Service2, Scope.SINGLETON)
 
@@ -45,7 +45,7 @@ async def _(ioc=ioc):
 
 
 @test("dependent scope cleanup")
-async def _(ioc=ioc):
+async def _(ioc: Container = ioc):
     ioc.register(Service1, Scope.DEPENDENT)
 
     context = Context()

@@ -16,7 +16,6 @@ from .errors import (
     MissingDependentContextError,
 )
 from .scan import scan_packages
-from .service.lazy import Lazy
 from .service.model import InjectableType, Scope, ServiceDefinition, ServiceDependency
 from .service.parse import get_dependencies, parse_definition
 from .service.registry import ServiceRegistry
@@ -27,7 +26,7 @@ class Container:
         self.registry = ServiceRegistry()
         self.store_singleton: dict[type, Any] = {}
         self.store_dependent: dict[int, dict[type, Any]] = {}
-        self.loop = loop or asyncio.get_event_loop()
+        self.loop = loop or asyncio.get_running_loop()
         self.executor = executor or ThreadPoolExecutor()
 
     def register(
@@ -60,7 +59,24 @@ class Container:
     async def get(
         self, service_type: type, *, context: Any = None, name: str = None
     ) -> Any:
-        return await self._get(ServiceDependency(service_type, name=name), context)
+        instance = await self._get(ServiceDependency(service_type, name=name), context)
+
+        initializer = getattr(instance, "initialize", None)
+
+        if inspect.ismethod(initializer):
+            dependencies = await self._resolve_dependencies(initializer, context)
+            if inspect.iscoroutinefunction(initializer):
+                await initializer(**dependencies)
+            else:
+                await self.loop.run_in_executor(self.executor, partial(initializer, **dependencies))
+
+        return instance
+
+    async def _resolve_dependencies(self, service: InjectableType, context: Any = None):
+        return {
+            name: await self._get(dep, context)
+            for name, dep in get_dependencies(service)
+        }
 
     async def _get(
         self,
@@ -71,11 +87,9 @@ class Container:
     ) -> Optional[Any]:
         service_type, name = dependency.service, dependency.name
         definition = self.registry.get(service_type, name, dependency.optional)
+
         if definition is None:
             return None
-
-        if dependency.lazy:
-            return Lazy(self, service_type, context)
 
         valid_scope = valid_scope or definition.scope
 
@@ -137,7 +151,7 @@ class Container:
             for name, dep in definition.dependencies
         }
 
-        if asyncio.iscoroutinefunction(factory):
+        if inspect.iscoroutinefunction(factory):
             return await factory(**dependencies)
 
         return await self.loop.run_in_executor(
@@ -174,7 +188,7 @@ class Container:
         func_args = inspect.signature(func).bind(*args, **params)
         func_args.apply_defaults()
 
-        if asyncio.iscoroutinefunction(func):
+        if inspect.iscoroutinefunction(func):
             return await func(*func_args.args, **func_args.kwargs)
 
         return await self.loop.run_in_executor(

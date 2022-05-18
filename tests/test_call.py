@@ -19,7 +19,7 @@ class ServiceDependent:
 
 
 @fixture
-def ioc():
+async def ioc():
     container = Container()
     container.register(ServiceSingleton, Scope.SINGLETON)
     container.register(ServiceTransient, Scope.TRANSIENT)

@@ -13,7 +13,6 @@ from dependency_injector.errors import (
 )
 
 from ..annotations import Name
-from .lazy import Lazy
 from .model import InjectableType, Scope, ServiceDefinition, ServiceDependency
 
 
@@ -32,19 +31,13 @@ def _get_annotations(type_hint) -> tuple[type, list[Any]]:
     return type_hint, []
 
 
-def _get_lazy(type_hint) -> tuple[type, bool]:
-    if typing.get_origin(type_hint) is Lazy:
-        type_hint = typing.get_args(type_hint)[0]
-        return type_hint, True
-    return type_hint, False
-
-
 def get_dependencies(service: InjectableType) -> list[tuple[str, ServiceDependency]]:
     if inspect.isclass(service):
         types = typing.get_type_hints(service.__init__, include_extras=True)
     else:
         types = typing.get_type_hints(service, include_extras=True)
-        types.pop("return", None)
+
+    types.pop("return", None)
 
     result = []
 
@@ -54,7 +47,6 @@ def get_dependencies(service: InjectableType) -> list[tuple[str, ServiceDependen
         # in case Optional is wrapped in Annotated
         if not optional:
             type_hint, optional = _get_optional(type_hint)
-        type_hint, lazy = _get_lazy(type_hint)
 
         dependency_names = [a.value for a in annotations if isinstance(a, Name)]
         if len(dependency_names) > 1:
@@ -62,7 +54,7 @@ def get_dependencies(service: InjectableType) -> list[tuple[str, ServiceDependen
         dependency_name = dependency_names[0] if len(dependency_names) == 1 else None
 
         service_dependency = ServiceDependency(
-            type_hint, lazy=lazy, optional=optional, name=dependency_name
+            type_hint, optional=optional, name=dependency_name
         )
         result.append((name, service_dependency))
 

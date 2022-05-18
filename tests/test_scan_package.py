@@ -1,15 +1,15 @@
 from ward import test
 
-from dependency_injector import Scope
+from dependency_injector import Container, Scope
 
 from .fixtures import ioc
 
 
 @test("scan package by module")
-async def _(ioc=ioc):
+async def _(ioc: Container = ioc):
     from .services import scan_package as module
-    from .services.scan_package.service1 import Service1
-    from .services.scan_package.service2 import Service2
+    from .services.scan_package.service_class import Service1
+    from .services.scan_package.service_function import Service2
 
     ioc.scan(module)
 
@@ -24,9 +24,9 @@ async def _(ioc=ioc):
 
 
 @test("scan package by name")
-async def _(ioc=ioc):
-    from .services.scan_package.service1 import Service1
-    from .services.scan_package.service2 import Service2
+async def _(ioc: Container = ioc):
+    from .services.scan_package.service_class import Service1
+    from .services.scan_package.service_function import Service2
 
     ioc.scan("tests.services.scan_package")
 
@@ -41,12 +41,12 @@ async def _(ioc=ioc):
 
 
 @test("scan multiple packages")
-async def _(ioc=ioc):
-    from .services.scan_package import service1 as module
-    from .services.scan_package.service1 import Service1
-    from .services.scan_package.service2 import Service2
+async def _(ioc: Container = ioc):
+    from .services.scan_package import service_class as module
+    from .services.scan_package.service_class import Service1
+    from .services.scan_package.service_function import Service2
 
-    ioc.scan(module, "tests.services.scan_package.service2")
+    ioc.scan(module, "tests.services.scan_package.service_function")
 
     assert ioc.has(Service1)
     assert ioc.has(Service2)
@@ -59,7 +59,7 @@ async def _(ioc=ioc):
 
 
 @test("scan generic class")
-async def _(ioc=ioc):
+async def _(ioc: Container = ioc):
     from .services.scan_package import generic as module
 
     ioc.scan(module)
@@ -70,10 +70,20 @@ async def _(ioc=ioc):
 
 
 @test("scan scopes")
-async def _(ioc=ioc):
+async def _(ioc: Container = ioc):
     from .services.scan_package import scopes as module
 
     ioc.scan(module)
     assert ioc.has(module.SingletonService, Scope.SINGLETON)
     assert ioc.has(module.DependentService, Scope.DEPENDENT)
     assert ioc.has(module.TransientService, Scope.TRANSIENT)
+
+
+@test("scan dataclass")
+async def _(ioc: Container = ioc):
+    from .services.scan_package import service_dataclass as module
+
+    ioc.scan(module)
+
+    service = await ioc.get(module.ServiceDataclass)
+    assert isinstance(service.dependency, module.Dependency)

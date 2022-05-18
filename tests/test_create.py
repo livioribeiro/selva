@@ -1,6 +1,6 @@
 from ward import test
 
-from dependency_injector import Scope
+from dependency_injector import Container, Scope
 
 from .fixtures import ioc
 from .utils import Context
@@ -29,7 +29,7 @@ class Creatable:
 
 
 @test("create object with class")
-async def _(ioc=ioc):
+async def _(ioc: Container = ioc):
     ioc.register(Service1, Scope.TRANSIENT)
     ioc.register(Service2, Scope.TRANSIENT)
 
@@ -40,7 +40,7 @@ async def _(ioc=ioc):
 
 
 @test("create object with factory")
-async def _(ioc=ioc):
+async def _(ioc: Container = ioc):
     ioc.register(service1_factory, Scope.TRANSIENT)
     ioc.register(service2_factory, Scope.TRANSIENT)
 
@@ -51,7 +51,7 @@ async def _(ioc=ioc):
 
 
 @test("create object with context")
-async def _(ioc=ioc):
+async def _(ioc: Container = ioc):
     ioc.register(Service1, Scope.DEPENDENT)
     ioc.register(Service2, Scope.DEPENDENT)
 

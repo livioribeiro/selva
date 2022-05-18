@@ -4,5 +4,5 @@ from dependency_injector import Container
 
 
 @ward.fixture
-def ioc():
+async def ioc():
     return Container()

@@ -1,15 +1,13 @@
-from __future__ import annotations
-
 from ward import test, raises
 
-from dependency_injector import Lazy, Scope
+from dependency_injector import Container, Scope
 from dependency_injector.errors import DependencyLoopError
 
 from .fixtures import ioc
 
 
 class Service1:
-    def __init__(self, service2: Service2):
+    def __init__(self, service2: "Service2"):
         pass
 
 
@@ -19,17 +17,20 @@ class Service2:
 
 
 class LazyService:
-    def __init__(self, service: ServiceWithLazyDependency):
+    def __init__(self, service: "ServiceWithLazyDependency"):
         self.service = service
 
 
 class ServiceWithLazyDependency:
-    def __init__(self, service: Lazy[LazyService]):
-        self.service = service
+    def __init__(self):
+        self.lazy = None
+
+    def initialize(self, service: LazyService):
+        self.lazy = service
 
 
-@test("dependency_loop_should_fail")
-async def _(ioc=ioc):
+@test("dependency loop should fail")
+async def _(ioc: Container = ioc):
     ioc.register(Service1, Scope.SINGLETON)
     ioc.register(Service2, Scope.SINGLETON)
 
@@ -37,12 +38,10 @@ async def _(ioc=ioc):
         await ioc.get(Service2)
 
 
-@test("break dependency loop with lazy")
-async def _(ioc=ioc):
+@test("break dependency loop with initialize method")
+async def _(ioc: Container = ioc):
     ioc.register(LazyService, Scope.SINGLETON)
     ioc.register(ServiceWithLazyDependency, Scope.SINGLETON)
 
-    result = await ioc.get(LazyService)
-    dependent = await result.service.service.get()
-    assert isinstance(result.service, ServiceWithLazyDependency)
-    assert isinstance(dependent, LazyService)
+    result = await ioc.get(ServiceWithLazyDependency)
+    assert isinstance(result.lazy, LazyService)

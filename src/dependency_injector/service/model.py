@@ -20,7 +20,6 @@ class ServiceInfo(NamedTuple):
 class ServiceDependency(NamedTuple):
     service: type
     name: Optional[str]
-    lazy: bool = False
     optional: bool = False
 
 

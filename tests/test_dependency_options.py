@@ -2,7 +2,7 @@ from typing import Optional
 
 from ward import test
 
-from dependency_injector import Lazy, Scope
+from dependency_injector import Scope
 
 from .fixtures import ioc
 
@@ -26,11 +26,6 @@ class LazyDependency:
         return 1
 
 
-class ServiceWithLazyDep:
-    def __init__(self, dependent: Lazy[LazyDependency]):
-        self.dependent = dependent
-
-
 @test("optional dependency")
 async def _(ioc=ioc):
     ioc.register(ServiceWithOptionalDep, Scope.TRANSIENT)
@@ -52,13 +47,3 @@ async def _(ioc=ioc):
     service = await ioc.get(ServiceWithOptionalDepNone)
     assert isinstance(service.dependent, DependentService)
 
-
-@test("lazy dependency")
-async def _(ioc=ioc):
-    ioc.register(LazyDependency, Scope.TRANSIENT)
-    ioc.register(ServiceWithLazyDep, Scope.TRANSIENT)
-
-    service = await ioc.get(ServiceWithLazyDep)
-    dependent = await service.dependent.get()
-    assert isinstance(dependent, LazyDependency)
-    assert 1 == dependent.method()

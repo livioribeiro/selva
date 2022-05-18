@@ -3,7 +3,7 @@ import warnings
 
 from ward import test, raises
 
-from dependency_injector import Name, Scope
+from dependency_injector import Container, Name, Scope
 from dependency_injector.errors import (
     MultipleNameAnnotationsError,
     ServiceAlreadyRegisteredError,
@@ -27,7 +27,7 @@ class ServiceWithMultiNameAnnotations:
 
 
 @test("dependency with name")
-async def _(ioc=ioc):
+async def _(ioc: Container = ioc):
     ioc.register(DependentService, Scope.TRANSIENT, name="1")
     ioc.register(ServiceWithNamedDep, Scope.TRANSIENT)
 
@@ -37,7 +37,7 @@ async def _(ioc=ioc):
 
 
 @test("default dependency")
-async def _(ioc=ioc):
+async def _(ioc: Container = ioc):
     ioc.register(DependentService, Scope.TRANSIENT)
     ioc.register(ServiceWithNamedDep, Scope.TRANSIENT)
 
@@ -53,13 +53,13 @@ async def _(ioc=ioc):
 
 
 @test("multiple name annotations should fail")
-async def _(ioc=ioc):
+async def _(ioc: Container = ioc):
     with raises(MultipleNameAnnotationsError):
         ioc.register(ServiceWithMultiNameAnnotations, Scope.TRANSIENT)
 
 
 @test("register two services with the same name should fail")
-async def test_(ioc=ioc):
+async def test_(ioc: Container = ioc):
     ioc.register(DependentService, Scope.TRANSIENT, name="1")
     with raises(ServiceAlreadyRegisteredError):
         ioc.register(DependentService, Scope.TRANSIENT, name="1")

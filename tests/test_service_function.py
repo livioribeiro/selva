@@ -2,7 +2,7 @@ import warnings
 
 from ward import test, raises
 
-from dependency_injector import Scope
+from dependency_injector import Container, Scope
 from dependency_injector.errors import (
     FactoryMissingReturnTypeError,
     MissingDependentContextError,
@@ -51,13 +51,13 @@ async def interface_factory() -> Interface:
 
 
 @test("has service")
-def _(ioc=ioc):
+def _(ioc: Container = ioc):
     ioc.register(service1_factory, Scope.SINGLETON)
     assert ioc.has(Service1)
 
 
 @test("has service with scope")
-def _(ioc=ioc):
+def _(ioc: Container = ioc):
     ioc.register(service1_factory, Scope.SINGLETON)
     ioc.register(service2_factory, Scope.DEPENDENT)
     ioc.register(service3_factory, Scope.TRANSIENT)
@@ -68,7 +68,7 @@ def _(ioc=ioc):
 
 
 @test("service with provided interface")
-async def _(ioc=ioc):
+async def _(ioc: Container = ioc):
     ioc.register(interface_factory, Scope.SINGLETON)
 
     service = await ioc.get(Interface)
@@ -76,7 +76,7 @@ async def _(ioc=ioc):
 
 
 @test("inject singleton")
-async def _(ioc=ioc):
+async def _(ioc: Container = ioc):
     ioc.register(service1_factory, Scope.SINGLETON)
     ioc.register(service2_factory, Scope.SINGLETON)
 
@@ -90,7 +90,7 @@ async def _(ioc=ioc):
 
 
 @test("inject transient")
-async def _(ioc=ioc):
+async def _(ioc: Container = ioc):
     ioc.register(service1_factory, Scope.TRANSIENT)
     ioc.register(service2_factory, Scope.TRANSIENT)
 
@@ -104,7 +104,7 @@ async def _(ioc=ioc):
 
 
 @test("inject dependent")
-async def _(ioc=ioc):
+async def _(ioc: Container = ioc):
     ioc.register(service1_factory, Scope.DEPENDENT)
     ioc.register(service2_factory, Scope.DEPENDENT)
 
@@ -125,7 +125,7 @@ async def _(ioc=ioc):
 
 
 @test("dependent scope without context should fail")
-async def _(ioc=ioc):
+async def _(ioc: Container = ioc):
     ioc.register(service1_factory, Scope.DEPENDENT)
 
     with raises(MissingDependentContextError):
@@ -133,7 +133,7 @@ async def _(ioc=ioc):
 
 
 @test("interface implementation")
-async def _(ioc=ioc):
+async def _(ioc: Container = ioc):
     ioc.register(interface_factory, Scope.SINGLETON)
 
     service = await ioc.get(Interface)
@@ -141,7 +141,7 @@ async def _(ioc=ioc):
 
 
 @test("factory function without return type should fail")
-def _(ioc=ioc):
+def _(ioc: Container = ioc):
     async def service_factory():
         return Service1()
 
@@ -150,7 +150,7 @@ def _(ioc=ioc):
 
 
 @test("provides option should raise warning")
-def _(ioc=ioc):
+def _(ioc: Container = ioc):
     with warnings.catch_warnings(record=True) as w:
         ioc.register(interface_factory, Scope.SINGLETON, provides=Interface)
         assert "option 'provides' on a factory function has no effect" == str(
@@ -159,7 +159,7 @@ def _(ioc=ioc):
 
 
 @test("sync factory")
-async def _(ioc=ioc):
+async def _(ioc: Container = ioc):
     def sync_factory() -> Service1:
         return Service1()
 
@@ -170,7 +170,7 @@ async def _(ioc=ioc):
 
 
 @test("register a service twice should fail")
-async def _(ioc=ioc):
+async def _(ioc: Container = ioc):
     async def duplicate_factory() -> Service1:
         return Service1()
 

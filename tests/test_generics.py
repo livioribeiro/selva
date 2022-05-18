@@ -2,7 +2,7 @@ from typing import Generic, TypeVar
 
 from ward import test, raises
 
-from dependency_injector import Scope
+from dependency_injector import Container, Scope
 from dependency_injector.errors import (
     IncompatibleTypesError,
     TypeVarInGenericServiceError,
@@ -35,7 +35,7 @@ def service_factory_depends(service: GenericService[int]) -> ServiceDepends:
 
 
 @test("get generic service with class")
-async def _(ioc=ioc):
+async def _(ioc: Container = ioc):
     ioc.register(Service, Scope.SINGLETON, provides=GenericService[int])
 
     service = await ioc.get(GenericService[int])
@@ -43,7 +43,7 @@ async def _(ioc=ioc):
 
 
 @test("get generic service with factory")
-async def _(ioc=ioc):
+async def _(ioc: Container = ioc):
     ioc.register(service_factory, Scope.SINGLETON)
 
     service = await ioc.get(GenericService[int])
@@ -51,7 +51,7 @@ async def _(ioc=ioc):
 
 
 @test("get generic service with class with dependency")
-async def _(ioc=ioc):
+async def _(ioc: Container = ioc):
     ioc.register(Service, Scope.SINGLETON, provides=GenericService[int])
     ioc.register(ServiceDepends, Scope.SINGLETON)
 
@@ -61,7 +61,7 @@ async def _(ioc=ioc):
 
 
 @test("get generic service with factory with dependency")
-async def _(ioc=ioc):
+async def _(ioc: Container = ioc):
     ioc.register(service_factory, Scope.SINGLETON)
     ioc.register(service_factory_depends, Scope.SINGLETON)
 
@@ -71,7 +71,7 @@ async def _(ioc=ioc):
 
 
 @test("service registered with wrong generic type should fail")
-async def _(ioc=ioc):
+async def _(ioc: Container = ioc):
     U = TypeVar("U")
 
     class AnotherGenericService(Generic[U]):
@@ -82,12 +82,12 @@ async def _(ioc=ioc):
 
 
 @test("service provides wrong generic parameter should fail")
-async def _(ioc=ioc):
+async def _(ioc: Container = ioc):
     with raises(IncompatibleTypesError):
         ioc.register(Service, Scope.SINGLETON, provides=GenericService[str])
 
 
 @test("type var in generic service should fail")
-async def _(ioc=ioc):
+async def _(ioc: Container = ioc):
     with raises(TypeVarInGenericServiceError):
         ioc.register(Service, Scope.SINGLETON, provides=GenericService[T])

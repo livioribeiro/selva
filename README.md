@@ -8,6 +8,8 @@ Declare services
 ```python
 ### app/services.py
 
+from dataclasses import dataclass
+
 from dependency_injector import singleton
 
 
@@ -22,6 +24,13 @@ class Service1:
 class Service2:
     def __init__(self, service1: Service1):
         self.service1 = service1
+
+
+# works with dataclasses too
+@singleton
+@dataclass
+class Service3:
+    service2: Service2
 ```
 
 You can also use factory functions
@@ -36,7 +45,7 @@ class Service1:
     pass
 
 
-# works with dataclasses too
+# also works with dataclasses
 @dataclass
 class Service2:
     service1: Service1
@@ -271,4 +280,30 @@ async def main():
 
     service = await ioc.get(Interface[int])
     assert isinstance(service, Implementation)
+```
+
+Define initializer methods
+
+```python
+class Service:
+    # will be called after object is created
+    async def initialize(self):
+        # execute initialization logic
+        ...
+```
+
+Initialize methods can also be used to break dependency loops
+
+```python
+class Service1:
+    def __init__(self, service2: "Service2"):
+        self.service2 = service2
+
+
+class Service2:
+    def __init__(self):
+        self.service1 = None
+
+    def initialize(self, service1: Service1):
+        self.service1 = service1
 ```

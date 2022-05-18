@@ -1,6 +1,8 @@
+from dataclasses import dataclass
+
 from ward import test, raises
 
-from dependency_injector import Scope
+from dependency_injector import Container, Scope
 from dependency_injector.errors import (
     IncompatibleTypesError,
     MissingDependentContextError,
@@ -32,14 +34,19 @@ class Implementation(Interface):
     pass
 
 
+@dataclass
+class ServiceDataClass:
+    service1: Service1
+
+
 @test("has service")
-def _(ioc=ioc):
+def _(ioc: Container = ioc):
     ioc.register(Service1, Scope.SINGLETON)
     assert ioc.has(Service1)
 
 
 @test("has service with scope")
-def _(ioc=ioc):
+def _(ioc: Container = ioc):
     ioc.register(Service1, Scope.SINGLETON)
     ioc.register(Service2, Scope.DEPENDENT)
     ioc.register(Service3, Scope.TRANSIENT)
@@ -50,7 +57,7 @@ def _(ioc=ioc):
 
 
 @test("service with provided interface")
-async def _(ioc=ioc):
+async def _(ioc: Container = ioc):
     ioc.register(Implementation, Scope.SINGLETON, provides=Interface)
 
     service = await ioc.get(Interface)
@@ -58,7 +65,7 @@ async def _(ioc=ioc):
 
 
 @test("inject singleton")
-async def test_inject_singleton(ioc=ioc):
+async def test_inject_singleton(ioc: Container = ioc):
     ioc.register(Service1, Scope.SINGLETON)
     ioc.register(Service2, Scope.SINGLETON)
 
@@ -72,7 +79,7 @@ async def test_inject_singleton(ioc=ioc):
 
 
 @test("inject transient")
-async def _(ioc=ioc):
+async def _(ioc: Container = ioc):
     ioc.register(Service1, Scope.TRANSIENT)
     ioc.register(Service2, Scope.TRANSIENT)
 
@@ -86,7 +93,7 @@ async def _(ioc=ioc):
 
 
 @test("inject dependent")
-async def _(ioc=ioc):
+async def _(ioc: Container = ioc):
     ioc.register(Service1, Scope.DEPENDENT)
     ioc.register(Service2, Scope.DEPENDENT)
 
@@ -107,7 +114,7 @@ async def _(ioc=ioc):
 
 
 @test("dependent scope without context should fail")
-async def _(ioc=ioc):
+async def _(ioc: Container = ioc):
     ioc.register(Service1, Scope.DEPENDENT)
 
     with raises(MissingDependentContextError):
@@ -115,7 +122,7 @@ async def _(ioc=ioc):
 
 
 @test("interface and implementation")
-async def _(ioc=ioc):
+async def _(ioc: Container = ioc):
     ioc.register(Implementation, Scope.SINGLETON, provides=Interface)
 
     service = await ioc.get(Interface)
@@ -123,7 +130,7 @@ async def _(ioc=ioc):
 
 
 @test("incompatible types should fail")
-def test_(ioc=ioc):
+def _(ioc: Container = ioc):
     class NotImplementation:
         pass
 
@@ -132,10 +139,20 @@ def test_(ioc=ioc):
 
 
 @test("register a service twice should fail")
-async def test_(ioc=ioc):
+async def _(ioc: Container = ioc):
     class Implementation2(Interface):
         pass
 
     ioc.register(Implementation, Scope.SINGLETON, provides=Interface)
     with raises(ServiceAlreadyRegisteredError):
         ioc.register(Implementation2, Scope.SINGLETON, provides=Interface)
+
+
+@test("service dataclass")
+async def _(ioc: Container = ioc):
+    ioc.register(Service1, Scope.SINGLETON)
+    ioc.register(ServiceDataClass, Scope.SINGLETON)
+
+    service = await ioc.get(ServiceDataClass)
+
+    assert isinstance(service.service1, Service1)
