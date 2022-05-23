@@ -26,8 +26,6 @@ class Container:
         self.registry = ServiceRegistry()
         self.store_singleton: dict[type, Any] = {}
         self.store_dependent: dict[int, dict[type, Any]] = {}
-        self.loop = loop or asyncio.get_running_loop()
-        self.executor = executor or ThreadPoolExecutor()
 
     def register(
         self,
@@ -68,7 +66,7 @@ class Container:
             if inspect.iscoroutinefunction(initializer):
                 await initializer(**dependencies)
             else:
-                await self.loop.run_in_executor(self.executor, partial(initializer, **dependencies))
+                await asyncio.to_thread(initializer, **dependencies)
 
         return instance
 
@@ -154,9 +152,7 @@ class Container:
         if inspect.iscoroutinefunction(factory):
             return await factory(**dependencies)
 
-        return await self.loop.run_in_executor(
-            self.executor, partial(factory, **dependencies)
-        )
+        return await asyncio.to_thread(factory, **dependencies)
 
     async def call(
         self,
@@ -191,6 +187,4 @@ class Container:
         if inspect.iscoroutinefunction(func):
             return await func(*func_args.args, **func_args.kwargs)
 
-        return await self.loop.run_in_executor(
-            self.executor, partial(func, *func_args.args, **func_args.kwargs)
-        )
+        return await asyncio.to_thread(func, *func_args.args, **func_args.kwargs)
