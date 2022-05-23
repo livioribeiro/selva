@@ -22,7 +22,7 @@ from .service.registry import ServiceRegistry
 
 
 class Container:
-    def __init__(self, loop: AbstractEventLoop = None, executor: Executor = None):
+    def __init__(self):
         self.registry = ServiceRegistry()
         self.store_singleton: dict[type, Any] = {}
         self.store_dependent: dict[int, dict[type, Any]] = {}
