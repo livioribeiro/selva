@@ -1,7 +1,7 @@
-from typing import Annotated
 import warnings
+from typing import Annotated
 
-from ward import test, raises
+from ward import raises, test
 
 from dependency_injector import Container, Name, Scope
 from dependency_injector.errors import (

@@ -1,6 +1,6 @@
 import warnings
 
-from ward import test, raises
+from ward import raises, test
 
 from dependency_injector import Container, Scope
 from dependency_injector.errors import (

@@ -1,4 +1,4 @@
-from ward import test, fixture, raises
+from ward import fixture, raises, test
 
 from dependency_injector import Container, Scope
 from dependency_injector.errors import CalledNonCallableError

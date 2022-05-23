@@ -46,4 +46,3 @@ async def _(ioc=ioc):
     ioc.register(DependentService, Scope.TRANSIENT)
     service = await ioc.get(ServiceWithOptionalDepNone)
     assert isinstance(service.dependent, DependentService)
-
