@@ -3,32 +3,33 @@ requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
-name = "dependency_injector"
+name = "selva"
 version = "0.1.0"
-description = "IoC Container"
+description = "Web Framework, IoC Container"
 authors = ["Livio Ribeiro <livioribeiro@outlook.com>"]
 license = "MIT"
 packages = [
-    { include = "dependency_injector", from = "src" }
+    { include = "selva", from = "src" }
 ]
 
 [tool.poetry.dependencies]
 python = "^3.10"
 
 [tool.poetry.dev-dependencies]
+pytest = "^7.1.2"
+pytest-asyncio = "^0.18.3"
+coverage = {version = "^6.4", extras = ["toml"]}
 pylint = "^2.13.4"
 black = "^22.3.0"
 isort = "^5.10.1"
 flake8 = "^4.0.1"
 mypy = "^0.942"
-ward = "^0.65.0b0"
-coverage = {version = "^6.3.2", extras = ["toml"]}
 
-[tool.ward]
-path = ["tests"]
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
 
 [tool.coverage.run]
-source = ["src/dependency_injector"]
+source = ["src"]
 
 [tool.pylint.MASTER]
 disable = ["C0114", "C0115", "C0116"] # ignore missing docstrings

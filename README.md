@@ -5,12 +5,13 @@ Yet another dependency injection library for Python
 ## Usage
 
 Declare services
+
 ```python
 ### app/services.py
 
 from dataclasses import dataclass
 
-from dependency_injector import singleton
+from selva.di import singleton
 
 
 # Register a service
@@ -39,7 +40,8 @@ You can also use factory functions
 ### app/services.py
 
 from dataclasses import dataclass
-from dependency_injector import singleton
+from selva.di import singleton
+
 
 class Service1:
     pass
@@ -66,7 +68,7 @@ Requesting the services
 ```python
 ### app/main.py
 
-from depedency_injector import Container
+from selva.di import Container
 from app.services import Service1, Service2
 
 
@@ -92,7 +94,7 @@ Interface with implementation
 ### app/services.py
 
 from abc import ABC, abstractmethod
-from dependency_injector import singleton
+from selva.di import singleton
 
 
 class Interface(ABC):
@@ -115,7 +117,7 @@ def factory_function() -> Interface:
 
 ### app/main.py
 
-from dependency_injector import Container
+from selva.di import Container
 from app.services import Interface, Implementation
 
 
@@ -129,7 +131,7 @@ async def main():
 Register services directly with the container
 
 ```python
-from dependency_injector import Container, Scope
+from selva.di import Container, Scope
 
 
 class Service:
@@ -166,7 +168,7 @@ Transient services
 ```python
 ### app/services.py
 
-from dependency_injector import transient
+from selva.di import transient
 
 
 @transient
@@ -177,7 +179,7 @@ class TransientService:
 ### app.main.py
 
 import asyncio
-from dependency_injector import Container
+from selva.di import Container
 from app.services import TransientService
 
 
@@ -199,7 +201,7 @@ The same object is return for a given context object. One example of aplication 
 ```python
 ### app/services.py
 
-from dependency_injector import dependent
+from selva.di import dependent
 
 
 @dependent
@@ -209,7 +211,7 @@ class DependentService:
 
 ### app/main.py
 
-from dependency_injector import Container
+from selva.di import Container
 from app.services import DependentService
 
 
@@ -262,7 +264,7 @@ Define generic services
 
 ```python
 from typing import Generic, TypeVar
-from dependency_injector import Container, Scope
+from selva.di import Container, Scope
 
 T = TypeVar("T")
 
@@ -276,6 +278,7 @@ class Implementation(Interface[int]):
 
 
 async def main():
+    ioc = Container()
     ioc.register(Implementation, Scope.SINGLETON, provides=Interface[int])
 
     service = await ioc.get(Interface[int])
