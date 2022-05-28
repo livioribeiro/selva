@@ -1,7 +1,4 @@
-import pytest
-
 from selva.di import Container
-from selva.di.errors import ServiceNotRegisteredError
 
 from .fixtures import ioc
 from .utils import Context
@@ -28,14 +25,6 @@ async def test_define_singleton_already_registered(ioc: Container):
     service = await ioc.get(Service)
 
     assert service is instance
-
-
-async def test_define_dependent_not_registered_should_fail(ioc: Container):
-    context = Context()
-    instance = Service()
-
-    with pytest.raises(ServiceNotRegisteredError):
-        ioc.define_dependent(Service, instance, context=context)
 
 
 async def test_define_dependent_already_registered(ioc: Container):

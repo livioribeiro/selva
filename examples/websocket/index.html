@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>WebSocket chat</title>
+</head>
+<body>
+<form id="chat-form">
+    <textarea name="message-list" id="message-list" cols="30" rows="10" readonly></textarea>
+    <p>
+        <input type="text" name="message-box" id="message-box" />
+        <button type="submit">Send</button>
+    </p>
+</form>
+
+<script>
+    const messages = [];
+
+    const chat = document.getElementById("chat-form");
+    const textarea = document.getElementById("message-list");
+    textarea.value = "";
+    const messageInput = document.getElementById("message-box");
+
+    const socket = new WebSocket("ws://localhost:8000/chat");
+
+    function addMessage(message) {
+        messages.push(message)
+        textarea.value = `${messages.join("\n")}`;
+        textarea.scrollTop = textarea.scrollHeight;
+    }
+
+    chat.onsubmit = (event) => {
+        event.preventDefault();
+        const message = messageInput.value;
+        socket.send(message);
+        messageInput.value = "";
+    };
+
+    socket.onopen = (event) => {
+        console.log("[open] Client connected");
+    };
+
+    socket.onmessage = (event) => {
+        const message = event.data;
+        console.log(`[message] "${message}"`)
+        addMessage(message);
+    };
+
+    socket.onclose = (event) => {
+        if (event.wasClean) {
+            console.log(`[close] Connection closed cleanly, code=${event.code} reason=${event.reason}`);
+        } else {
+            console.log('[close] Connection died');
+        }
+    };
+
+    socket.onerror = function(error) {
+        alert(`[error] ${error.message}`);
+    };
+</script>
+</body>
+</html>

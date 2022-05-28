@@ -1,11 +1,11 @@
-from types import FunctionType
+from types import FunctionType, MethodType
 from typing import Union
 
 from .service.model import Scope, ServiceInfo
 
 DEPENDENCY_ATTRIBUTE = "__dependency__"
 
-InjectableType = Union[type, FunctionType]
+InjectableType = Union[type, FunctionType, MethodType]
 
 
 def singleton(

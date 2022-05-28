@@ -13,13 +13,13 @@ from .errors import (
     DependencyLoopError,
     InvalidScopeError,
     MissingDependentContextError,
-    ServiceNotRegisteredError,
 )
 from .service.model import InjectableType, Scope, ServiceDefinition, ServiceDependency
 from .service.parse import get_dependencies, parse_definition
 from .service.registry import ServiceRegistry
 
 INITIALIZE_METHOD_NAME = "initialize"
+FINALIZE_METHOD_NAME = "finalize"
 
 
 class Container:
@@ -68,15 +68,9 @@ class Container:
         self.register(service, Scope.TRANSIENT, provides=provides, name=name)
 
     def define_singleton(self, service_type: type, instance: object):
-        if not self.has(service_type):
-            self.register(service_type, Scope.SINGLETON)
-
         self.store_singleton[service_type] = instance
 
     def define_dependent(self, service_type: type, instance: object, *, context: Any):
-        if not self.has(service_type):
-            raise ServiceNotRegisteredError(service_type)
-
         self._ensure_dependent_context(context)
         self.store_dependent[id(context)][service_type] = weakref.ref(instance)
 
@@ -104,18 +98,7 @@ class Container:
     async def get(
         self, service_type: type, *, context: Any = None, name: str = None
     ) -> Any:
-        # try getting from singleton store
-        instance = self.store_singleton.get(service_type)
-
-        # then try from the dependent store
-        if instance is None and context in self.store_dependent:
-            instance = self.store_dependent[context].get(service_type)
-
-        # else create new instance
-        if instance is None:
-            instance = await self._get(
-                ServiceDependency(service_type, name=name), context
-            )
+        instance = await self._get(ServiceDependency(service_type, name=name), context)
 
         initializer = getattr(instance, INITIALIZE_METHOD_NAME, None)
         if inspect.ismethod(initializer):
@@ -151,6 +134,16 @@ class Container:
         stack: list = None,
     ) -> Optional[Any]:
         service_type, name = dependency.service, dependency.name
+
+        # try getting from singleton store
+        if instance := self.store_singleton.get(service_type):
+            return instance
+
+        # try from the dependent store
+        if instance := self.store_dependent.get(id(context), {}).get(service_type):
+            # call 'instance()' to get out of weakref.ref
+            return instance()
+
         definition = self.registry.get(service_type, name, dependency.optional)
 
         if definition is None:
@@ -188,7 +181,7 @@ class Container:
                 )
                 self.store_dependent[context_id][service_type] = weakref.ref(service)
             else:
-                # get out of weakref.ref
+                # call 'service()' to get out of weakref.ref
                 service = service()
         else:
             service = await self._create_service(definition, valid_scope, stack)
@@ -196,10 +189,7 @@ class Container:
         return service
 
     async def create(self, service: type, *, context: Any = None) -> Any:
-        dependencies = {
-            name: (await self._get(dep, context, Scope.TRANSIENT))
-            for name, dep in get_dependencies(service)
-        }
+        dependencies = await self._resolve_dependencies(service, context)
         return service(**dependencies)
 
     async def _create_service(
@@ -235,23 +225,26 @@ class Container:
         if not callable(callable_obj):
             raise CalledNonCallableError(callable_obj)
 
-        if inspect.isfunction(callable_obj) or inspect.ismethod(callable_obj):
-            func = callable_obj
-        else:
-            func = callable_obj.__call__
-
         params = {
             name: await self._get(dep, context=context)
-            for name, dep in get_dependencies(func)
+            for name, dep in get_dependencies(callable_obj)
             if self.has(dep.service)
         }
 
         params.update(kwargs)
 
-        func_args = inspect.signature(func).bind(*args, **params)
+        func_args = inspect.signature(callable_obj).bind(*args, **params)
         func_args.apply_defaults()
 
-        if inspect.iscoroutinefunction(func):
-            return await func(*func_args.args, **func_args.kwargs)
+        callable_is_async = inspect.iscoroutinefunction(
+            callable_obj,
+        ) or inspect.iscoroutinefunction(
+            getattr(callable_obj, "__call__", None),
+        )
 
-        return await asyncio.to_thread(func, *func_args.args, **func_args.kwargs)
+        if callable_is_async:
+            return await callable_obj(*func_args.args, **func_args.kwargs)
+
+        return await asyncio.to_thread(
+            callable_obj, *func_args.args, **func_args.kwargs
+        )

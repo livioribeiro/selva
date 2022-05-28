@@ -7,6 +7,7 @@ from typing import Annotated, Any, Optional, TypeVar, Union
 from selva.di.errors import (
     FactoryMissingReturnTypeError,
     IncompatibleTypesError,
+    InvalidServiceTypeError,
     MultipleNameAnnotationsError,
     NonInjectableTypeError,
     TypeVarInGenericServiceError,
@@ -34,8 +35,12 @@ def _get_annotations(type_hint) -> tuple[type, list[Any]]:
 def get_dependencies(service: InjectableType) -> list[tuple[str, ServiceDependency]]:
     if inspect.isclass(service):
         types = typing.get_type_hints(service.__init__, include_extras=True)
-    else:
+    elif inspect.isfunction(service) or inspect.ismethod(service):
         types = typing.get_type_hints(service, include_extras=True)
+    elif call := getattr(service, "__call__", None):
+        types = typing.get_type_hints(call, include_extras=True)
+    else:
+        raise InvalidServiceTypeError(service)
 
     types.pop("return", None)
 

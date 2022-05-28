@@ -1,8 +1,8 @@
 from enum import IntEnum
-from types import FunctionType
+from types import FunctionType, MethodType
 from typing import NamedTuple, Optional, Union
 
-InjectableType = Union[type, FunctionType]
+InjectableType = Union[type, FunctionType, MethodType]
 
 
 class Scope(IntEnum):

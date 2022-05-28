@@ -76,11 +76,6 @@ class FactoryMissingReturnTypeError(DependencyInjectionError):
         super().__init__(f"factory '{_type_name(factory)}' is missing return type")
 
 
-class ServiceNotRegisteredError(DependencyInjectionError):
-    def __init__(self, service: type):
-        super().__init__(f"service '{_type_name(service)}' is not registered")
-
-
 class ServiceAlreadyRegisteredError(DependencyInjectionError):
     def __init__(self, service: type, name: str = None):
         message = f"service '{_type_name(service)}' is already registered"
@@ -108,3 +103,8 @@ class MultipleNameAnnotationsError(DependencyInjectionError):
             f" on service '{_type_name(service)}':"
             f" {', '.join(names)}"
         )
+
+
+class InvalidServiceTypeError(DependencyInjectionError):
+    def __init__(self, service: Any):
+        super().__init__(f"object of type {type(service)} is not a valid service")
