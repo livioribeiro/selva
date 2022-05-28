@@ -1,6 +1,6 @@
-from typing import Callable, NamedTuple
+from typing import NamedTuple
 
-from . import BaseRoute
+from .route_base import BaseRoute
 
 
 class WebSocketRoute(BaseRoute):

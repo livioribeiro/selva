@@ -8,17 +8,17 @@ from selva.web.application import Application
 from selva.web.routing.decorators import controller, get, websocket
 
 
-@controller(path="/")
+@controller("/")
 class Controller:
-    @get
+    @get("/")
     def index(self) -> FileResponse:
         return FileResponse(Path(__file__).parent / "index.html")
 
-    @get(path="/favicon.ico")
+    @get("/favicon.ico")
     def favicon(self) -> HttpResponse:
         return HttpResponse(status=HTTPStatus.NOT_FOUND)
 
-    @websocket(path="/chat")
+    @websocket("/chat")
     async def chat(self, client: WebSocket):
         await client.accept()
         print(f"[open] Client connected")
@@ -26,7 +26,7 @@ class Controller:
         while True:
             try:
                 message = await client.receive()
-                if message.lower() == "Ping":
+                if message.lower() == "ping":
                     message = "Pong"
 
                 print(f"[message] {message}")

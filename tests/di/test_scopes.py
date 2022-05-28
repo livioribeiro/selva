@@ -57,11 +57,11 @@ async def test_dependent_scope_cleanup(ioc: Container):
 async def test_context_object_is_service_itself(ioc: Container):
     ioc.register(Service1, Scope.DEPENDENT)
 
-    service = Service1()
-    ioc.define_dependent(Service1, service, context=service)
+    instance = Service1()
+    ioc.define_dependent(Service1, instance, context=instance)
 
-    instance = await ioc.get(Service1, context=service)
-    assert instance is service
+    service = await ioc.get(Service1, context=instance)
+    assert instance == service
 
     del service
 

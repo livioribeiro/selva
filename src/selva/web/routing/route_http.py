@@ -2,7 +2,7 @@ from typing import Callable, NamedTuple, Optional
 
 from asgikit.requests import HttpMethod
 
-from . import BaseRoute
+from .route_base import BaseRoute
 
 
 class HttpRoute(BaseRoute):

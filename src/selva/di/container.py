@@ -3,7 +3,7 @@ import inspect
 import weakref
 from collections.abc import Callable
 from types import ModuleType
-from typing import Any, Optional, Union
+from typing import Any, Optional, TypeVar, Union
 
 from selva.utils.package_scan import scan_packages
 
@@ -20,6 +20,8 @@ from .service.registry import ServiceRegistry
 
 INITIALIZE_METHOD_NAME = "initialize"
 FINALIZE_METHOD_NAME = "finalize"
+
+T = TypeVar("T")
 
 
 class Container:
@@ -72,7 +74,9 @@ class Container:
 
     def define_dependent(self, service_type: type, instance: object, *, context: Any):
         self._ensure_dependent_context(context)
-        self.store_dependent[id(context)][service_type] = weakref.ref(instance)
+
+        service = weakref.proxy(instance) if instance is context else instance
+        self.store_dependent[id(context)][service_type] = service
 
     def scan(self, *packages: Union[str, ModuleType]):
         def predicate(item: Any):
@@ -95,9 +99,7 @@ class Container:
 
         return True
 
-    async def get(
-        self, service_type: type, *, context: Any = None, name: str = None
-    ) -> Any:
+    async def get(self, service_type: T, *, context: Any = None, name: str = None) -> T:
         instance = await self._get(ServiceDependency(service_type, name=name), context)
 
         initializer = getattr(instance, INITIALIZE_METHOD_NAME, None)
@@ -141,8 +143,7 @@ class Container:
 
         # try from the dependent store
         if instance := self.store_dependent.get(id(context), {}).get(service_type):
-            # call 'instance()' to get out of weakref.ref
-            return instance()
+            return instance
 
         definition = self.registry.get(service_type, name, dependency.optional)
 
@@ -179,10 +180,7 @@ class Container:
                 service = await self._create_service(
                     definition, valid_scope, stack, context
                 )
-                self.store_dependent[context_id][service_type] = weakref.ref(service)
-            else:
-                # call 'service()' to get out of weakref.ref
-                service = service()
+                self.store_dependent[context_id][service_type] = service
         else:
             service = await self._create_service(definition, valid_scope, stack)
 

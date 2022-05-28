@@ -1,7 +1,8 @@
-from collections.abc import Callable
 from enum import Enum
 
 from asgikit.requests import HttpMethod
+
+from selva.di.decorators import transient
 
 CONTROLLER_ATTRIBUTE = "__selva_web_controller__"
 ACTION_ATTRIBUTE = "__selva_web_action__"
@@ -17,53 +18,51 @@ class ActionType(Enum):
     WEBSOCKET = "WEBSOCKET"
 
 
-def controller(klass: type = None, *, path: str = None):
-    if klass and not isinstance(klass, type):
-        raise ValueError("Invalid argument for @controller")
+def controller(path: str):
     if path and not isinstance(path, str):
-        raise ValueError("Invalid argument for @controller")
+        raise ValueError(f"Invalid argument for @controller: {path}")
 
-    def inner(arg: type):
-        setattr(arg, CONTROLLER_ATTRIBUTE, arg.__name__)
-        setattr(arg, PATH_ATTRIBUTE, path)
-        return arg
+    def inner(controller_class: type):
+        setattr(controller_class, CONTROLLER_ATTRIBUTE, True)
+        setattr(controller_class, PATH_ATTRIBUTE, path)
+        return transient(controller_class)
 
-    return inner(klass) if klass else inner
-
-
-def route(action: Callable = None, *, method: HttpMethod, path: str = None):
-    def inner(arg):
-        setattr(arg, ACTION_ATTRIBUTE, ActionType(method))
-        setattr(arg, PATH_ATTRIBUTE, path)
-        return arg
-
-    return inner(action) if action else inner
+    return inner
 
 
-def websocket(action: Callable = None, *, path: str = None):
-    def inner(arg):
-        setattr(arg, ACTION_ATTRIBUTE, ActionType.WEBSOCKET)
-        setattr(arg, PATH_ATTRIBUTE, path)
-        return arg
+def route(method: HttpMethod, path: str):
+    def inner(action):
+        setattr(action, ACTION_ATTRIBUTE, ActionType(method))
+        setattr(action, PATH_ATTRIBUTE, path)
+        return action
 
-    return inner(action) if action else inner
-
-
-def get(action: Callable = None, *, path: str = None):
-    return route(action, method=HttpMethod.GET, path=path)
+    return inner
 
 
-def post(action: Callable = None, *, path: str = None):
-    return route(action, method=HttpMethod.POST, path=path)
+def websocket(path: str):
+    def inner(action):
+        setattr(action, ACTION_ATTRIBUTE, ActionType.WEBSOCKET)
+        setattr(action, PATH_ATTRIBUTE, path)
+        return action
+
+    return inner
 
 
-def put(action: Callable = None, *, path: str = None):
-    return route(action, method=HttpMethod.PUT, path=path)
+def get(path: str):
+    return route(HttpMethod.GET, path)
 
 
-def patch(action: Callable = None, *, path: str = None):
-    return route(action, method=HttpMethod.PATCH, path=path)
+def post(path: str):
+    return route(HttpMethod.POST, path)
 
 
-def delete(action: Callable = None, *, path: str = None):
-    return route(action, method=HttpMethod.DELETE, path=path)
+def put(path: str):
+    return route(HttpMethod.PUT, path)
+
+
+def patch(path: str):
+    return route(HttpMethod.PATCH, path)
+
+
+def delete(path: str):
+    return route(HttpMethod.DELETE, path)

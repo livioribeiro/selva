@@ -5,9 +5,9 @@ from selva.web.application import Application
 from selva.web.routing.decorators import controller, get
 
 
-@controller(path="/")
+@controller("/")
 class Controller:
-    @get
+    @get("/")
     def index(self, req: HttpRequest) -> PlainTextResponse:
         name = req.query.get_first("name", "World")
         return PlainTextResponse(f"Hello, {name}!")
