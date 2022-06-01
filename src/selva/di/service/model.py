@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from enum import IntEnum
 from types import FunctionType, MethodType
 from typing import NamedTuple, Optional, Union
@@ -28,6 +29,8 @@ class ServiceDefinition(NamedTuple):
     scope: Scope
     factory: InjectableType
     dependencies: list[tuple[str, ServiceDependency]]
+    initializer: Optional[Callable]
+    finalizer: Optional[Callable]
 
     def accept_scope(self, scope: Scope) -> bool:
         return self.scope <= scope

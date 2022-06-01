@@ -2,6 +2,7 @@ import pytest
 
 from selva.di import Container, Scope
 from selva.di.errors import DependencyLoopError
+from selva.di.decorators import initializer
 
 from .fixtures import ioc
 
@@ -25,6 +26,7 @@ class ServiceWithLazyDependency:
     def __init__(self):
         self.lazy = None
 
+    @initializer
     def initialize(self, service: LazyService):
         self.lazy = service
 

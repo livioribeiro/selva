@@ -3,7 +3,9 @@ import typing
 from abc import ABC
 from collections import Counter
 from re import Pattern
-from typing import Callable
+from typing import Callable, NamedTuple
+
+from asgikit.requests import HttpMethod
 
 PATH_PARAMS_RE = re.compile(r"\{([a-zA-Z\w]+)\}")
 
@@ -56,8 +58,9 @@ def build_path_regex(
     return param_types, re.compile(regex)
 
 
-class BaseRoute(ABC):
-    def __init__(self, path: str, controller: type, action: Callable, name: str):
+class Route(ABC):
+    def __init__(self, method: HttpMethod | None, path: str, controller: type, action: Callable, name: str):
+        self.method = method
         self.path = path
         self.controller = controller
         self.action = action
@@ -73,8 +76,8 @@ class BaseRoute(ABC):
             if name not in self.path_params
         }
 
-    def match(self, path: str) -> dict[str, str] | None:
-        if match := self.regex.match(path):
+    def match(self, method: HttpMethod | None, path: str) -> dict[str, str] | None:
+        if method is self.method and (match := self.regex.match(path)):
             return match.groupdict()
 
         return None
@@ -88,3 +91,10 @@ class BaseRoute(ABC):
             path = path.replace(f"{{{param}}}", value)
 
         return path
+
+
+class RouteMatch(NamedTuple):
+    route: Route
+    method: HttpMethod | None
+    path: str
+    params: dict[str, str]

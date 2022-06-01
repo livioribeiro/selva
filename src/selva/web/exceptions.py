@@ -1,2 +1,0 @@
-class RouteNotFoundError(Exception):
-    pass

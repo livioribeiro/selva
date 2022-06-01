@@ -1,0 +1,1 @@
+databases[aiosqlite]==0.6.0

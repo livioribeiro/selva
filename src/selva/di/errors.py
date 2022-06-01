@@ -108,3 +108,11 @@ class MultipleNameAnnotationsError(DependencyInjectionError):
 class InvalidServiceTypeError(DependencyInjectionError):
     def __init__(self, service: Any):
         super().__init__(f"object of type {type(service)} is not a valid service")
+
+
+class TypeWithoutDecoratorError(DependencyInjectionError):
+    def __init__(self, service: type):
+        super().__init__(
+            f"class {service.__qualname__} must be decorated with"
+            " @singleton, @dependent or @transient"
+        )

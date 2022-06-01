@@ -4,13 +4,26 @@ from asgikit.responses import FileResponse, HttpResponse, HTTPStatus
 from asgikit.websockets import WebSocket
 from asgikit.errors.websocket import WebSocketDisconnectError
 
-from selva.web.application import Application
+from selva.di import singleton
 from selva.web.routing.decorators import controller, get, websocket
 
 
+@singleton
+class WebSocketHandler:
+    def __init__(self):
+        self.clients: list[WebSocket] = []
+
+    async def broadcast(self, message: str):
+        for client in self.clients:
+            await client.send_text(message)
+
+
 @controller("/")
-class Controller:
-    @get("/")
+class WebSocketController:
+    def __init__(self, handler: WebSocketHandler):
+        self.handler = handler
+
+    @get
     def index(self) -> FileResponse:
         return FileResponse(Path(__file__).parent / "index.html")
 
@@ -23,6 +36,8 @@ class Controller:
         await client.accept()
         print(f"[open] Client connected")
 
+        self.handler.clients.append(client)
+
         while True:
             try:
                 message = await client.receive()
@@ -30,11 +45,7 @@ class Controller:
                     message = "Pong"
 
                 print(f"[message] {message}")
-                await client.send_text(message)
+                await self.handler.broadcast(message)
             except WebSocketDisconnectError:
                 print("[close] Client disconnected")
                 break
-
-
-app = Application()
-app.controllers(Controller)

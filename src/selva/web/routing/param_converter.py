@@ -1,6 +1,6 @@
 from selva.di.decorators import singleton
 
-from .converters import PathParameterConverter
+from .converter import PathParameterConverter
 
 
 @singleton(provides=PathParameterConverter[int])

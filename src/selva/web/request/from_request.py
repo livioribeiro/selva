@@ -10,12 +10,16 @@ from .converter import FromRequest
 @singleton(provides=FromRequest[HttpRequest])
 class RequestFromRequest(FromRequest[HttpRequest]):
     async def from_request(self, request: HttpRequest | WebSocket) -> HttpRequest:
+        if not isinstance(request, HttpRequest):
+            raise TypeError(f"expected {HttpRequest}, got {type(request)}")
         return request
 
 
 @singleton(provides=FromRequest[WebSocket])
 class WebSocketFromRequest(FromRequest[WebSocket]):
     async def from_request(self, request: HttpRequest | WebSocket) -> WebSocket:
+        if not isinstance(request, WebSocket):
+            raise TypeError(f"expected {WebSocket}, got {type(request)}")
         return request
 
 

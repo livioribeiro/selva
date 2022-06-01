@@ -1,8 +1,8 @@
 from enum import Enum
 
-from asgikit.requests import HttpMethod
+from typing import Callable
 
-from selva.di.decorators import transient
+from asgikit.requests import HttpMethod
 
 CONTROLLER_ATTRIBUTE = "__selva_web_controller__"
 ACTION_ATTRIBUTE = "__selva_web_action__"
@@ -15,54 +15,60 @@ class ActionType(Enum):
     PUT = HttpMethod.PUT
     PATCH = HttpMethod.PATCH
     DELETE = HttpMethod.DELETE
-    WEBSOCKET = "WEBSOCKET"
+    WEBSOCKET = None
+
+    @property
+    def is_websocket(self):
+        return self is ActionType.WEBSOCKET
 
 
 def controller(path: str):
-    if path and not isinstance(path, str):
+    if not isinstance(path, str):
         raise ValueError(f"Invalid argument for @controller: {path}")
 
-    def inner(controller_class: type):
-        setattr(controller_class, CONTROLLER_ATTRIBUTE, True)
-        setattr(controller_class, PATH_ATTRIBUTE, path)
-        return transient(controller_class)
+    def inner(arg: type):
+        setattr(arg, CONTROLLER_ATTRIBUTE, True)
+        setattr(arg, PATH_ATTRIBUTE, path)
+        return arg
 
     return inner
 
 
-def route(method: HttpMethod, path: str):
-    def inner(action):
-        setattr(action, ACTION_ATTRIBUTE, ActionType(method))
-        setattr(action, PATH_ATTRIBUTE, path)
-        return action
+def route(method: HttpMethod | None, target: str | type):
+    if isinstance(target, str):
+        action = None
+        path = target.strip("/")
+    else:
+        action = target
+        path = ""
 
-    return inner
+    def inner(arg: Callable):
+        setattr(arg, ACTION_ATTRIBUTE, ActionType(method))
+        setattr(arg, PATH_ATTRIBUTE, path)
+        return arg
 
-
-def websocket(path: str):
-    def inner(action):
-        setattr(action, ACTION_ATTRIBUTE, ActionType.WEBSOCKET)
-        setattr(action, PATH_ATTRIBUTE, path)
-        return action
-
-    return inner
+    return inner(action) if action else inner
 
 
-def get(path: str):
+def get(path: str | type):
     return route(HttpMethod.GET, path)
 
 
-def post(path: str):
+def post(path: str | type):
     return route(HttpMethod.POST, path)
 
 
-def put(path: str):
+def put(path: str | type):
     return route(HttpMethod.PUT, path)
 
 
-def patch(path: str):
+def patch(path: str | type):
     return route(HttpMethod.PATCH, path)
 
 
-def delete(path: str):
+def delete(path: str | type):
     return route(HttpMethod.DELETE, path)
+
+
+def websocket(path: str | type):
+    return route(None, path)

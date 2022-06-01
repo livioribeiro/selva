@@ -8,7 +8,7 @@ from typing import Any
 
 def scan_packages(
     modules_to_scan: Iterable[str | ModuleType],
-    predicate: Callable[[Any], bool],
+    predicate: Callable[[Any], bool] = None,
 ) -> Iterable[type]:
     for module_to_scan in modules_to_scan:
         if isinstance(module_to_scan, str):

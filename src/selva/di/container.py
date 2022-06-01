@@ -1,5 +1,7 @@
 import asyncio
+import copy
 import inspect
+import functools
 import weakref
 from collections.abc import Callable
 from types import ModuleType
@@ -7,21 +9,19 @@ from typing import Any, Optional, TypeVar, Union
 
 from selva.utils.package_scan import scan_packages
 
-from .decorators import DEPENDENCY_ATTRIBUTE
+from .decorators import DI_SERVICE_ATTRIBUTE
 from .errors import (
     CalledNonCallableError,
     DependencyLoopError,
     InvalidScopeError,
     MissingDependentContextError,
+    TypeWithoutDecoratorError,
 )
 from .service.model import InjectableType, Scope, ServiceDefinition, ServiceDependency
 from .service.parse import get_dependencies, parse_definition
 from .service.registry import ServiceRegistry
 
-INITIALIZE_METHOD_NAME = "initialize"
-FINALIZE_METHOD_NAME = "finalize"
-
-T = TypeVar("T")
+TService = TypeVar("TService")
 
 
 class Container:
@@ -29,6 +29,7 @@ class Container:
         self.registry = ServiceRegistry()
         self.store_singleton: dict[type, Any] = {}
         self.store_dependent: dict[int, dict[type, Any]] = {}
+        self.finalizers: list[Callable] = []
 
     def register(
         self,
@@ -78,14 +79,20 @@ class Container:
         service = weakref.proxy(instance) if instance is context else instance
         self.store_dependent[id(context)][service_type] = service
 
+    def register_service(self, service_type: type):
+        service_info = getattr(service_type, DI_SERVICE_ATTRIBUTE, None)
+        if not service_info:
+            raise TypeWithoutDecoratorError(service_type)
+
+        scope, provides, name = service_info
+        self.register(service_type, scope, provides=provides, name=name)
+
     def scan(self, *packages: Union[str, ModuleType]):
         def predicate(item: Any):
-            return (inspect.isfunction(item) or inspect.isclass(item)) and hasattr(
-                item, DEPENDENCY_ATTRIBUTE
-            )
+            return hasattr(item, DI_SERVICE_ATTRIBUTE)
 
         for service in scan_packages(packages, predicate):
-            scope, provides, name = getattr(service, DEPENDENCY_ATTRIBUTE)
+            scope, provides, name = getattr(service, DI_SERVICE_ATTRIBUTE)
             self.register(service, scope, provides=provides, name=name)
 
     def has(self, service: type, scope: Scope = None) -> bool:
@@ -99,17 +106,8 @@ class Container:
 
         return True
 
-    async def get(self, service_type: T, *, context: Any = None, name: str = None) -> T:
+    async def get(self, service_type: TService, *, context: Any = None, name: str = None) -> TService:
         instance = await self._get(ServiceDependency(service_type, name=name), context)
-
-        initializer = getattr(instance, INITIALIZE_METHOD_NAME, None)
-        if inspect.ismethod(initializer):
-            dependencies = await self._resolve_dependencies(initializer, context)
-            if inspect.iscoroutinefunction(initializer):
-                await initializer(**dependencies)
-            else:
-                await asyncio.to_thread(initializer, **dependencies)
-
         return instance
 
     async def _resolve_dependencies(self, service: InjectableType, context: Any = None):
@@ -166,29 +164,33 @@ class Container:
         stack.append(service_type)
 
         if definition.scope == Scope.SINGLETON:
-            service = self.store_singleton.get(service_type)
-            if not service:
-                service = await self._create_service(definition, valid_scope, stack)
-                self.store_singleton[service_type] = service
+            instance = self.store_singleton.get(service_type)
+            if not instance:
+                instance = await self._create_service(definition, valid_scope, stack)
+                self.store_singleton[service_type] = instance
         elif definition.scope == Scope.DEPENDENT:
             context_id = id(context)
             self._ensure_dependent_context(context)
 
-            service = self.store_dependent[context_id].get(service_type)
+            instance = self.store_dependent[context_id].get(service_type)
 
-            if not service:
-                service = await self._create_service(
+            if not instance:
+                instance = await self._create_service(
                     definition, valid_scope, stack, context
                 )
-                self.store_dependent[context_id][service_type] = service
+                self.store_dependent[context_id][service_type] = instance
         else:
-            service = await self._create_service(definition, valid_scope, stack)
+            instance = await self._create_service(definition, valid_scope, stack)
 
-        return service
+        await self.run_initializer(definition, instance, context)
+        await self.setup_finalizer(definition, instance, definition.scope)
+
+        return instance
 
     async def create(self, service: type, *, context: Any = None) -> Any:
         dependencies = await self._resolve_dependencies(service, context)
-        return service(**dependencies)
+        instance = service(**dependencies)
+        return instance
 
     async def _create_service(
         self,
@@ -204,10 +206,58 @@ class Container:
             for name, dep in definition.dependencies
         }
 
-        if inspect.iscoroutinefunction(factory):
-            return await factory(**dependencies)
+        if inspect.isclass(factory):
+            instance = factory(**dependencies)
+        elif inspect.iscoroutinefunction(factory):
+            instance = await factory(**dependencies)
+        else:
+            instance = await asyncio.to_thread(factory, **dependencies)
 
-        return await asyncio.to_thread(factory, **dependencies)
+        return instance
+
+    async def run_initializer(self, definition: ServiceDefinition, instance: Any, context: Any | None):
+        initializer = definition.initializer
+
+        if initializer is None:
+            return
+
+        dependencies = await self._resolve_dependencies(initializer, context)
+        if inspect.iscoroutinefunction(initializer):
+            await initializer(instance, **dependencies)
+        else:
+            await asyncio.to_thread(initializer, instance, **dependencies)
+
+    async def setup_finalizer(self, definition: ServiceDefinition, instance: Any, scope: Scope):
+        finalizer = definition.finalizer
+
+        if finalizer is None:
+            return
+
+        if scope == Scope.SINGLETON:
+            self.finalizers.append(functools.partial(finalizer, instance))
+            return
+
+        loop = asyncio.get_running_loop()
+
+        def run_finalizer(instance_copy):
+            if inspect.iscoroutinefunction(finalizer):
+                if loop.is_running():
+                    loop.create_task(finalizer(instance_copy))
+                else:
+                    asyncio.new_event_loop().run_until_complete(finalizer(instance_copy))
+            else:
+                finalizer(instance_copy)
+
+        # run finalizer with a shallow copy of the instance to prevent the reference on
+        # the finalizer to keep the object alive
+        weakref.finalize(instance, run_finalizer, copy.copy(instance))
+
+    async def run_singleton_finalizers(self):
+        for finalizer in self.finalizers:
+            if inspect.iscoroutinefunction(finalizer):
+                await finalizer()
+            else:
+                await asyncio.to_thread(finalizer)
 
     async def call(
         self,

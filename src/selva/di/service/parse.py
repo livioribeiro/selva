@@ -1,6 +1,7 @@
 import inspect
 import typing
 import warnings
+from collections.abc import Callable
 from types import FunctionType
 from typing import Annotated, Any, Optional, TypeVar, Union
 
@@ -13,8 +14,9 @@ from selva.di.errors import (
     TypeVarInGenericServiceError,
 )
 
-from ..annotations import Name
-from .model import InjectableType, Scope, ServiceDefinition, ServiceDependency
+from selva.di.annotations import Name
+from selva.di.decorators import DI_INITIALIZER_ATTRIBUTE, DI_FINALIZER_ATTRIBUTE
+from selva.di.service.model import InjectableType, Scope, ServiceDefinition, ServiceDependency
 
 
 def _get_optional(type_hint) -> tuple[type, bool]:
@@ -70,6 +72,9 @@ def get_dependencies(service: InjectableType) -> list[tuple[str, ServiceDependen
 def parse_definition(
     service: InjectableType, scope: Scope, provides: type = None
 ) -> ServiceDefinition:
+    initializer = None
+    finalizer = None
+
     if inspect.isclass(service):
         service = typing.cast(type, service)
         if provides:
@@ -86,6 +91,16 @@ def parse_definition(
                 raise IncompatibleTypesError(service, provides)
 
         provided_service = provides or service
+
+        # get initializer and finalizer for service class
+        for name, function in inspect.getmembers(service, inspect.isfunction):
+            if initializer is not None and finalizer is not None:
+                break
+            if initializer is None and getattr(function, DI_INITIALIZER_ATTRIBUTE, False):
+                initializer = function
+            if finalizer is None and getattr(function, DI_FINALIZER_ATTRIBUTE, False):
+                finalizer = function
+
     elif inspect.isfunction(service):
         service = typing.cast(FunctionType, service)
         if provides:
@@ -95,7 +110,14 @@ def parse_definition(
         service_type = typing.get_type_hints(service).get("return")
         if service_type is None:
             raise FactoryMissingReturnTypeError(service)
+
         provided_service = service_type
+
+        # get initializer and finalizer for service factory
+        if func := getattr(service, DI_INITIALIZER_ATTRIBUTE, None):
+            initializer = func
+        if func := getattr(service, DI_FINALIZER_ATTRIBUTE, None):
+            finalizer = func
     else:
         raise NonInjectableTypeError(service)
 
@@ -106,4 +128,6 @@ def parse_definition(
         scope=scope,
         factory=service,
         dependencies=dependencies,
+        initializer=initializer,
+        finalizer=finalizer,
     )
