@@ -317,7 +317,7 @@ app = Application()
 app.register(modules)
 ```
 
-Also supports websockets
+Websockets
 
 ```python
 from http import HTTPStatus
