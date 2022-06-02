@@ -1,5 +1,5 @@
 import inspect
-from types import FunctionType
+from collections.abc import Callable
 from typing import Any
 
 from .service.model import InjectableType
@@ -72,7 +72,7 @@ class NonInjectableTypeError(DependencyInjectionError):
 
 
 class FactoryMissingReturnTypeError(DependencyInjectionError):
-    def __init__(self, factory: FunctionType):
+    def __init__(self, factory: Callable):
         super().__init__(f"factory '{_type_name(factory)}' is missing return type")
 
 
@@ -110,9 +110,9 @@ class InvalidServiceTypeError(DependencyInjectionError):
         super().__init__(f"object of type {type(service)} is not a valid service")
 
 
-class TypeWithoutDecoratorError(DependencyInjectionError):
-    def __init__(self, service: type):
+class ServiceWithoutDecoratorError(DependencyInjectionError):
+    def __init__(self, service: InjectableType):
         super().__init__(
-            f"class {service.__qualname__} must be decorated with"
-            " @singleton, @dependent or @transient"
+            f"service {service.__module__}.{service.__qualname__}"
+            " must be decorated with @service"
         )

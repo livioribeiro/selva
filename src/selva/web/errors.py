@@ -3,6 +3,7 @@ from http import HTTPStatus
 
 class HttpError(Exception):
     def __init__(self, status: HTTPStatus):
+        super().__init__()
         self.status = status
 
 

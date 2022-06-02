@@ -1,8 +1,7 @@
 import pytest
 
-from selva.di import Container, Scope
+from selva.di import Container, Scope, initializer
 from selva.di.errors import DependencyLoopError
-from selva.di.decorators import initializer
 
 from .fixtures import ioc
 

@@ -1,4 +1,4 @@
-from selva.di import Container
+from selva.di import Container, Scope
 
 from .fixtures import ioc
 from .utils import Context
@@ -18,7 +18,7 @@ async def test_define_singleton_not_registered(ioc: Container):
 
 
 async def test_define_singleton_already_registered(ioc: Container):
-    ioc.register_singleton(Service)
+    ioc.register(Service, Scope.SINGLETON)
     instance = Service()
     ioc.define_singleton(Service, instance)
 
@@ -28,7 +28,7 @@ async def test_define_singleton_already_registered(ioc: Container):
 
 
 async def test_define_dependent_already_registered(ioc: Container):
-    ioc.register_dependent(Service)
+    ioc.register(Service, Scope.DEPENDENT)
     context = Context()
     instance = Service()
     ioc.define_dependent(Service, instance, context=context)

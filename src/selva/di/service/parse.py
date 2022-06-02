@@ -2,9 +2,10 @@ import inspect
 import typing
 import warnings
 from collections.abc import Callable
-from types import FunctionType
 from typing import Annotated, Any, Optional, TypeVar, Union
 
+from selva.di.annotations import Name
+from selva.di.decorators import DI_FINALIZER_ATTRIBUTE, DI_INITIALIZER_ATTRIBUTE
 from selva.di.errors import (
     FactoryMissingReturnTypeError,
     IncompatibleTypesError,
@@ -13,10 +14,12 @@ from selva.di.errors import (
     NonInjectableTypeError,
     TypeVarInGenericServiceError,
 )
-
-from selva.di.annotations import Name
-from selva.di.decorators import DI_INITIALIZER_ATTRIBUTE, DI_FINALIZER_ATTRIBUTE
-from selva.di.service.model import InjectableType, Scope, ServiceDefinition, ServiceDependency
+from selva.di.service.model import (
+    InjectableType,
+    Scope,
+    ServiceDefinition,
+    ServiceDependency,
+)
 
 
 def _get_optional(type_hint) -> tuple[type, bool]:
@@ -69,55 +72,75 @@ def get_dependencies(service: InjectableType) -> list[tuple[str, ServiceDependen
     return result
 
 
-def parse_definition(
-    service: InjectableType, scope: Scope, provides: type = None
-) -> ServiceDefinition:
+def _parse_definition_class(
+    service: type, provides: Optional[type]
+) -> tuple[type, Optional[Callable], Optional[Callable]]:
     initializer = None
     finalizer = None
 
-    if inspect.isclass(service):
-        service = typing.cast(type, service)
-        if provides:
-            origin = typing.get_origin(provides)
-            if origin:
-                if any(isinstance(a, TypeVar) for a in typing.get_args(provides)):
-                    raise TypeVarInGenericServiceError(provides)
+    if provides:
+        origin = typing.get_origin(provides)
+        if origin:
+            if any(isinstance(a, TypeVar) for a in typing.get_args(provides)):
+                raise TypeVarInGenericServiceError(provides)
 
-                orig_bases = getattr(service, "__orig_bases__", None)
-                if orig_bases and provides not in orig_bases:
-                    raise IncompatibleTypesError(service, provides)
-
-            if not issubclass(service, origin or provides):
+            orig_bases = getattr(service, "__orig_bases__", None)
+            if orig_bases and provides not in orig_bases:
                 raise IncompatibleTypesError(service, provides)
 
-        provided_service = provides or service
+        if not issubclass(service, origin or provides):
+            raise IncompatibleTypesError(service, provides)
 
-        # get initializer and finalizer for service class
-        for name, function in inspect.getmembers(service, inspect.isfunction):
-            if initializer is not None and finalizer is not None:
-                break
-            if initializer is None and getattr(function, DI_INITIALIZER_ATTRIBUTE, False):
-                initializer = function
-            if finalizer is None and getattr(function, DI_FINALIZER_ATTRIBUTE, False):
-                finalizer = function
+    provided_service = provides or service
 
-    elif inspect.isfunction(service):
-        service = typing.cast(FunctionType, service)
-        if provides:
-            message = "option 'provides' on a factory function has no effect"
-            warnings.warn(message)
+    # get initializer and finalizer for service class
+    for _, function in inspect.getmembers(service, inspect.isfunction):
+        if initializer is not None and finalizer is not None:
+            break
+        if initializer is None and getattr(function, DI_INITIALIZER_ATTRIBUTE, False):
+            initializer = function
+        if finalizer is None and getattr(function, DI_FINALIZER_ATTRIBUTE, False):
+            finalizer = function
 
-        service_type = typing.get_type_hints(service).get("return")
-        if service_type is None:
-            raise FactoryMissingReturnTypeError(service)
+    return provided_service, initializer, finalizer
 
-        provided_service = service_type
 
-        # get initializer and finalizer for service factory
-        if func := getattr(service, DI_INITIALIZER_ATTRIBUTE, None):
-            initializer = func
-        if func := getattr(service, DI_FINALIZER_ATTRIBUTE, None):
-            finalizer = func
+def _parse_definition_factory(
+    service: Callable, provides: Optional[type]
+) -> tuple[type, Optional[Callable], Optional[Callable]]:
+    initializer = None
+    finalizer = None
+
+    if provides:
+        message = "option 'provides' on a factory function has no effect"
+        warnings.warn(message)
+
+    service_type = typing.get_type_hints(service).get("return")
+    if service_type is None:
+        raise FactoryMissingReturnTypeError(service)
+
+    provided_service = service_type
+
+    # get initializer and finalizer for service factory
+    if func := getattr(service, DI_INITIALIZER_ATTRIBUTE, None):
+        initializer = func
+    if func := getattr(service, DI_FINALIZER_ATTRIBUTE, None):
+        finalizer = func
+
+    return provided_service, initializer, finalizer
+
+
+def parse_definition(
+    service: InjectableType, scope: Scope, provides: type = None
+) -> ServiceDefinition:
+    if inspect.isclass(service):
+        provided_service, initializer, finalizer = _parse_definition_class(
+            service, provides
+        )
+    elif callable(service):
+        provided_service, initializer, finalizer = _parse_definition_factory(
+            service, provides
+        )
     else:
         raise NonInjectableTypeError(service)
 

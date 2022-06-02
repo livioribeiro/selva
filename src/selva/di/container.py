@@ -1,7 +1,7 @@
 import asyncio
 import copy
-import inspect
 import functools
+import inspect
 import weakref
 from collections.abc import Callable
 from types import ModuleType
@@ -15,7 +15,7 @@ from .errors import (
     DependencyLoopError,
     InvalidScopeError,
     MissingDependentContextError,
-    TypeWithoutDecoratorError,
+    ServiceWithoutDecoratorError,
 )
 from .service.model import InjectableType, Scope, ServiceDefinition, ServiceDependency
 from .service.parse import get_dependencies, parse_definition
@@ -43,32 +43,13 @@ class Container:
         provided_service = definition.provides
         self.registry[provided_service, name] = definition
 
-    def register_singleton(
-        self,
-        service: InjectableType,
-        *,
-        provides: type = None,
-        name: str = None,
-    ):
-        self.register(service, Scope.SINGLETON, provides=provides, name=name)
+    def service(self, service_type: type):
+        service_info = getattr(service_type, DI_SERVICE_ATTRIBUTE, None)
+        if not service_info:
+            raise ServiceWithoutDecoratorError(service_type)
 
-    def register_dependent(
-        self,
-        service: InjectableType,
-        *,
-        provides: type = None,
-        name: str = None,
-    ):
-        self.register(service, Scope.DEPENDENT, provides=provides, name=name)
-
-    def register_transient(
-        self,
-        service: InjectableType,
-        *,
-        provides: type = None,
-        name: str = None,
-    ):
-        self.register(service, Scope.TRANSIENT, provides=provides, name=name)
+        scope, provides, name = service_info
+        self.register(service_type, scope, provides=provides, name=name)
 
     def define_singleton(self, service_type: type, instance: object):
         self.store_singleton[service_type] = instance
@@ -78,14 +59,6 @@ class Container:
 
         service = weakref.proxy(instance) if instance is context else instance
         self.store_dependent[id(context)][service_type] = service
-
-    def register_service(self, service_type: type):
-        service_info = getattr(service_type, DI_SERVICE_ATTRIBUTE, None)
-        if not service_info:
-            raise TypeWithoutDecoratorError(service_type)
-
-        scope, provides, name = service_info
-        self.register(service_type, scope, provides=provides, name=name)
 
     def scan(self, *packages: Union[str, ModuleType]):
         def predicate(item: Any):
@@ -106,7 +79,9 @@ class Container:
 
         return True
 
-    async def get(self, service_type: TService, *, context: Any = None, name: str = None) -> TService:
+    async def get(
+        self, service_type: TService, *, context: Any = None, name: str = None
+    ) -> TService:
         instance = await self._get(ServiceDependency(service_type, name=name), context)
         return instance
 
@@ -215,7 +190,9 @@ class Container:
 
         return instance
 
-    async def run_initializer(self, definition: ServiceDefinition, instance: Any, context: Any | None):
+    async def run_initializer(
+        self, definition: ServiceDefinition, instance: Any, context: Any | None
+    ):
         initializer = definition.initializer
 
         if initializer is None:
@@ -227,7 +204,9 @@ class Container:
         else:
             await asyncio.to_thread(initializer, instance, **dependencies)
 
-    async def setup_finalizer(self, definition: ServiceDefinition, instance: Any, scope: Scope):
+    async def setup_finalizer(
+        self, definition: ServiceDefinition, instance: Any, scope: Scope
+    ):
         finalizer = definition.finalizer
 
         if finalizer is None:
@@ -244,7 +223,9 @@ class Container:
                 if loop.is_running():
                     loop.create_task(finalizer(instance_copy))
                 else:
-                    asyncio.new_event_loop().run_until_complete(finalizer(instance_copy))
+                    asyncio.new_event_loop().run_until_complete(
+                        finalizer(instance_copy)
+                    )
             else:
                 finalizer(instance_copy)
 

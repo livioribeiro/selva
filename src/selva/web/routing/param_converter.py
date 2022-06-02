@@ -1,9 +1,9 @@
-from selva.di.decorators import singleton
+from selva.di import service
 
 from .converter import PathParameterConverter
 
 
-@singleton(provides=PathParameterConverter[int])
+@service(provides=PathParameterConverter[int])
 class IntPathParamConverter(PathParameterConverter[int]):
     async def from_path(self, value: str) -> int:
         return int(value)
@@ -12,7 +12,7 @@ class IntPathParamConverter(PathParameterConverter[int]):
         return str(obj)
 
 
-@singleton(provides=PathParameterConverter[float])
+@service(provides=PathParameterConverter[float])
 class FloatPathParamConverter(PathParameterConverter[float]):
     async def from_path(self, value: str) -> float:
         return float(value)
@@ -21,7 +21,7 @@ class FloatPathParamConverter(PathParameterConverter[float]):
         return str(obj)
 
 
-@singleton(provides=PathParameterConverter[str])
+@service(provides=PathParameterConverter[str])
 class StrPathParamConverter(PathParameterConverter[str]):
     async def from_path(self, value: str) -> str:
         return value
@@ -30,7 +30,7 @@ class StrPathParamConverter(PathParameterConverter[str]):
         return obj
 
 
-@singleton(provides=PathParameterConverter[bool])
+@service(provides=PathParameterConverter[bool])
 class BoolPathParamConverter(PathParameterConverter[bool]):
     async def from_path(self, value: str) -> bool:
         return value in ["1", "true", "True"]

@@ -1,9 +1,9 @@
 from collections.abc import Callable
 from enum import IntEnum
 from types import FunctionType, MethodType
-from typing import NamedTuple, Optional, Union
+from typing import NamedTuple, Optional
 
-InjectableType = Union[type, FunctionType, MethodType]
+InjectableType = type | FunctionType | MethodType
 
 
 class Scope(IntEnum):
@@ -21,7 +21,7 @@ class ServiceInfo(NamedTuple):
 class ServiceDependency(NamedTuple):
     service: type
     name: Optional[str]
-    optional: bool = False
+    optional: Optional[bool] = False
 
 
 class ServiceDefinition(NamedTuple):

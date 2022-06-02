@@ -1,6 +1,6 @@
-from selva.di import singleton
+from selva.di import service
 
 
-@singleton
+@service
 class Service1:
     pass

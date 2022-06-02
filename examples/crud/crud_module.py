@@ -4,19 +4,19 @@ from pathlib import Path
 from databases import Database
 
 from asgikit.responses import JsonResponse
-from selva.di import singleton, initializer, finalizer
-from selva.web.routing.decorators import controller, get
+from selva.di import service, initializer, finalizer
+from selva.web import controller, get
 
 
 BASE_PATH = Path(__file__).resolve().parent
 
 
-@singleton
+@service
 def database_factory() -> Database:
     return Database(f"sqlite+aiosqlite:///{BASE_PATH}/db.sqlite3")
 
 
-@singleton
+@service
 class Repository:
     def __init__(self, database: Database):
         self.database = database

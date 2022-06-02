@@ -4,7 +4,7 @@ from typing import NamedTuple
 from asgikit.requests import HttpRequest
 from asgikit.responses import PlainTextResponse
 
-from selva.di import singleton
+from selva.di import service
 from selva.web.application import Application
 from selva.web.routing.decorators import controller, get
 
@@ -15,13 +15,13 @@ class Settings(NamedTuple):
     default_name: str
 
 
-@singleton
+@service
 def settings_factory() -> Settings:
     default_name = os.getenv("DEFAULT_NAME", DEFAULT_NAME)
     return Settings(default_name)
 
 
-@singleton
+@service
 class Greeter:
     def __init__(self, settings: Settings):
         self.default_name = settings.default_name

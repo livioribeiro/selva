@@ -1,7 +1,6 @@
 import asyncio
 
-from selva.di import Container, Scope
-from selva.di.decorators import initializer, finalizer
+from selva.di import Container, Scope, initializer, finalizer
 
 from .fixtures import ioc
 

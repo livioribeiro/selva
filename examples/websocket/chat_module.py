@@ -4,23 +4,26 @@ from asgikit.responses import FileResponse, HttpResponse, HTTPStatus
 from asgikit.websockets import WebSocket
 from asgikit.errors.websocket import WebSocketDisconnectError
 
-from selva.di import singleton
-from selva.web.routing.decorators import controller, get, websocket
+from selva.di import service
+from selva.web import controller, get, websocket
 
 
-@singleton
-class WebSocketHandler:
+@service
+class WebSocketService:
     def __init__(self):
         self.clients: list[WebSocket] = []
 
     async def broadcast(self, message: str):
+        if message.lower() == "ping":
+            message = "Pong"
+
         for client in self.clients:
             await client.send_text(message)
 
 
 @controller("/")
 class WebSocketController:
-    def __init__(self, handler: WebSocketHandler):
+    def __init__(self, handler: WebSocketService):
         self.handler = handler
 
     @get
@@ -41,9 +44,6 @@ class WebSocketController:
         while True:
             try:
                 message = await client.receive()
-                if message.lower() == "ping":
-                    message = "Pong"
-
                 print(f"[message] {message}")
                 await self.handler.broadcast(message)
             except WebSocketDisconnectError:

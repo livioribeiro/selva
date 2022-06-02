@@ -59,7 +59,14 @@ def build_path_regex(
 
 
 class Route(ABC):
-    def __init__(self, method: HttpMethod | None, path: str, controller: type, action: Callable, name: str):
+    def __init__(
+        self,
+        method: HttpMethod | None,
+        path: str,
+        controller: type,
+        action: Callable,
+        name: str,
+    ):
         self.method = method
         self.path = path
         self.controller = controller

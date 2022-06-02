@@ -145,13 +145,3 @@ async def test_service_dataclass(ioc: Container):
     service = await ioc.get(ServiceDataClass)
 
     assert isinstance(service.service1, Service1)
-
-
-async def test_register_shortcuts(ioc: Container):
-    ioc.register_singleton(Service1)
-    ioc.register_dependent(Service2)
-    ioc.register_transient(Service3)
-
-    assert ioc.has(Service1, Scope.SINGLETON)
-    assert ioc.has(Service2, Scope.DEPENDENT)
-    assert ioc.has(Service3, Scope.TRANSIENT)

@@ -1,10 +1,10 @@
-from selva.di import singleton
+from selva.di import service
 
 
 class Service2:
     pass
 
 
-@singleton
+@service
 async def service2_factory() -> Service2:
     return Service2()

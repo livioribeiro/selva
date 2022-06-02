@@ -1,14 +1,14 @@
 from dataclasses import dataclass
 
-from selva.di import singleton
+from selva.di import service
 
 
-@singleton
+@service
 class Dependency:
     pass
 
 
-@singleton
+@service
 @dataclass
 class ServiceDataclass:
     dependency: Dependency

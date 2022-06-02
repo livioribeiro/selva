@@ -2,12 +2,12 @@ from asgikit.headers import Headers
 from asgikit.requests import HttpRequest
 from asgikit.websockets import WebSocket
 
-from selva.di.decorators import singleton
+from selva.di import service
 
 from .converter import FromRequest
 
 
-@singleton(provides=FromRequest[HttpRequest])
+@service(provides=FromRequest[HttpRequest])
 class RequestFromRequest(FromRequest[HttpRequest]):
     async def from_request(self, request: HttpRequest | WebSocket) -> HttpRequest:
         if not isinstance(request, HttpRequest):
@@ -15,7 +15,7 @@ class RequestFromRequest(FromRequest[HttpRequest]):
         return request
 
 
-@singleton(provides=FromRequest[WebSocket])
+@service(provides=FromRequest[WebSocket])
 class WebSocketFromRequest(FromRequest[WebSocket]):
     async def from_request(self, request: HttpRequest | WebSocket) -> WebSocket:
         if not isinstance(request, WebSocket):
@@ -23,7 +23,7 @@ class WebSocketFromRequest(FromRequest[WebSocket]):
         return request
 
 
-@singleton(provides=FromRequest[Headers])
+@service(provides=FromRequest[Headers])
 class HeadersFromRequest(FromRequest[Headers]):
     async def from_request(self, request: HttpRequest | WebSocket) -> Headers:
         return request.headers

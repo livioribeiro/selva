@@ -1,5 +1,4 @@
 from enum import Enum
-
 from typing import Callable
 
 from asgikit.requests import HttpMethod

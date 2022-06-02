@@ -160,13 +160,3 @@ async def test_register_a_service_twice_should_fail(ioc: Container):
     with pytest.raises(ServiceAlreadyRegisteredError):
         ioc.register(service1_factory, Scope.SINGLETON)
         ioc.register(duplicate_factory, Scope.SINGLETON)
-
-
-async def test_register_shortcuts(ioc: Container):
-    ioc.register_singleton(service1_factory)
-    ioc.register_dependent(service2_factory)
-    ioc.register_transient(service3_factory)
-
-    assert ioc.has(Service1, Scope.SINGLETON)
-    assert ioc.has(Service2, Scope.DEPENDENT)
-    assert ioc.has(Service3, Scope.TRANSIENT)
