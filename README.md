@@ -1,312 +1,424 @@
-# Dependency Injector
+# Project Selva
 
-Yet another dependency injection library for Python
+Selva is a Python ASGI web framework built on top of [asgikit](https://github.com/livioribeiro/asgikit)
+and inspired by Spring Boot, AspNet Core and FastAPI.
 
 ## Usage
 
-Declare services
+Create and application and controller
 
 ```python
-### app/services.py
-
-from dataclasses import dataclass
-
-from selva.di import singleton
+from asgikit.responses import PlainTextResponse
+from selva.web import Application, controller, get
 
 
-# Register a service
-@singleton
-class Service1:
-    pass
+@controller("/")
+class Controller:
+    @get
+    def hello(self) -> PlainTextResponse:
+        return PlainTextResponse("Hello, World!")
 
 
-# Register a service with dependency
-@singleton
-class Service2:
-    def __init__(self, service1: Service1):
-        self.service1 = service1
-
-
-# works with dataclasses too
-@singleton
-@dataclass
-class Service3:
-    service2: Service2
+app = Application()
+app.register(Controller)
 ```
 
-You can also use factory functions
+Add a service
 
 ```python
-### app/services.py
-
-from dataclasses import dataclass
-from selva.di import singleton
-
-
-class Service1:
-    pass
+from asgikit.responses import PlainTextResponse
+from selva.di import service
+from selva.web import Application, controller, get
 
 
-# also works with dataclasses
-@dataclass
-class Service2:
-    service1: Service1
+@service
+class Greeter:
+    def greet(self, name: str) -> str:
+        return f"Hello, {name}!"
 
 
-@singleton
-def service1_factory() -> Service1:
-    return Service1()
+@controller("/")
+class Controller:
+    def __init__(self, greeter: Greeter):
+        self.greeter = greeter
+
+    @get
+    def hello(self) -> PlainTextResponse:
+        greeting = self.greeter.greet("World")
+        return PlainTextResponse(greeting)
 
 
-@singleton
-def service2_factory(service1: Service1) -> Service2:
-    return Service2(service1)
+app = Application()
+app.register(Controller, Greeter)
 ```
 
-Requesting the services
+Get parameters from path
 
 ```python
-### app/main.py
+from asgikit.responses import JsonResponse
+from selva.di import service
+from selva.web import Application, controller, get
 
-from selva.di import Container
-from app.services import Service1, Service2
+
+@service
+class Greeter:
+    def greet(self, name: str) -> str:
+        return f"Hello, {name}!"
 
 
-async def main():
-    # Create an ioc container
-    ioc = Container()
+@controller("/")
+class Controller:
+    def __init__(self, greeter: Greeter):
+        self.greeter = greeter
 
-    # Tell container to scan package for services
-    ioc.scan("app.services")
+    @get("hello/{name}")
+    def hello(self, name: str) -> JsonResponse:
+        greeting = self.greeter.greet(name)
+        return JsonResponse({"greeting": greeting})
 
-    # also works with module instances
-    from app import services
-    ioc.scan(services)
 
-    # Get an instance of Service2
-    service2 = await ioc.get(Service2)
-    assert isinstance(service2.service1, Service1)
+app = Application()
+app.register(Controller, Greeter)
 ```
 
-Interface with implementation
+Configurations with [Pydantic](https://pydantic-docs.helpmanual.io/usage/settings/)
 
 ```python
-### app/services.py
-
-from abc import ABC, abstractmethod
-from selva.di import singleton
-
-
-class Interface(ABC):
-    @abstractmethod
-    def method(self):
-        raise NotImpementedError()
+from asgikit.requests import HttpRequest
+from asgikit.responses import JsonResponse
+from selva.di import service
+from selva.web import Application, controller, get
+from pydantic import BaseSettings
 
 
-@singleton(provides=Interface)
-class Implementation(Interface):
-    def method(self):
-        pass
+class Settings(BaseSettings):
+    DEFAULT_NAME: str
 
 
-# with factory function
-@singleton
-def factory_function() -> Interface:
-    return Implementation()
+@service
+def settings_factory() -> Settings:
+    return Settings()
 
 
-### app/main.py
+@service
+class Greeter:
+    def __init__(self, settings: Settings):
+        self.default_name = settings.DEFAULT_NAME
 
-from selva.di import Container
-from app.services import Interface, Implementation
+    def greet(self, name: str | None) -> str:
+        name = name or self.default_name
+        return f"Hello, {name}!"
 
 
-async def main():
-    ioc = Container()
-    ioc.scan("app.services")
-    service = ioc.get(Interface)
-    assert isinstance(service, Implementation)
+@controller("/")
+class Controller:
+    def __init__(self, greeter: Greeter):
+        self.greeter = greeter
+
+    @get("hello/{name}")
+    def hello(self, name: str) -> JsonResponse:
+        greeting = self.greeter.greet(name)
+        return JsonResponse({"greeting": greeting})
+
+    @get("hello")
+    def hello_optional(self, request: HttpRequest) -> JsonResponse:
+        name = request.query.get("name")
+        greeting = self.greeter.greet(name)
+        return JsonResponse({"greeting": greeting})
+
+
+app = Application()
+app.register(Controller, Greeter)
 ```
 
-Register services directly with the container
+Manage services lifecycle (e.g [Databases](https://www.encode.io/databases/))
 
 ```python
-from selva.di import Container, Scope
+from asgikit.requests import HttpRequest
+from asgikit.responses import JsonResponse
+from selva.di import service, initializer, finalizer
+from selva.web import Application, controller, get
+from pydantic import BaseSettings, PostgresDsn
+from databases import Database
 
 
-class Service:
-    pass
+class Settings(BaseSettings):
+    DEFAULT_NAME: str
+    DATABASE_URL: PostgresDsn
 
 
-async def main():
-    ioc = Container()
-    ioc.register(Service, Scope.SINGLETON)
+@service
+def settings_factory() -> Settings:
+    return Settings()
 
-    service = await ioc.get(Service)
-    assert isinstance(service, Service)
 
+@service
+class Repository:
+    def __init__(self, settings: Settings):
+        self.database = Database(settings.DATABASE_URL)
 
-# with interface and implementation
-class Interface:
-    pass
+    async def get_greeting(self, name: str) -> str:
+        result = await self.database.fetch_one(
+            query="select text from greeting where name = :name",
+            values={"name": name}
+        )
 
+        return result.text
 
-class Implementation(Interface):
-    pass
-
-
-async def main():
-    ioc.register(Implementation, Scope.SINGLETON, provides=Interface)
-
-    service = await ioc.get(Interface)
-    assert isinstance(service, Implementation)
-
-```
-
-Transient services
-
-```python
-### app/services.py
-
-from selva.di import transient
-
-
-@transient
-class TransientService:
-    pass
-
-
-### app.main.py
-
-import asyncio
-from selva.di import Container
-from app.services import TransientService
-
-
-async def main():
-    ioc = Container()
-    ioc.scan("app.services")
-
-    instance1 = await ioc.get(TransientService)
-    instance2 = await ioc.get(TransientService)
-
-    # A new instance will be returned every time it is requested
-    assert instance1 is not instance2
-```
-
-Context dependent services
-
-The same object is return for a given context object. One example of aplication of dependent services is on a web server that returns the same database connection for a given request.
-
-```python
-### app/services.py
-
-from selva.di import dependent
-
-
-@dependent
-class DependentService:
-    pass
-
-
-### app/main.py
-
-from selva.di import Container
-from app.services import DependentService
-
-
-# Define a context object
-class MyContext:
-    pass
-
-
-async def main():
-    ioc = Container()
-    ioc.scan("app.services")
-
-    context1 = MyContext()
-
-    # Get the service bound by the context
-    dependent_instance1 = await ioc.get(DependentService, context=context1)
-    dependent_instance2 = await ioc.get(DependentService, context=context1)
-
-    # The same instance will be returned for a given context
-    assert dependent_instance1 is dependent_instance2
-
-    # with a different context
-    context2 = MyContext()
-    dependent_instance3 = await ioc.get(DependentService, context=context2)
-    assert dependent_instance3 is dependent_instance1
-    assert dependent_instance3 is dependent_instance2
-```
-
-Call function with dependencies
-
-```python
-
-def function(service1: Service1):
-    pass
-
-
-ioc.call(function)
-
-
-# Function with additional parameters
-def function_with_params(service1: Service1, parameter: int):
-    pass
-
-
-ioc.call(function, kwargs={"parameter": 1})
-
-```
-
-Define generic services
-
-```python
-from typing import Generic, TypeVar
-from selva.di import Container, Scope
-
-T = TypeVar("T")
-
-
-class Interface(Generic[T]):
-    pass
-
-
-class Implementation(Interface[int]):
-    pass
-
-
-async def main():
-    ioc = Container()
-    ioc.register(Implementation, Scope.SINGLETON, provides=Interface[int])
-
-    service = await ioc.get(Interface[int])
-    assert isinstance(service, Implementation)
-```
-
-Define initializer methods
-
-```python
-class Service:
-    # will be called after object is created
+    @initializer
     async def initialize(self):
-        # execute initialization logic
-        ...
+        await self.database.connect()
+        print("Database connection opened")
+
+    @finalizer
+    async def finalize(self):
+        await self.database.disconnect()
+        print("Database connection closed")
+
+
+@service
+class Greeter:
+    def __init__(self, repository: Repository, settings: Settings):
+        self.repository = repository
+        self.default_name = settings.DEFAULT_NAME
+
+    async def greet(self, name: str | None) -> str:
+        name = name or self.default_name
+        return await self.repository.get_greeting(name)
+
+
+@controller("/")
+class Controller:
+    def __init__(self, greeter: Greeter):
+        self.greeter = greeter
+
+    @get("hello/{name}")
+    def hello(self, name: str) -> JsonResponse:
+        greeting = self.greeter.greet(name)
+        return JsonResponse({"greeting": greeting})
+
+    @get("hello")
+    def hello_optional(self, request: HttpRequest) -> JsonResponse:
+        name = request.query.get("name")
+        greeting = self.greeter.greet(name)
+        return JsonResponse({"greeting": greeting})
+
+
+app = Application()
+app.register(Controller, Greeter)
 ```
 
-Initialize methods can also be used to break dependency loops
+Define controllers and services in separate modules
+
+```
+├───modules
+│   ├───controllers.py
+│   ├───repository.py
+│   ├───services.py
+│   └───settings.py
+└───main.py
+```
 
 ```python
-class Service1:
-    def __init__(self, service2: "Service2"):
-        self.service2 = service2
+### modules/settings.py
+from selva.di import service
+from pydantic import BaseSettings, PostgresDsn
 
 
-class Service2:
-    def __init__(self):
-        self.service1 = None
+class Settings(BaseSettings):
+    DEFAULT_NAME: str
+    DATABASE_URL: PostgresDsn
 
-    def initialize(self, service1: Service1):
-        self.service1 = service1
+
+@service
+def settings_factory() -> Settings:
+    return Settings()
+```
+
+```python
+### modules/repository.py
+from selva.di import service, initializer, finalizer
+from databases import Database
+from .settings import Settings
+
+@service
+class Repository:
+    def __init__(self, settings: Settings):
+        self.database = Database(settings.DATABASE_URL)
+
+    async def get_greeting(self, name: str) -> str:
+        result = await self.database.fetch_one(
+            query="select text from greeting where name = :name",
+            values={"name": name}
+        )
+
+        return result.text
+
+    @initializer
+    async def initialize(self):
+        await self.database.connect()
+        print("Database connection opened")
+
+    @finalizer
+    async def finalize(self):
+        await self.database.disconnect()
+        print("Database connection closed")
+```
+
+```python
+### modules/services.py
+from selva.di import service
+from .settings import Settings
+from .repository import Repository
+
+
+@service
+class Greeter:
+    def __init__(self, repository: Repository, settings: Settings):
+        self.repository = repository
+        self.default_name = settings.DEFAULT_NAME
+
+    async def greet(self, name: str | None) -> str:
+        name = name or self.default_name
+        return await self.repository.get_greeting(name)
+```
+
+```python
+### modules/controllers.py
+from asgikit.requests import HttpRequest
+from asgikit.responses import JsonResponse
+from selva.web import controller, get
+from .services import Greeter
+
+@controller("/")
+class Controller:
+    def __init__(self, greeter: Greeter):
+        self.greeter = greeter
+
+    @get("hello/{name}")
+    def hello(self, name: str) -> JsonResponse:
+        greeting = self.greeter.greet(name)
+        return JsonResponse({"greeting": greeting})
+
+    @get("hello")
+    def hello_optional(self, request: HttpRequest) -> JsonResponse:
+        name = request.query.get("name")
+        greeting = self.greeter.greet(name)
+        return JsonResponse({"greeting": greeting})
+```
+
+```python
+### main.py
+from selva.web import Application
+from . import modules
+
+
+app = Application()
+app.register(modules)
+```
+
+Also supports websockets
+
+```python
+from http import HTTPStatus
+from pathlib import Path
+from asgikit.websockets import WebSocket
+from asgikit.responses import HttpResponse, FileResponse
+from asgikit.errors.websocket import WebSocketDisconnectError
+from selva.web import Application, controller, get, websocket
+
+@controller("/")
+class WebSocketController:
+    @get
+    def index(self) -> FileResponse:
+        return FileResponse(Path(__file__).parent / "index.html")
+
+    @get("/favicon.ico")
+    def favicon(self) -> HttpResponse:
+        return HttpResponse(status=HTTPStatus.NOT_FOUND)
+
+    @websocket("/chat")
+    async def chat(self, client: WebSocket):
+        await client.accept()
+        print(f"[open] Client connected")
+
+        self.handler.clients.append(client)
+
+        while True:
+            try:
+                message = await client.receive()
+                print(f"[message] {message}")
+                await client.send_text(message)
+            except WebSocketDisconnectError:
+                print("[close] Client disconnected")
+                break
+
+
+app = Application()
+app.register(WebSocketController)
+```
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>WebSocket chat</title>
+</head>
+<body>
+<form id="chat-form">
+    <textarea name="message-list" id="message-list" cols="30" rows="10" readonly></textarea>
+    <p>
+        <input type="text" name="message-box" id="message-box" />
+        <button type="submit">Send</button>
+    </p>
+</form>
+
+<script>
+    const messages = [];
+
+    const chat = document.getElementById("chat-form");
+    const textarea = document.getElementById("message-list");
+    textarea.value = "";
+    const messageInput = document.getElementById("message-box");
+
+    const socket = new WebSocket("ws://localhost:8000/chat");
+
+    function addMessage(message) {
+        messages.push(message)
+        textarea.value = `${messages.join("\n")}`;
+        textarea.scrollTop = textarea.scrollHeight;
+    }
+
+    chat.onsubmit = (event) => {
+        event.preventDefault();
+        const message = messageInput.value;
+        socket.send(message);
+        messageInput.value = "";
+    };
+
+    socket.onopen = (event) => {
+        console.log("[open] Client connected");
+    };
+
+    socket.onmessage = (event) => {
+        const message = event.data;
+        console.log(`[message] "${message}"`)
+        addMessage(message);
+    };
+
+    socket.onclose = (event) => {
+        if (event.wasClean) {
+            console.log(`[close] Connection closed cleanly, code=${event.code} reason=${event.reason}`);
+        } else {
+            console.log('[close] Connection died');
+        }
+    };
+
+    socket.onerror = function(error) {
+        console.log(`[error] ${error.message}`);
+    };
+</script>
+</body>
+</html>
 ```

@@ -44,5 +44,4 @@ class Controller:
 
 
 app = Application()
-app.controllers(Controller)
-app.services(settings_factory, Greeter)
+app.register(Controller, settings_factory, Greeter)

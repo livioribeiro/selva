@@ -1,6 +1,6 @@
 from selva.web.application import Application
 
-from . import crud_module
+from . import modules
 
 app = Application()
-app.modules(crud_module)
+app.register(modules)

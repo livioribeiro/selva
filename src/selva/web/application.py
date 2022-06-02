@@ -1,5 +1,6 @@
+import importlib
 import inspect
-from collections.abc import Coroutine
+from collections.abc import Callable, Coroutine
 from types import ModuleType
 from typing import Any
 
@@ -15,6 +16,18 @@ from selva.web.request.converter import FromRequest
 from selva.web.routing import param_converter
 from selva.web.routing.decorators import CONTROLLER_ATTRIBUTE
 from selva.web.routing.router import Router
+
+
+def _is_controller(arg) -> bool:
+    return inspect.isclass(arg) and hasattr(arg, CONTROLLER_ATTRIBUTE)
+
+
+def _is_service(arg) -> bool:
+    return hasattr(arg, DI_SERVICE_ATTRIBUTE)
+
+
+def _is_controller_or_service(arg) -> bool:
+    return _is_controller(arg) or _is_service(arg)
 
 
 class Application:
@@ -41,31 +54,35 @@ class Application:
             case _:
                 raise RuntimeError()
 
-    def controllers(self, *args: type):
-        for controller in args:
+    def register(self, *args: type | Callable | ModuleType | str):
+        controllers = set()
+        services = set()
+        modules = []
+
+        for item in args:
+            if _is_controller(item):
+                controllers.add(item)
+            elif _is_service(item):
+                services.add(item)
+            elif inspect.ismodule(item):
+                modules.append(item)
+            elif isinstance(item, str):
+                module = importlib.import_module(item)
+                modules.append(module)
+            else:
+                raise ValueError(f"{item} is not a controller, service or module")
+
+        for item in package_scan.scan_packages(modules, _is_controller_or_service):
+            if _is_controller(item):
+                controllers.add(item)
+            elif _is_service(item):
+                services.add(item)
+
+        for controller in controllers:
             self.router.route(controller)
 
-    def services(self, *args: type):
-        for service in args:
+        for service in services:
             self.di.service(service)
-
-    def modules(self, *modules: str | ModuleType):
-        def is_controller(arg):
-            return hasattr(arg, CONTROLLER_ATTRIBUTE)
-
-        def is_service(arg):
-            return hasattr(arg, DI_SERVICE_ATTRIBUTE)
-
-        controllers = []
-        services = []
-        for item in package_scan.scan_packages(modules):
-            if is_controller(item):
-                controllers.append(item)
-            if is_service(item):
-                services.append(item)
-
-        self.controllers(*controllers)
-        self.services(*services)
 
     async def _handle_lifespan(self, _scope, receive, send):
         while True:

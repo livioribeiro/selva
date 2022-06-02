@@ -1,12 +1,8 @@
-from http import HTTPStatus
 from pathlib import Path
 
 from databases import Database
 
-from asgikit.responses import JsonResponse
 from selva.di import service, initializer, finalizer
-from selva.web import controller, get
-
 
 BASE_PATH = Path(__file__).resolve().parent
 
@@ -33,17 +29,3 @@ class Repository:
     async def finalize(self):
         await self.database.disconnect()
         print("Database connection closed")
-
-
-@controller("/")
-class Controller:
-    def __init__(self, repository: Repository):
-        self.repository = repository
-
-    @get
-    async def index(self) -> JsonResponse:
-        try:
-            await self.repository.test()
-            return JsonResponse({"status": "OK"})
-        except Exception as e:
-            return JsonResponse({"status": "FAIL", "message": str(e)}, status=HTTPStatus.INTERNAL_SERVER_ERROR)
