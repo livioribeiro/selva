@@ -5,7 +5,7 @@ and inspired by Spring Boot, AspNet Core and FastAPI.
 
 ## Usage
 
-Create and application and controller
+Create an application and controller
 
 ```python
 from asgikit.responses import PlainTextResponse
