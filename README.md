@@ -92,7 +92,7 @@ from pydantic import BaseSettings
 
 
 class Settings(BaseSettings):
-    DEFAULT_NAME: str
+    DEFAULT_NAME = "World"
 
 
 @service
@@ -143,7 +143,7 @@ from databases import Database
 
 
 class Settings(BaseSettings):
-    DEFAULT_NAME: str
+    DEFAULT_NAME = "World"
     DATABASE_URL: PostgresDsn
 
 
@@ -226,7 +226,7 @@ from pydantic import BaseSettings, PostgresDsn
 
 
 class Settings(BaseSettings):
-    DEFAULT_NAME: str
+    DEFAULT_NAME = "World"
     DATABASE_URL: PostgresDsn
 
 
