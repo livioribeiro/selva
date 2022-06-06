@@ -135,7 +135,7 @@ class Container:
                 service_type, definition.scope.name, valid_scope.name, requester
             )
 
-        if definition.scope == Scope.DEPENDENT and context is None:
+        if definition.scope is Scope.DEPENDENT and context is None:
             raise MissingDependentContextError()
 
         stack = stack or []
@@ -198,7 +198,7 @@ class Container:
         if finalizer is None:
             return
 
-        finalizer_key = id(context) if context else None
+        finalizer_key = None if definition.scope is Scope.SINGLETON else id(context)
         self.finalizers[finalizer_key].append(functools.partial(finalizer, instance))
 
     async def run_finalizers(self, context=None):

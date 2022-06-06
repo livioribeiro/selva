@@ -1,12 +1,13 @@
 import os
+from collections.abc import Callable
 from typing import NamedTuple
 
 from asgikit.requests import HttpRequest
 from asgikit.responses import PlainTextResponse
 
 from selva.di import service
-from selva.web.application import Application
-from selva.web.routing.decorators import controller, get
+from selva.web import Application, controller, get, middleware
+from selva.web.request import RequestContext
 
 DEFAULT_NAME = "World"
 
@@ -43,5 +44,20 @@ class Controller:
         return PlainTextResponse(greeting)
 
 
+@middleware
+async def logging_middleware(context: RequestContext, chain: Callable):
+    print(context.path)
+    response = await chain()
+    print(f"status: {response.status.value}")
+    return response
+
+
+@middleware
+class AuthMiddleware:
+    async def __call__(self, context: RequestContext, chain: Callable):
+        print("AuthMiddleware")
+        return await chain()
+
+
 app = Application()
-app.register(Controller, settings_factory, Greeter)
+app.register(Controller, logging_middleware, AuthMiddleware, settings_factory, Greeter)

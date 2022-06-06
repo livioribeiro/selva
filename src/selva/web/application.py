@@ -1,5 +1,6 @@
 import importlib
 import inspect
+from collections import OrderedDict
 from collections.abc import Callable, Coroutine
 from types import ModuleType
 from typing import Any
@@ -9,6 +10,8 @@ from asgikit.responses import HttpResponse, HTTPStatus
 from selva.di import Container
 from selva.di.decorators import DI_SERVICE_ATTRIBUTE
 from selva.utils import maybe_async, package_scan
+from selva.web.middleware.chain import Chain
+from selva.web.middleware.decorators import MIDDLEWARE_ATTRIBUTE
 from selva.web.request import FromRequestContext, RequestContext, from_context
 from selva.web.routing import param_converter
 from selva.web.routing.decorators import CONTROLLER_ATTRIBUTE
@@ -23,8 +26,12 @@ def _is_service(arg) -> bool:
     return hasattr(arg, DI_SERVICE_ATTRIBUTE)
 
 
-def _is_controller_or_service(arg) -> bool:
-    return _is_controller(arg) or _is_service(arg)
+def _is_middleware(arg) -> bool:
+    return hasattr(arg, MIDDLEWARE_ATTRIBUTE)
+
+
+def _is_controller_or_service_or_middleware(arg) -> bool:
+    return any(i(arg) for i in [_is_controller, _is_service, _is_middleware])
 
 
 class Application:
@@ -39,6 +46,7 @@ class Application:
 
         self.di.define_singleton(Router, self.router)
         self.di.scan(from_context, param_converter)
+        self.middleware_chain = OrderedDict()
 
     async def __call__(self, scope, receive, send):
         match scope["type"]:
@@ -50,26 +58,18 @@ class Application:
                 raise RuntimeError()
 
     def register(self, *args: type | Callable | ModuleType | str):
-        modules = []
-
         for item in args:
             if _is_controller(item):
                 self.router.route(item)
-            elif _is_service(item):
+            if _is_service(item):
                 self.di.service(item)
-            elif inspect.ismodule(item):
-                modules.append(item)
-            elif isinstance(item, str):
-                module = importlib.import_module(item)
-                modules.append(module)
-            else:
-                raise ValueError(f"{item} is not a controller, service or module")
-
-        for item in package_scan.scan_packages(modules):
-            if _is_controller(item):
-                self.router.route(item)
-            elif _is_service(item):
-                self.di.service(item)
+            if _is_middleware(item):
+                self.middleware_chain[item] = None
+            if inspect.ismodule(item) or isinstance(item, str):
+                for i in package_scan.scan_packages(
+                    [item], _is_controller_or_service_or_middleware
+                ):
+                    self.register(i)
 
     async def _handle_lifespan(self, _scope, receive, send):
         while True:
@@ -103,8 +103,17 @@ class Application:
 
         return request_params
 
-    async def _handle_request(self, context: RequestContext) -> Any | Coroutine:
-        self.di.define_dependent(type(context), context, context=context)
+    async def _handle_request(self, context: RequestContext):
+        chain = Chain(self.di, self.middleware_chain, self._process_request, context)
+
+        try:
+            if response := await chain():
+                await response(context.request)
+        finally:
+            await self.di.run_finalizers(context)
+
+    async def _process_request(self, context: RequestContext) -> Any | Coroutine:
+        self.di.define_dependent(RequestContext, context, context=context)
 
         method = context.method if context.is_http else None
         path = context.path
@@ -113,8 +122,7 @@ class Application:
 
         if not match:
             response = HttpResponse(status=HTTPStatus.NOT_FOUND)
-            await response(context.request)
-            return
+            return response
 
         controller = match.route.controller
         action = match.route.action
@@ -132,14 +140,9 @@ class Application:
                 action, instance, **all_params
             )
 
-            if inspect.iscoroutine(response):
-                response = await response
-
             if context.is_http:
-                await response(context.request)
+                return response
         except Exception as err:
             print(err)
             response = HttpResponse(status=HTTPStatus.INTERNAL_SERVER_ERROR)
-            await response(context.request)
-        finally:
-            await self.di.run_finalizers(context)
+            return response
