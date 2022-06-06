@@ -4,4 +4,3 @@ from . import modules
 
 app = Application()
 app.register(modules)
-

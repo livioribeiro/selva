@@ -1,13 +1,14 @@
+from abc import ABCMeta, abstractmethod
 from typing import Generic, TypeVar
 
-from asgikit.requests import HttpRequest
-from asgikit.websockets import WebSocket
+from selva.web.request import RequestContext
 
-__all__ = ["FromRequest"]
+__all__ = ["FromRequestContext"]
 
 T = TypeVar("T")
 
 
-class FromRequest(Generic[T]):
-    async def from_request(self, request: HttpRequest | WebSocket) -> T:
+class FromRequestContext(Generic[T], metaclass=ABCMeta):
+    @abstractmethod
+    async def from_context(self, context: RequestContext) -> T:
         pass

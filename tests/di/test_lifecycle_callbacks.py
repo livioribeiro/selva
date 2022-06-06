@@ -3,6 +3,7 @@ import asyncio
 from selva.di import Container, Scope, initializer, finalizer
 
 from .fixtures import ioc
+from .utils import Context
 
 
 class Dependency:
@@ -79,38 +80,39 @@ async def test_call_async_initialize(ioc: Container):
 
 async def test_call_finalize(ioc: Container, capsys):
     ioc.register(ServiceFinalize, Scope.TRANSIENT)
+    context = Context()
 
-    service = await ioc.get(ServiceFinalize)
-    del service
+    await ioc.get(ServiceFinalize, context=context)
+    await ioc.run_finalizers(context)
 
     assert capsys.readouterr().out == "finalize\n"
 
 
 async def test_call_async_finalize(ioc: Container, capsys):
     ioc.register(ServiceAsyncFinalize, Scope.TRANSIENT)
+    context = Context()
 
-    service = await ioc.get(ServiceAsyncFinalize)
-    del service
+    await ioc.get(ServiceAsyncFinalize, context=context)
+    await ioc.run_finalizers(context)
 
-    await asyncio.sleep(0.1)  # gives the finalizer a chance to write to stdout
     assert capsys.readouterr().out == "async finalize\n"
 
 
 async def test_call_factory_finalize(ioc: Container, capsys):
     ioc.register(factory_finalize, Scope.TRANSIENT)
+    context = Context()
 
-    service = await ioc.get(Service)
-    del service
+    await ioc.get(Service, context=context)
+    await ioc.run_finalizers(context)
 
-    await asyncio.sleep(0.1)  # gives the finalizer a chance to write to stdout
     assert capsys.readouterr().out == "factory finalize\n"
 
 
 async def test_call_factory_async_finalize(ioc: Container, capsys):
     ioc.register(factory_async_finalize, Scope.TRANSIENT)
+    context = Context()
 
-    service = await ioc.get(Service)
-    del service
+    await ioc.get(Service, context=context)
+    await ioc.run_finalizers(context)
 
-    await asyncio.sleep(0.1)  # gives the finalizer a chance to write to stdout
     assert capsys.readouterr().out == "factory async finalize\n"

@@ -49,7 +49,7 @@ async def test_dependent_scope_cleanup(ioc: Container):
     await ioc.get(Service1, context=context)
     assert id(context) in ioc.store_dependent
 
-    del context
+    await ioc.run_finalizers(context)
 
     assert len(ioc.store_dependent) == 0
 
@@ -63,10 +63,8 @@ async def test_context_object_is_service_itself(ioc: Container):
     service = await ioc.get(Service1, context=instance)
     assert instance == service
 
-    del service
-
     assert len(ioc.store_dependent) == 1
 
-    del instance
+    await ioc.run_finalizers(instance)
 
     assert len(ioc.store_dependent) == 0

@@ -1,8 +1,8 @@
 from pathlib import Path
 
+from asgikit.errors.websocket import WebSocketDisconnectError, WebSocketStateError
 from asgikit.responses import FileResponse, HttpResponse, HTTPStatus
 from asgikit.websockets import WebSocket
-from asgikit.errors.websocket import WebSocketDisconnectError, WebSocketStateError
 
 from selva.di import service
 from selva.web import controller, get, websocket

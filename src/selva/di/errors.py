@@ -116,3 +116,11 @@ class ServiceWithoutDecoratorError(DependencyInjectionError):
             f"service {service.__module__}.{service.__qualname__}"
             " must be decorated with @service"
         )
+
+
+class InstanceNotDefinedError(DependencyInjectionError):
+    def __init__(self, service: type):
+        super().__init__(
+            f"{service.__module__}.{service.__qualname__} must be defined"
+            " for the given context"
+        )

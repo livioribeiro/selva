@@ -1,12 +1,13 @@
 from http import HTTPStatus
 
 from asgikit.responses import JsonResponse
+
 from selva.web import controller, get
 
 from .services import Repository
 
 
-@controller("/")
+@controller("/sqlite")
 class Controller:
     def __init__(self, repository: Repository):
         self.repository = repository
@@ -17,4 +18,7 @@ class Controller:
             await self.repository.test()
             return JsonResponse({"status": "OK"})
         except Exception as e:
-            return JsonResponse({"status": "FAIL", "message": str(e)}, status=HTTPStatus.INTERNAL_SERVER_ERROR)
+            return JsonResponse(
+                {"status": "FAIL", "message": str(e)},
+                status=HTTPStatus.INTERNAL_SERVER_ERROR,
+            )

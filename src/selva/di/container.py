@@ -1,18 +1,16 @@
-import asyncio
-import copy
 import functools
-import inspect
-import weakref
+from collections import defaultdict
 from collections.abc import Callable
 from types import ModuleType
 from typing import Any, Optional, TypeVar, Union
 
+from selva.utils.maybe_async import call_maybe_async
 from selva.utils.package_scan import scan_packages
 
 from .decorators import DI_SERVICE_ATTRIBUTE
 from .errors import (
-    CalledNonCallableError,
     DependencyLoopError,
+    InstanceNotDefinedError,
     InvalidScopeError,
     MissingDependentContextError,
     ServiceWithoutDecoratorError,
@@ -28,8 +26,8 @@ class Container:
     def __init__(self):
         self.registry = ServiceRegistry()
         self.store_singleton: dict[type, Any] = {}
-        self.store_dependent: dict[int, dict[type, Any]] = {}
-        self.finalizers: list[Callable] = []
+        self.store_dependent: dict[int, dict[type, Any]] = defaultdict(dict)
+        self.finalizers: dict[int | None, list[Callable]] = defaultdict(list)
 
     def register(
         self,
@@ -51,14 +49,22 @@ class Container:
         scope, provides, name = service_info
         self.register(service_type, scope, provides=provides, name=name)
 
-    def define_singleton(self, service_type: type, instance: object):
+    def define_singleton(self, service_type: type, instance: Any):
         self.store_singleton[service_type] = instance
 
-    def define_dependent(self, service_type: type, instance: object, *, context: Any):
-        self._ensure_dependent_context(context)
+    def define_dependent(self, service_type: type, instance: Any, *, context: Any):
+        if context is None:
+            raise MissingDependentContextError()
 
-        service = weakref.proxy(instance) if instance is context else instance
-        self.store_dependent[id(context)][service_type] = service
+        if not self.has(service_type, Scope.DEPENDENT):
+
+            def defined_only_factory() -> service_type:
+                raise InstanceNotDefinedError(service_type)
+
+            self.register(defined_only_factory, scope=Scope.DEPENDENT)
+
+        # service = weakref.proxy(instance) if instance is context else instance
+        self.store_dependent[id(context)][service_type] = instance
 
     def scan(self, *packages: Union[str, ModuleType]):
         def predicate(item: Any):
@@ -80,9 +86,16 @@ class Container:
         return True
 
     async def get(
-        self, service_type: TService, *, context: Any = None, name: str = None
+        self,
+        service_type: TService,
+        *,
+        context: Any = None,
+        name: str = None,
+        optional=False,
     ) -> TService:
-        instance = await self._get(ServiceDependency(service_type, name=name), context)
+        instance = await self._get(
+            ServiceDependency(service_type, name=name, optional=optional), context
+        )
         return instance
 
     async def _resolve_dependencies(self, service: InjectableType, context: Any = None):
@@ -90,16 +103,6 @@ class Container:
             name: await self._get(dep, context)
             for name, dep in get_dependencies(service)
         }
-
-    def _ensure_dependent_context(self, context: Any):
-        # Make sure the dependent store exists for the given context and set finalizer
-        if context is None:
-            raise MissingDependentContextError()
-
-        context_id = id(context)
-        if context_id not in self.store_dependent:
-            self.store_dependent[context_id] = {}
-            weakref.finalize(context, self.store_dependent.pop, context_id, None)
 
     async def _get(
         self,
@@ -115,8 +118,9 @@ class Container:
             return instance
 
         # try from the dependent store
-        if instance := self.store_dependent.get(id(context), {}).get(service_type):
-            return instance
+        if store := self.store_dependent.get(id(context)):
+            if instance := store.get(service_type):
+                return instance
 
         definition = self.registry.get(service_type, name, dependency.optional)
 
@@ -131,6 +135,9 @@ class Container:
                 service_type, definition.scope.name, valid_scope.name, requester
             )
 
+        if definition.scope == Scope.DEPENDENT and context is None:
+            raise MissingDependentContextError()
+
         stack = stack or []
 
         if service_type in stack:
@@ -138,27 +145,16 @@ class Container:
 
         stack.append(service_type)
 
-        if definition.scope == Scope.SINGLETON:
-            instance = self.store_singleton.get(service_type)
-            if not instance:
-                instance = await self._create_service(definition, valid_scope, stack)
+        instance = await self._create_service(definition, valid_scope, stack, context)
+
+        match definition.scope:
+            case Scope.SINGLETON:
                 self.store_singleton[service_type] = instance
-        elif definition.scope == Scope.DEPENDENT:
-            context_id = id(context)
-            self._ensure_dependent_context(context)
-
-            instance = self.store_dependent[context_id].get(service_type)
-
-            if not instance:
-                instance = await self._create_service(
-                    definition, valid_scope, stack, context
-                )
-                self.store_dependent[context_id][service_type] = instance
-        else:
-            instance = await self._create_service(definition, valid_scope, stack)
+            case Scope.DEPENDENT:
+                self.store_dependent[id(context)][service_type] = instance
 
         await self.run_initializer(definition, instance, context)
-        await self.setup_finalizer(definition, instance, definition.scope)
+        await self.setup_finalizer(definition, instance, context)
 
         return instance
 
@@ -181,14 +177,7 @@ class Container:
             for name, dep in definition.dependencies
         }
 
-        if inspect.isclass(factory):
-            instance = factory(**dependencies)
-        elif inspect.iscoroutinefunction(factory):
-            instance = await factory(**dependencies)
-        else:
-            instance = await asyncio.to_thread(factory, **dependencies)
-
-        return instance
+        return await call_maybe_async(factory, **dependencies)
 
     async def run_initializer(
         self, definition: ServiceDefinition, instance: Any, context: Any | None
@@ -199,81 +188,26 @@ class Container:
             return
 
         dependencies = await self._resolve_dependencies(initializer, context)
-        if inspect.iscoroutinefunction(initializer):
-            await initializer(instance, **dependencies)
-        else:
-            await asyncio.to_thread(initializer, instance, **dependencies)
+        await call_maybe_async(initializer, instance, **dependencies)
 
     async def setup_finalizer(
-        self, definition: ServiceDefinition, instance: Any, scope: Scope
+        self, definition: ServiceDefinition, instance: Any, context: Any | None
     ):
         finalizer = definition.finalizer
 
         if finalizer is None:
             return
 
-        if scope == Scope.SINGLETON:
-            self.finalizers.append(functools.partial(finalizer, instance))
-            return
+        finalizer_key = id(context) if context else None
+        self.finalizers[finalizer_key].append(functools.partial(finalizer, instance))
 
-        loop = asyncio.get_running_loop()
+    async def run_finalizers(self, context=None):
+        context_id = id(context) if context else None
 
-        def run_finalizer(instance_copy):
-            if inspect.iscoroutinefunction(finalizer):
-                if loop.is_running():
-                    loop.create_task(finalizer(instance_copy))
-                else:
-                    asyncio.new_event_loop().run_until_complete(
-                        finalizer(instance_copy)
-                    )
-            else:
-                finalizer(instance_copy)
+        for finalizer in self.finalizers[context_id]:
+            await call_maybe_async(finalizer)
 
-        # run finalizer with a shallow copy of the instance to prevent the reference on
-        # the finalizer to keep the object alive
-        weakref.finalize(instance, run_finalizer, copy.copy(instance))
+        self.finalizers.pop(context_id, None)
 
-    async def run_singleton_finalizers(self):
-        for finalizer in self.finalizers:
-            if inspect.iscoroutinefunction(finalizer):
-                await finalizer()
-            else:
-                await asyncio.to_thread(finalizer)
-
-    async def call(
-        self,
-        callable_obj: Callable,
-        *,
-        context: Any = None,
-        args: tuple[Any, ...] = None,
-        kwargs: dict[str, Any] = None,
-    ) -> Any:
-        args = args or []
-        kwargs = kwargs or {}
-
-        if not callable(callable_obj):
-            raise CalledNonCallableError(callable_obj)
-
-        params = {
-            name: await self._get(dep, context=context)
-            for name, dep in get_dependencies(callable_obj)
-            if self.has(dep.service)
-        }
-
-        params.update(kwargs)
-
-        func_args = inspect.signature(callable_obj).bind(*args, **params)
-        func_args.apply_defaults()
-
-        callable_is_async = inspect.iscoroutinefunction(
-            callable_obj,
-        ) or inspect.iscoroutinefunction(
-            getattr(callable_obj, "__call__", None),
-        )
-
-        if callable_is_async:
-            return await callable_obj(*func_args.args, **func_args.kwargs)
-
-        return await asyncio.to_thread(
-            callable_obj, *func_args.args, **func_args.kwargs
-        )
+        if context_id:
+            self.store_dependent.pop(context_id, None)

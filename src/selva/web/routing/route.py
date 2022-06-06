@@ -54,6 +54,11 @@ def build_path_regex(
     if not regex.startswith("/"):
         regex = "/" + regex
 
+    if regex.endswith("/"):
+        regex += "?"
+    else:
+        regex += "/?"
+
     regex = f"^{regex}$"
     return param_types, re.compile(regex)
 

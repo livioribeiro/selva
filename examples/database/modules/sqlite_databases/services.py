@@ -2,7 +2,7 @@ from pathlib import Path
 
 from databases import Database
 
-from selva.di import service, initializer, finalizer
+from selva.di import finalizer, initializer, service
 
 BASE_PATH = Path(__file__).resolve().parent
 
@@ -23,9 +23,9 @@ class Repository:
     @initializer
     async def initialize(self):
         await self.database.connect()
-        print("Database connection opened")
+        print("Sqlite database connection opened")
 
     @finalizer
     async def finalize(self):
         await self.database.disconnect()
-        print("Database connection closed")
+        print("Sqlite database connection closed")
