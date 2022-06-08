@@ -5,13 +5,13 @@ __all__ = ("RequestContext",)
 
 
 class RequestContext:
-    __slots__ = ("request", "attributes", "__weakref__")
+    __slots__ = ("attributes", "_inner" , "__weakref__")
 
     def __init__(self, scope, receive, send):
         if scope["type"] == "http":
-            self.request = HttpRequest(scope, receive, send)
+            self._inner = HttpRequest(scope, receive, send)
         elif scope["type"] == "websocket":
-            self.request = WebSocket(scope, receive, send)
+            self._inner = WebSocket(scope, receive, send)
         else:
             raise RuntimeError(
                 f"scope[type] is neither http nor websocket ({scope['type']})"
@@ -19,8 +19,16 @@ class RequestContext:
 
         self.attributes = {}
 
+    @property
+    def request(self):
+        return self.request if self.request.is_http else None
+
+    @property
+    def websocket(self):
+        return self.request if self.request.is_websocket else None
+
     def __getattr__(self, item):
-        return getattr(self.request, item)
+        return getattr(self._inner, item)
 
     def __getitem__(self, item):
         return self.attributes[item]
