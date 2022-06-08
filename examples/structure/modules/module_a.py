@@ -1,7 +1,4 @@
-from asgikit.requests import HttpRequest
-from asgikit.responses import JsonResponse
-
-from selva.web import controller, get
+from selva.web import JsonResponse, RequestContext, controller, get
 
 
 @controller("/")
@@ -11,5 +8,5 @@ class Controller:
         return JsonResponse({"location": "index"})
 
     @get("/hello/{name}")
-    async def hello(self, name: str, request: HttpRequest) -> JsonResponse:
-        return JsonResponse({"hello": name, "request": request.path})
+    async def hello(self, name: str, context: RequestContext) -> JsonResponse:
+        return JsonResponse({"hello": name, "request": context.path})

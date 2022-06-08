@@ -1,8 +1,6 @@
 from http import HTTPStatus
 
-from asgikit.responses import JsonResponse
-
-from selva.web import controller, get
+from selva.web import JsonResponse, controller, get
 
 from .services import Repository
 
@@ -22,8 +20,8 @@ class Controller:
         try:
             await self.repository.test()
             return JsonResponse({"status": "OK"})
-        except Exception as e:
+        except Exception as err:
             return JsonResponse(
-                {"status": "FAIL", "message": str(e)},
+                {"status": "FAIL", "message": str(err)},
                 status=HTTPStatus.INTERNAL_SERVER_ERROR,
             )

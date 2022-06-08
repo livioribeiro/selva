@@ -1,6 +1,4 @@
-from asgikit.responses import JsonResponse
-
-from selva.web import controller, get
+from selva.web import JsonResponse, controller, get
 
 
 @controller("/reverse")

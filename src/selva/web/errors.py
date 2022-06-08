@@ -1,5 +1,7 @@
 from http import HTTPStatus
 
+from asgikit.errors.websocket import WebSocketDisconnectError, WebSocketStateError
+
 
 class HttpError(Exception):
     def __init__(self, status: HTTPStatus):
