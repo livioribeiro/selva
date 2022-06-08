@@ -8,8 +8,7 @@ and inspired by Spring Boot, AspNet Core and FastAPI.
 Create an application and controller
 
 ```python
-from asgikit.responses import PlainTextResponse
-from selva.web import Application, controller, get
+from selva.web import Application, PlainTextResponse, controller, get
 
 
 @controller("/")
@@ -26,9 +25,8 @@ app.register(Controller)
 Add a service
 
 ```python
-from asgikit.responses import PlainTextResponse
 from selva.di import service
-from selva.web import Application, controller, get
+from selva.web import Application, PlainTextResponse, controller, get
 
 
 @service
@@ -55,9 +53,8 @@ app.register(Controller, Greeter)
 Get parameters from path
 
 ```python
-from asgikit.responses import JsonResponse
 from selva.di import service
-from selva.web import Application, controller, get
+from selva.web import Application, JsonResponse, controller, get
 
 
 @service
@@ -84,10 +81,8 @@ app.register(Controller, Greeter)
 Configurations with [Pydantic](https://pydantic-docs.helpmanual.io/usage/settings/)
 
 ```python
-from asgikit.requests import HttpRequest
-from asgikit.responses import JsonResponse
 from selva.di import service
-from selva.web import Application, controller, get
+from selva.web import Application, JsonResponse, RequestContext, controller, get
 from pydantic import BaseSettings
 
 
@@ -121,8 +116,8 @@ class Controller:
         return JsonResponse({"greeting": greeting})
 
     @get("hello")
-    def hello_optional(self, request: HttpRequest) -> JsonResponse:
-        name = request.query.get("name")
+    def hello_optional(self, context: RequestContext) -> JsonResponse:
+        name = context.query.get("name")
         greeting = self.greeter.greet(name)
         return JsonResponse({"greeting": greeting})
 
@@ -134,10 +129,8 @@ app.register(Controller, Greeter)
 Manage services lifecycle (e.g [Databases](https://www.encode.io/databases/))
 
 ```python
-from asgikit.requests import HttpRequest
-from asgikit.responses import JsonResponse
 from selva.di import service, initializer, finalizer
-from selva.web import Application, controller, get
+from selva.web import Application, JsonResponse, RequestContext, controller, get
 from pydantic import BaseSettings, PostgresDsn
 from databases import Database
 
@@ -198,8 +191,8 @@ class Controller:
         return JsonResponse({"greeting": greeting})
 
     @get("hello")
-    def hello_optional(self, request: HttpRequest) -> JsonResponse:
-        name = request.query.get("name")
+    def hello_optional(self, context: RequestContext) -> JsonResponse:
+        name = context.query.get("name")
         greeting = self.greeter.greet(name)
         return JsonResponse({"greeting": greeting})
 
@@ -285,9 +278,7 @@ class Greeter:
 
 ```python
 ### modules/controllers.py
-from asgikit.requests import HttpRequest
-from asgikit.responses import JsonResponse
-from selva.web import controller, get
+from selva.web import JsonResponse, RequestContext, controller, get
 from .services import Greeter
 
 @controller("/")
@@ -301,7 +292,7 @@ class Controller:
         return JsonResponse({"greeting": greeting})
 
     @get("hello")
-    def hello_optional(self, request: HttpRequest) -> JsonResponse:
+    def hello_optional(self, context: RequestContext) -> JsonResponse:
         name = request.query.get("name")
         greeting = self.greeter.greet(name)
         return JsonResponse({"greeting": greeting})
@@ -322,10 +313,8 @@ Websockets
 ```python
 from http import HTTPStatus
 from pathlib import Path
-from asgikit.websockets import WebSocket
-from asgikit.responses import HttpResponse, FileResponse
-from asgikit.errors.websocket import WebSocketDisconnectError
-from selva.web import Application, controller, get, websocket
+from selva.web import Application, HttpResponse, FileResponse, RequestContext, controller, get, websocket
+from selva.web.errors import WebSocketDisconnectError
 
 @controller("/")
 class WebSocketController:
@@ -338,7 +327,9 @@ class WebSocketController:
         return HttpResponse(status=HTTPStatus.NOT_FOUND)
 
     @websocket("/chat")
-    async def chat(self, client: WebSocket):
+    async def chat(self, context: RequestContext):
+        client = context.websocket
+
         await client.accept()
         print(f"[open] Client connected")
 

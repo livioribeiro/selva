@@ -2,7 +2,7 @@ from http import HTTPStatus
 from pathlib import Path
 
 from selva.di import service
-from selva.web import FileResponse, HttpResponse, WebSocket, controller, get, websocket
+from selva.web import FileResponse, HttpResponse, RequestContext, WebSocket, controller, get, websocket
 from selva.web.errors import WebSocketDisconnectError, WebSocketStateError
 
 
@@ -40,7 +40,9 @@ class WebSocketController:
         return HttpResponse(status=HTTPStatus.NOT_FOUND)
 
     @websocket("/chat")
-    async def chat(self, client: WebSocket):
+    async def chat(self, context: RequestContext):
+        client = context.websocket
+
         await client.accept()
         print("[open] Client connected")
 
