@@ -1,3 +1,4 @@
+import inspect
 from enum import Enum
 from typing import Callable
 
@@ -26,6 +27,9 @@ def controller(path: str):
         raise ValueError(f"Invalid argument for @controller: {path}")
 
     def inner(arg: type):
+        if not inspect.isclass(arg):
+            raise ValueError("Controller must be a class")
+
         setattr(arg, CONTROLLER_ATTRIBUTE, True)
         setattr(arg, PATH_ATTRIBUTE, path)
         return arg

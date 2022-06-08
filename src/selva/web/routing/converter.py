@@ -1,8 +1,7 @@
 from abc import ABCMeta, abstractmethod
-
 from typing import Generic, TypeVar
 
-__all__ = ["PathParamConverter"]
+__all__ = ("PathParamConverter",)
 
 T = TypeVar("T")
 

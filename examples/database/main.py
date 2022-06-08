@@ -1,24 +1,6 @@
-from asgikit.requests import HttpRequest
-from asgikit.responses import JsonResponse
+from selva.web import Application
 
-from examples.database import modules
-from selva.web import Application, controller, get
-
-
-@controller("/")
-class IndexController:
-    @get
-    def index(self, request: HttpRequest):
-        host = request.headers.get_first("host")
-        base_url = f"http://{host}"
-
-        return JsonResponse(
-            {
-                "sqlite+databases": f"{base_url}/sqlite",
-                "postgres+asyncpg": f"{base_url}/postgres",
-            }
-        )
-
+from . import sqlite_database
 
 app = Application()
-app.register(IndexController, modules)
+app.register(sqlite_database)

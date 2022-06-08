@@ -4,9 +4,15 @@ from asgikit.requests import HttpRequest
 from asgikit.websockets import WebSocket
 
 from selva.di import service
-from selva.web.request import RequestContext
 
+from .context import RequestContext
 from .converter import FromRequestContext
+
+
+@service(provides=FromRequestContext[RequestContext])
+class ContextFromRequestContext(FromRequestContext[RequestContext]):
+    async def from_context(self, context: RequestContext) -> RequestContext:
+        return context
 
 
 @service(provides=FromRequestContext[HttpRequest])

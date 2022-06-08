@@ -1,4 +1,3 @@
-import importlib
 import inspect
 from collections import OrderedDict
 from collections.abc import Callable, Coroutine
@@ -7,7 +6,7 @@ from typing import Any
 
 from asgikit.responses import HttpResponse, HTTPStatus
 
-from selva.di import Container
+from selva.di import Container, Scope
 from selva.di.decorators import DI_SERVICE_ATTRIBUTE
 from selva.utils import maybe_async, package_scan
 from selva.web.middleware.chain import Chain
@@ -46,7 +45,8 @@ class Application:
 
         self.di.define_singleton(Router, self.router)
         self.di.scan(from_context, param_converter)
-        self.middleware_chain = OrderedDict()
+        self.middleware_classes = OrderedDict()
+        self.middleware_chain = None
 
     async def __call__(self, scope, receive, send):
         match scope["type"]:
@@ -55,21 +55,36 @@ class Application:
             case "lifespan":
                 await self._handle_lifespan(scope, receive, send)
             case _:
-                raise RuntimeError()
+                raise RuntimeError(f"unknown scope '{scope['type']}'")
 
     def register(self, *args: type | Callable | ModuleType | str):
         for item in args:
             if _is_controller(item):
                 self.router.route(item)
-            if _is_service(item):
+            elif _is_service(item):
                 self.di.service(item)
-            if _is_middleware(item):
-                self.middleware_chain[item] = None
-            if inspect.ismodule(item) or isinstance(item, str):
-                for i in package_scan.scan_packages(
+            elif _is_middleware(item):
+                self.middleware_classes[item] = None
+                # Middleware execution order is defined by the declaration order in the
+                # Application.register method, therefore when a middleware is found, it
+                # is put at the chain to override the order or middlewares found in the
+                # modules provided to the Application.register method
+                self.middleware_classes.move_to_end(item)
+                self.di.register(item, Scope.SINGLETON)
+            elif inspect.ismodule(item) or isinstance(item, str):
+                for subitem in package_scan.scan_packages(
                     [item], _is_controller_or_service_or_middleware
                 ):
-                    self.register(i)
+                    if _is_controller(subitem):
+                        self.router.route(subitem)
+                    elif _is_service(subitem):
+                        self.di.service(subitem)
+                    elif _is_middleware(subitem):
+                        self.middleware_classes[subitem] = None
+                        # Middlewares found in modules are ordered as they are found
+                        self.di.register(item, Scope.SINGLETON)
+            else:
+                raise ValueError(f"{item} is not a controller, service or module")
 
     async def _handle_lifespan(self, _scope, receive, send):
         while True:
@@ -104,7 +119,12 @@ class Application:
         return request_params
 
     async def _handle_request(self, context: RequestContext):
-        chain = Chain(self.di, self.middleware_chain, self._process_request, context)
+        if not self.middleware_chain:
+            self.middleware_chain = [
+                await self.di.get(cls) for cls in self.middleware_classes.keys()
+            ]
+
+        chain = Chain(self.middleware_chain, self._process_request, context)
 
         try:
             if response := await chain():
@@ -142,7 +162,6 @@ class Application:
 
             if context.is_http:
                 return response
-        except Exception as err:
-            print(err)
+        except Exception:
             response = HttpResponse(status=HTTPStatus.INTERNAL_SERVER_ERROR)
             return response

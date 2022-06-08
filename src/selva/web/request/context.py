@@ -1,11 +1,11 @@
 from asgikit.requests import HttpRequest
 from asgikit.websockets import WebSocket
 
-__all__ = ["RequestContext"]
+__all__ = ("RequestContext",)
 
 
 class RequestContext:
-    __slots__ = ["request", "attributes", "__weakref__"]
+    __slots__ = ("request", "attributes", "__weakref__")
 
     def __init__(self, scope, receive, send):
         if scope["type"] == "http":
@@ -13,7 +13,9 @@ class RequestContext:
         elif scope["type"] == "websocket":
             self.request = WebSocket(scope, receive, send)
         else:
-            raise RuntimeError("scope[type] is neither http nor websocket")
+            raise RuntimeError(
+                f"scope[type] is neither http nor websocket ({scope['type']})"
+            )
 
         self.attributes = {}
 

@@ -1,9 +1,9 @@
 from abc import ABCMeta, abstractmethod
 from typing import Generic, TypeVar
 
-from selva.web.request import RequestContext
+from .context import RequestContext
 
-__all__ = ["FromRequestContext"]
+__all__ = ("FromRequestContext",)
 
 T = TypeVar("T")
 

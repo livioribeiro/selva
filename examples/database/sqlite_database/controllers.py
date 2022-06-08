@@ -7,13 +7,18 @@ from selva.web import controller, get
 from .services import Repository
 
 
-@controller("/sqlite")
+@controller("/")
 class Controller:
     def __init__(self, repository: Repository):
         self.repository = repository
 
     @get
-    async def index(self) -> JsonResponse:
+    async def count(self) -> JsonResponse:
+        count = await self.repository.count()
+        return JsonResponse({"count": count})
+
+    @get("/test")
+    async def test(self) -> JsonResponse:
         try:
             await self.repository.test()
             return JsonResponse({"status": "OK"})

@@ -5,7 +5,8 @@ from typing import Optional
 from asgikit.requests import HttpMethod, HttpRequest
 from asgikit.websockets import WebSocket
 
-from ..errors import NotFoundError
+from selva.web.errors import NotFoundError
+
 from .decorators import ACTION_ATTRIBUTE, CONTROLLER_ATTRIBUTE, PATH_ATTRIBUTE
 from .route import Route, RouteMatch
 

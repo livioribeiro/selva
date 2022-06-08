@@ -44,7 +44,7 @@ class WebSocketController:
     @websocket("/chat")
     async def chat(self, client: WebSocket):
         await client.accept()
-        print(f"[open] Client connected")
+        print("[open] Client connected")
 
         self.handler.clients.append(client)
 

@@ -1,9 +1,10 @@
+import base64
 import os
 from collections.abc import Callable
+from http import HTTPStatus
 from typing import NamedTuple
 
-from asgikit.requests import HttpRequest
-from asgikit.responses import PlainTextResponse
+from asgikit.responses import HttpResponse, PlainTextResponse
 
 from selva.di import service
 from selva.web import Application, controller, get, middleware
@@ -38,26 +39,47 @@ class Controller:
         self.greeter = greeter
 
     @get
-    def index(self, req: HttpRequest) -> PlainTextResponse:
-        name = req.query.get_first("name")
+    def index(self, context: RequestContext) -> PlainTextResponse:
+        name = context.query.get("name")
         greeting = self.greeter.greet(name)
-        return PlainTextResponse(greeting)
+        user = context["user"]
+        return PlainTextResponse(f"{greeting} (from {user})")
+
+    @get("/logout")
+    def logout(self):
+        return HttpResponse(
+            status=HTTPStatus.UNAUTHORIZED,
+            headers={"WWW-Authenticate": 'Basic realm="localhost:8000"'},
+        )
 
 
 @middleware
-async def logging_middleware(context: RequestContext, chain: Callable):
-    print(context.path)
-    response = await chain()
-    print(f"status: {response.status.value}")
-    return response
+class LoggingMiddleware:
+    async def __call__(self, context: RequestContext, chain: Callable):
+        response = await chain()
+        print(
+            f"{context.method} {context.path} {response.status.value} {response.status.phrase}"
+        )
+        return response
 
 
 @middleware
 class AuthMiddleware:
     async def __call__(self, context: RequestContext, chain: Callable):
-        print("AuthMiddleware")
+        authn = context.headers.get("authorization")
+        if not authn:
+            return HttpResponse(
+                status=HTTPStatus.UNAUTHORIZED,
+                headers={"WWW-Authenticate": 'Basic realm="localhost:8000"'},
+            )
+
+        authn = authn.removeprefix("Basic")
+        user, password = base64.urlsafe_b64decode(authn).decode().split(":")
+        print(f"User '{user}' with password '{password}'")
+
+        context["user"] = user
         return await chain()
 
 
 app = Application()
-app.register(Controller, logging_middleware, AuthMiddleware, settings_factory, Greeter)
+app.register(Controller, LoggingMiddleware, AuthMiddleware, settings_factory, Greeter)
