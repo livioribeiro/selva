@@ -1,10 +1,14 @@
 import asyncio
-from collections.abc import Callable
+import inspect
+from collections.abc import Awaitable, Callable, Coroutine
 from typing import Any
 
 
-async def call_maybe_async(func: Callable, *args, **kwargs) -> Any:
-    if asyncio.iscoroutinefunction(func):
-        return await func(*args, **kwargs)
+async def maybe_async(target: Awaitable | Callable | Coroutine, *args, **kwargs) -> Any:
+    if inspect.isawaitable(target):
+        return await target
 
-    return await asyncio.to_thread(func, *args, **kwargs)
+    if inspect.iscoroutinefunction(target):
+        return await target(*args, **kwargs)
+
+    return await asyncio.to_thread(target, *args, **kwargs)

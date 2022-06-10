@@ -6,7 +6,7 @@ from databases import Database
 from selva.di import finalizer, initializer, service
 
 BASE_PATH = Path(__file__).resolve().parent
-DB_FILE = BASE_PATH / "db.sqlite3"
+DB_FILE = BASE_PATH.parent / "db.sqlite3"
 
 
 @service

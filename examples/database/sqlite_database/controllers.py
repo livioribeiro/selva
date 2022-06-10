@@ -11,15 +11,15 @@ class Controller:
         self.repository = repository
 
     @get
-    async def count(self) -> JsonResponse:
+    async def count(self):
         count = await self.repository.count()
-        return JsonResponse({"count": count})
+        return {"count": count}
 
     @get("/test")
-    async def test(self) -> JsonResponse:
+    async def test(self):
         try:
             await self.repository.test()
-            return JsonResponse({"status": "OK"})
+            return {"status": "OK"}
         except Exception as err:
             return JsonResponse(
                 {"status": "FAIL", "message": str(err)},

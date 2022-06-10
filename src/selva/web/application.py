@@ -1,22 +1,28 @@
+import asyncio
+import functools
 import inspect
+import logging
 from collections import OrderedDict
-from collections.abc import Callable, Coroutine
+from collections.abc import Callable
 from http import HTTPStatus
 from types import ModuleType
-from typing import Any
+from typing import Any, Type, TypeGuard
 
 from asgikit.responses import HttpResponse
 
 from selva.di import Container
 from selva.di.decorators import DI_SERVICE_ATTRIBUTE
 from selva.utils import package_scan
-from selva.utils.maybe_async import call_maybe_async
+from selva.utils.maybe_async import maybe_async
 from selva.web.middleware.base import Middleware
 from selva.web.middleware.decorators import MIDDLEWARE_ATTRIBUTE
-from selva.web.request import FromRequestContext, RequestContext, from_context
+from selva.web.request import FromRequest, RequestContext, from_request_impl
+from selva.web.response import IntoResponse, get_base_types, into_response_impl
 from selva.web.routing import param_converter
 from selva.web.routing.decorators import CONTROLLER_ATTRIBUTE
 from selva.web.routing.router import Router
+
+LOGGER = logging.getLogger(__name__)
 
 
 def _is_controller(arg) -> bool:
@@ -27,12 +33,15 @@ def _is_service(arg) -> bool:
     return hasattr(arg, DI_SERVICE_ATTRIBUTE)
 
 
-def _is_middleware(arg) -> bool:
+def _is_middleware(arg) -> TypeGuard[Type[Middleware]]:
     return hasattr(arg, MIDDLEWARE_ATTRIBUTE)
 
 
 def _is_controller_or_service_or_middleware(arg) -> bool:
     return any(i(arg) for i in [_is_controller, _is_service, _is_middleware])
+
+
+background_tasks = set()
 
 
 class Application:
@@ -44,11 +53,11 @@ class Application:
         self.debug = debug
         self.di = Container()
         self.router = Router()
-        self.middleware_classes: OrderedDict[type, None] = OrderedDict()
-        self.middleware_chain: list[Middleware] = []
+        self.middleware_classes: OrderedDict[Type[Middleware], None] = OrderedDict()
+        self.handler = self._process_request
 
         self.di.define_singleton(Router, self.router)
-        self.di.scan(from_context, param_converter)
+        self.di.scan(from_request_impl, param_converter, into_response_impl)
 
     async def __call__(self, scope, receive, send):
         match scope["type"]:
@@ -59,7 +68,7 @@ class Application:
             case _:
                 raise RuntimeError(f"unknown scope '{scope['type']}'")
 
-    def register(self, *args: type | Callable | ModuleType | str):
+    def register(self, *args: type | Callable | Type[Middleware] | ModuleType | str):
         for item in args:
             if _is_controller(item):
                 self.router.route(item)
@@ -112,8 +121,8 @@ class Application:
         request_params = {}
 
         for name, item_type in params.items():
-            converter = await self.di.get(FromRequestContext[item_type])
-            value = await converter.from_context(context)
+            converter = await self.di.get(FromRequest[item_type])
+            value = await converter.from_request(context)
             request_params[name] = value
 
         return request_params
@@ -121,64 +130,22 @@ class Application:
     async def _handle_request(self, context: RequestContext):
         for cls in self.middleware_classes.keys():
             middleware = await self.di.create(cls)
-            self.middleware_chain.append(middleware)
+            self.handler = functools.partial(middleware.execute, self.handler)
 
         Application._handle_request = Application._initialized_handle_request
 
         return await self._initialized_handle_request(context)
 
-    async def _process_request_middleware(
-        self, context: RequestContext
-    ) -> tuple[Any, int | None]:
-        response = None
-        middleware_upto = len(self.middleware_chain)
-
-        # process middleware request chain
-        for i, mid in enumerate(self.middleware_chain, start=1):
-            # execute if middleware has "process_request" method
-            if proc := getattr(mid, Middleware.process_request.__name__, None):
-                response = await call_maybe_async(proc, context)
-                # if middleware returned a response, short circuit middleware chain
-                if response is not None:
-                    middleware_upto = i
-                    break
-
-        return response, middleware_upto
-
-    async def _process_response_middleware(
-        self, context: RequestContext, response: Any, up_to: int
-    ) -> Any:
-        # run middleware response chain up to last request middleware
-        for mid in reversed(self.middleware_chain[0:up_to]):
-            # execute if middleware has "process_response" method
-            if proc := getattr(mid, Middleware.process_response.__name__, None):
-                # if middleware return a response, replace current response
-                if result := await call_maybe_async(proc, context, response):
-                    response = result
-
-        return response
-
     async def _initialized_handle_request(self, context: RequestContext):
         try:
-            response, middleware_upto = await self._process_request_middleware(context)
-
-            # if no middleware process_request returned a response, invoke application
-            if response is None:
-                response = await self._process_request(context)
-
-            # websocket does not trigger the inverse middleware chain
-            if context.is_websocket:
-                return
-
-            response = await self._process_response_middleware(
-                context, response, middleware_upto
-            )
-
-            await response(context.request)
+            if response := await self.handler(context):
+                await response(context.request)
         finally:
-            await self.di.run_finalizers(context)
+            task = asyncio.create_task(self.di.run_finalizers(context))
+            background_tasks.add(task)
+            task.add_done_callback(background_tasks.discard)
 
-    async def _process_request(self, context: RequestContext) -> Any | Coroutine:
+    async def _process_request(self, context: RequestContext) -> HttpResponse:
         self.di.define_dependent(RequestContext, context, context=context)
 
         method = context.method if context.is_http else None
@@ -201,11 +168,24 @@ class Application:
 
         try:
             instance = await self.di.create(controller, context=context)
-
-            response = await call_maybe_async(action, instance, **all_params)
+            response = await maybe_async(action, instance, **all_params)
 
             if context.is_http:
-                return response
-        except Exception:
+                return await self._into_response(response)
+        except Exception as err:
+            LOGGER.exception(err)
             response = HttpResponse(status=HTTPStatus.INTERNAL_SERVER_ERROR)
             return response
+
+    async def _into_response(self, value: Any) -> HttpResponse:
+        if isinstance(value, HttpResponse):
+            return value
+
+        bases = get_base_types(value)
+        for base in bases:
+            if converter := await self.di.get(IntoResponse[base], optional=True):
+                return await maybe_async(converter.into_response, value)
+
+        raise RuntimeError(
+            f"no implementation of 'IntoResponse' found for type '{type(value)}'"
+        )

@@ -1,11 +1,15 @@
-from typing import Any, Optional, Protocol
+from collections.abc import Awaitable, Callable
+from typing import Optional, Protocol
+
+from asgikit.responses import HttpResponse
 
 from selva.web.request import RequestContext
 
 
 class Middleware(Protocol):
-    async def process_request(self, context: RequestContext) -> Optional[Any]:
-        pass
-
-    async def process_response(self, context: RequestContext, result: Any) -> Any:
+    async def execute(
+        self,
+        chain: Callable[[RequestContext], Awaitable[Optional[HttpResponse]]],
+        context: RequestContext,
+    ) -> Optional[HttpResponse]:
         pass

@@ -1,2 +1,2 @@
 from .context import RequestContext
-from .converter import FromRequestContext
+from .from_request import FromRequest

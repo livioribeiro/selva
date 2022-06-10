@@ -2,28 +2,35 @@ from http import HTTPStatus
 from pathlib import Path
 
 from selva.di import service
-from selva.web import FileResponse, HttpResponse, RequestContext, WebSocket, controller, get, websocket
+from selva.web import (
+    FileResponse,
+    HttpResponse,
+    RequestContext,
+    WebSocket,
+    controller,
+    get,
+    websocket,
+)
 from selva.web.errors import WebSocketDisconnectError, WebSocketStateError
 
 
 @service
 class WebSocketService:
     def __init__(self):
-        self.clients: list[WebSocket] = []
+        self.clients: set[WebSocket] = set()
 
     async def broadcast(self, message: str):
         if message.lower() == "ping":
             message = "Pong"
 
-        disconnected = []
+        disconnected = set()
         for client in self.clients:
             try:
                 await client.send_text(message)
             except WebSocketStateError:
-                disconnected.append(client)
+                disconnected.add(client)
 
-        for disc in disconnected:
-            self.clients.remove(disc)
+        self.clients -= disconnected
 
 
 @controller("/")
@@ -36,8 +43,8 @@ class WebSocketController:
         return FileResponse(Path(__file__).parent / "index.html")
 
     @get("/favicon.ico")
-    def favicon(self) -> HttpResponse:
-        return HttpResponse(status=HTTPStatus.NOT_FOUND)
+    def favicon(self):
+        return HTTPStatus.NOT_FOUND
 
     @websocket("/chat")
     async def chat(self, context: RequestContext):
@@ -46,7 +53,7 @@ class WebSocketController:
         await client.accept()
         print("[open] Client connected")
 
-        self.handler.clients.append(client)
+        self.handler.clients.add(client)
 
         while True:
             try:

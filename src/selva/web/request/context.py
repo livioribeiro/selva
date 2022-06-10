@@ -5,7 +5,7 @@ __all__ = ("RequestContext",)
 
 
 class RequestContext:
-    __slots__ = ("attributes", "_inner" , "__weakref__")
+    __slots__ = ("attributes", "_inner", "__weakref__")
 
     def __init__(self, scope, receive, send):
         if scope["type"] == "http":
@@ -21,11 +21,11 @@ class RequestContext:
 
     @property
     def request(self):
-        return self.request if self.request.is_http else None
+        return self._inner if self._inner.is_http else None
 
     @property
     def websocket(self):
-        return self.request if self.request.is_websocket else None
+        return self._inner if self._inner.is_websocket else None
 
     def __getattr__(self, item):
         return getattr(self._inner, item)

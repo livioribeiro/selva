@@ -1,8 +1,8 @@
-from selva.web import JsonResponse, controller, get
+from selva.web import controller, get
 
 
 @controller("/reverse")
 class Controller:
     @get("{name}")
-    def index(self, name: str) -> JsonResponse:
-        return JsonResponse({"original": name, "reversed": "".join(reversed(name))})
+    def index(self, name: str):
+        return {"original": name, "reversed": "".join(reversed(name))}

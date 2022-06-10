@@ -1,6 +1,6 @@
 from http import HTTPStatus
 
-from selva.web import HttpResponse, PlainTextResponse, RequestContext, controller, get
+from selva.web import HttpResponse, RequestContext, controller, get
 
 from .services import Greeter
 
@@ -11,15 +11,14 @@ class Controller:
         self.greeter = greeter
 
     @get
-    async def index(self, context: RequestContext) -> PlainTextResponse:
+    async def index(self, context: RequestContext):
         name = context.query.get("name")
-        greeting = self.greeter.greet(name)
-        return PlainTextResponse(f"{greeting}")
+        return self.greeter.greet(name)
 
     @get("/protected")
     def protected(self, context: RequestContext):
         user = context["user"]
-        return PlainTextResponse(f"Access granted to: {user}")
+        return f"Access granted to: {user}"
 
     @get("/logout")
     def logout(self):

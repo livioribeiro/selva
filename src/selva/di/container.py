@@ -4,7 +4,7 @@ from collections.abc import Callable
 from types import ModuleType
 from typing import Any, Optional, TypeVar, Union
 
-from selva.utils.maybe_async import call_maybe_async
+from selva.utils.maybe_async import maybe_async
 from selva.utils.package_scan import scan_packages
 
 from .decorators import DI_SERVICE_ATTRIBUTE
@@ -177,7 +177,7 @@ class Container:
             for name, dep in definition.dependencies
         }
 
-        return await call_maybe_async(factory, **dependencies)
+        return await maybe_async(factory, **dependencies)
 
     async def run_initializer(
         self, definition: ServiceDefinition, instance: Any, context: Any | None
@@ -188,7 +188,7 @@ class Container:
             return
 
         dependencies = await self._resolve_dependencies(initializer, context)
-        await call_maybe_async(initializer, instance, **dependencies)
+        await maybe_async(initializer, instance, **dependencies)
 
     async def setup_finalizer(
         self, definition: ServiceDefinition, instance: Any, context: Any | None
@@ -205,7 +205,7 @@ class Container:
         context_id = id(context) if context else None
 
         for finalizer in self.finalizers[context_id]:
-            await call_maybe_async(finalizer)
+            await maybe_async(finalizer)
 
         self.finalizers.pop(context_id, None)
 

@@ -1,12 +1,12 @@
-from selva.web import Application, PlainTextResponse, RequestContext, controller, get
+from selva.web import Application, RequestContext, controller, get
 
 
 @controller("/")
 class Controller:
     @get
-    async def index(self, context: RequestContext) -> PlainTextResponse:
+    async def index(self, context: RequestContext):
         name = context.query.get("name", "World")
-        return PlainTextResponse(f"Hello, {name}!")
+        return f"Hello, {name}!"
 
 
 app = Application()
