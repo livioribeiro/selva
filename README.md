@@ -8,14 +8,14 @@ and inspired by Spring Boot, AspNet Core and FastAPI.
 Create an application and controller
 
 ```python
-from selva.web import Application, PlainTextResponse, controller, get
+from selva.web import Application, controller, get
 
 
-@controller("/")
+@controller
 class Controller:
     @get
-    def hello(self) -> PlainTextResponse:
-        return PlainTextResponse("Hello, World!")
+    def hello(self):
+        return "Hello, World!"
 
 
 app = Application()
@@ -26,7 +26,7 @@ Add a service
 
 ```python
 from selva.di import service
-from selva.web import Application, PlainTextResponse, controller, get
+from selva.web import Application, controller, get
 
 
 @service
@@ -35,15 +35,14 @@ class Greeter:
         return f"Hello, {name}!"
 
 
-@controller("/")
+@controller
 class Controller:
     def __init__(self, greeter: Greeter):
         self.greeter = greeter
 
     @get
-    def hello(self) -> PlainTextResponse:
-        greeting = self.greeter.greet("World")
-        return PlainTextResponse(greeting)
+    def hello(self):
+        return self.greeter.greet("World")
 
 
 app = Application()
@@ -54,7 +53,7 @@ Get parameters from path
 
 ```python
 from selva.di import service
-from selva.web import Application, JsonResponse, controller, get
+from selva.web import Application, controller, get
 
 
 @service
@@ -63,15 +62,16 @@ class Greeter:
         return f"Hello, {name}!"
 
 
-@controller("/")
+@controller
 class Controller:
     def __init__(self, greeter: Greeter):
         self.greeter = greeter
 
     @get("hello/{name}")
-    def hello(self, name: str) -> JsonResponse:
+    def hello(self, name: str):
         greeting = self.greeter.greet(name)
-        return JsonResponse({"greeting": greeting})
+        # A json response will be created from the returned dict
+        return {"greeting": greeting}
 
 
 app = Application()
@@ -82,7 +82,7 @@ Configurations with [Pydantic](https://pydantic-docs.helpmanual.io/usage/setting
 
 ```python
 from selva.di import service
-from selva.web import Application, JsonResponse, RequestContext, controller, get
+from selva.web import Application, RequestContext, controller, get
 from pydantic import BaseSettings
 
 
@@ -105,21 +105,21 @@ class Greeter:
         return f"Hello, {name}!"
 
 
-@controller("/")
+@controller
 class Controller:
     def __init__(self, greeter: Greeter):
         self.greeter = greeter
 
     @get("hello/{name}")
-    def hello(self, name: str) -> JsonResponse:
+    def hello(self, name: str):
         greeting = self.greeter.greet(name)
-        return JsonResponse({"greeting": greeting})
+        return {"greeting": greeting}
 
     @get("hello")
-    def hello_optional(self, context: RequestContext) -> JsonResponse:
+    def hello_optional(self, context: RequestContext):
         name = context.query.get("name")
         greeting = self.greeter.greet(name)
-        return JsonResponse({"greeting": greeting})
+        return {"greeting": greeting}
 
 
 app = Application()
@@ -130,7 +130,7 @@ Manage services lifecycle (e.g [Databases](https://www.encode.io/databases/))
 
 ```python
 from selva.di import service, initializer, finalizer
-from selva.web import Application, JsonResponse, RequestContext, controller, get
+from selva.web import Application, RequestContext, controller, get
 from pydantic import BaseSettings, PostgresDsn
 from databases import Database
 
@@ -180,21 +180,21 @@ class Greeter:
         return await self.repository.get_greeting(name)
 
 
-@controller("/")
+@controller
 class Controller:
     def __init__(self, greeter: Greeter):
         self.greeter = greeter
 
     @get("hello/{name}")
-    def hello(self, name: str) -> JsonResponse:
+    def hello(self, name: str):
         greeting = self.greeter.greet(name)
-        return JsonResponse({"greeting": greeting})
+        return {"greeting": greeting}
 
     @get("hello")
-    def hello_optional(self, context: RequestContext) -> JsonResponse:
+    def hello_optional(self, context: RequestContext):
         name = context.query.get("name")
         greeting = self.greeter.greet(name)
-        return JsonResponse({"greeting": greeting})
+        return {"greeting": greeting}
 
 
 app = Application()
@@ -278,24 +278,24 @@ class Greeter:
 
 ```python
 ### modules/controllers.py
-from selva.web import JsonResponse, RequestContext, controller, get
+from selva.web import RequestContext, controller, get
 from .services import Greeter
 
-@controller("/")
+@controller
 class Controller:
     def __init__(self, greeter: Greeter):
         self.greeter = greeter
 
     @get("hello/{name}")
-    def hello(self, name: str) -> JsonResponse:
+    def hello(self, name: str):
         greeting = self.greeter.greet(name)
-        return JsonResponse({"greeting": greeting})
+        return {"greeting": greeting}
 
     @get("hello")
-    def hello_optional(self, context: RequestContext) -> JsonResponse:
-        name = request.query.get("name")
+    def hello_optional(self, context: RequestContext):
+        name = context.query.get("name")
         greeting = self.greeter.greet(name)
-        return JsonResponse({"greeting": greeting})
+        return {"greeting": greeting}
 ```
 
 ```python
@@ -311,20 +311,15 @@ app.register(modules)
 Websockets
 
 ```python
-from http import HTTPStatus
 from pathlib import Path
-from selva.web import Application, HttpResponse, FileResponse, RequestContext, controller, get, websocket
+from selva.web import Application, FileResponse, RequestContext, controller, get, websocket
 from selva.web.errors import WebSocketDisconnectError
 
-@controller("/")
+@controller
 class WebSocketController:
     @get
     def index(self) -> FileResponse:
         return FileResponse(Path(__file__).parent / "index.html")
-
-    @get("/favicon.ico")
-    def favicon(self) -> HttpResponse:
-        return HttpResponse(status=HTTPStatus.NOT_FOUND)
 
     @websocket("/chat")
     async def chat(self, context: RequestContext):
