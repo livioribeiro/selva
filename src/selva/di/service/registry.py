@@ -50,10 +50,8 @@ class ServiceRegistry:
     def __init__(self):
         self.data: dict[type, ServiceRecord] = {}
 
-    def get(
-        self, key: type, name: str = None, optional=False
-    ) -> Optional[ServiceDefinition]:
-        if optional and (key, name) not in self:
+    def get(self, key: type, name: str = None) -> Optional[ServiceDefinition]:
+        if (key, name) not in self:
             return None
         return self[key, name]
 

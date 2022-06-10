@@ -6,7 +6,7 @@ from collections import OrderedDict
 from collections.abc import Callable
 from http import HTTPStatus
 from types import ModuleType
-from typing import Any, Type, TypeGuard
+from typing import Any, Optional, Type, TypeGuard
 
 from asgikit.responses import HttpResponse
 
@@ -95,6 +95,9 @@ class Application:
             else:
                 raise ValueError(f"{item} is not a controller, service or module")
 
+        for mid in self.middleware_classes.keys():
+            self.di.register(mid)
+
     async def _handle_lifespan(self, _scope, receive, send):
         while True:
             message = await receive()
@@ -113,7 +116,7 @@ class Application:
                     )
                 break
 
-    async def _get_params_from_context(
+    async def _params_from_request(
         self,
         context: RequestContext,
         params: dict[str, type],
@@ -129,7 +132,7 @@ class Application:
 
     async def _handle_request(self, context: RequestContext):
         for cls in self.middleware_classes.keys():
-            middleware = await self.di.create(cls)
+            middleware = await self.di.get(cls)
             self.handler = functools.partial(middleware.execute, self.handler)
 
         Application._handle_request = Application._initialized_handle_request
@@ -160,7 +163,7 @@ class Application:
         controller = match.route.controller
         action = match.route.action
         path_params = match.params
-        request_params = await self._get_params_from_context(
+        request_params = await self._params_from_request(
             context, match.route.request_params
         )
 
@@ -170,14 +173,16 @@ class Application:
             instance = await self.di.create(controller, context=context)
             response = await maybe_async(action, instance, **all_params)
 
-            if context.is_http:
-                return await self._into_response(response)
+            return await self._into_response(response)
         except Exception as err:
             LOGGER.exception(err)
             response = HttpResponse(status=HTTPStatus.INTERNAL_SERVER_ERROR)
             return response
 
-    async def _into_response(self, value: Any) -> HttpResponse:
+    async def _into_response(self, value: Any | None) -> Optional[HttpResponse]:
+        if value is None:
+            return None
+
         if isinstance(value, HttpResponse):
             return value
 

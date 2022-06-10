@@ -13,6 +13,7 @@ from .errors import (
     InstanceNotDefinedError,
     InvalidScopeError,
     MissingDependentContextError,
+    ServiceNotFoundError,
     ServiceWithoutDecoratorError,
 )
 from .service.model import InjectableType, Scope, ServiceDefinition, ServiceDependency
@@ -32,7 +33,7 @@ class Container:
     def register(
         self,
         service: InjectableType,
-        scope: Scope,
+        scope=Scope.SINGLETON,
         *,
         provides: type = None,
         name: str = None,
@@ -75,7 +76,7 @@ class Container:
             self.register(service, scope, provides=provides, name=name)
 
     def has(self, service: type, scope: Scope = None) -> bool:
-        definition = self.registry.get(service, optional=True)
+        definition = self.registry.get(service)
 
         if not definition:
             return False
@@ -93,9 +94,12 @@ class Container:
         name: str = None,
         optional=False,
     ) -> TService:
-        instance = await self._get(
-            ServiceDependency(service_type, name=name, optional=optional), context
-        )
+        dependency = ServiceDependency(service_type, name=name, optional=optional)
+        return await self._get(dependency, context)
+
+    async def create(self, service: type, *, context: Any = None) -> Any:
+        dependencies = await self._resolve_dependencies(service, context)
+        instance = service(**dependencies)
         return instance
 
     async def _resolve_dependencies(self, service: InjectableType, context: Any = None):
@@ -118,14 +122,17 @@ class Container:
             return instance
 
         # try from the dependent store
-        if store := self.store_dependent.get(id(context)):
-            if instance := store.get(service_type):
-                return instance
+        if (store := self.store_dependent.get(id(context))) and (
+            instance := store.get(service_type)
+        ):
+            return instance
 
-        definition = self.registry.get(service_type, name, dependency.optional)
-
-        if definition is None:
-            return None
+        try:
+            definition = self.registry[service_type, name]
+        except ServiceNotFoundError:
+            if dependency.optional:
+                return None
+            raise
 
         valid_scope = valid_scope or definition.scope
 
@@ -147,20 +154,6 @@ class Container:
 
         instance = await self._create_service(definition, valid_scope, stack, context)
 
-        match definition.scope:
-            case Scope.SINGLETON:
-                self.store_singleton[service_type] = instance
-            case Scope.DEPENDENT:
-                self.store_dependent[id(context)][service_type] = instance
-
-        await self.run_initializer(definition, instance, context)
-        await self.setup_finalizer(definition, instance, context)
-
-        return instance
-
-    async def create(self, service: type, *, context: Any = None) -> Any:
-        dependencies = await self._resolve_dependencies(service, context)
-        instance = service(**dependencies)
         return instance
 
     async def _create_service(
@@ -177,9 +170,20 @@ class Container:
             for name, dep in definition.dependencies
         }
 
-        return await maybe_async(factory, **dependencies)
+        instance = await maybe_async(factory, **dependencies)
 
-    async def run_initializer(
+        match definition.scope:
+            case Scope.SINGLETON:
+                self.store_singleton[definition.provides] = instance
+            case Scope.DEPENDENT:
+                self.store_dependent[id(context)][definition.provides] = instance
+
+        await self._run_initializer(definition, instance, context)
+        await self._setup_finalizer(definition, instance, context)
+
+        return instance
+
+    async def _run_initializer(
         self, definition: ServiceDefinition, instance: Any, context: Any | None
     ):
         initializer = definition.initializer
@@ -190,7 +194,7 @@ class Container:
         dependencies = await self._resolve_dependencies(initializer, context)
         await maybe_async(initializer, instance, **dependencies)
 
-    async def setup_finalizer(
+    async def _setup_finalizer(
         self, definition: ServiceDefinition, instance: Any, context: Any | None
     ):
         finalizer = definition.finalizer
