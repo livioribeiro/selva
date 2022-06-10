@@ -13,12 +13,12 @@ class Controller:
     @get
     async def index(self, context: RequestContext):
         name = context.query.get("name")
-        return self.greeter.greet(name)
+        return {"message": self.greeter.greet(name)}
 
     @get("/protected")
     def protected(self, context: RequestContext):
         user = context["user"]
-        return f"Access granted to: {user}"
+        return {"message": f"Access granted to: {user}"}
 
     @get("/logout")
     def logout(self):

@@ -1,10 +1,8 @@
-from http import HTTPStatus
 from pathlib import Path
 
 from selva.di import service
 from selva.web import (
     FileResponse,
-    HttpResponse,
     RequestContext,
     WebSocket,
     controller,
@@ -33,18 +31,14 @@ class WebSocketService:
         self.clients -= disconnected
 
 
-@controller("/")
+@controller
 class WebSocketController:
     def __init__(self, handler: WebSocketService):
         self.handler = handler
 
     @get
-    def index(self) -> FileResponse:
+    def index(self):
         return FileResponse(Path(__file__).parent / "index.html")
-
-    @get("/favicon.ico")
-    def favicon(self):
-        return HTTPStatus.NOT_FOUND
 
     @websocket("/chat")
     async def chat(self, context: RequestContext):

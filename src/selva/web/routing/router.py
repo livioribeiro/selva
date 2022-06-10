@@ -65,7 +65,7 @@ class Router:
                 raise TypeError("http route cannot receive WebSocket")
 
             for current_route in self.routes.values():
-                if current_route.regex == route.regex:
+                if current_route.method == route.method and current_route.regex == route.regex:
                     raise ValueError(
                         f"path for {route.name} clashes with {current_route.name}"
                     )

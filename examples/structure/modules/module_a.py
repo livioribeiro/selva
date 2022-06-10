@@ -1,7 +1,7 @@
 from selva.web import RequestContext, controller, get
 
 
-@controller("/")
+@controller
 class Controller:
     @get
     def index(self):

@@ -22,28 +22,29 @@ class ActionType(Enum):
         return self is ActionType.WEBSOCKET
 
 
-def controller(path: str):
-    if not isinstance(path, str):
-        raise ValueError(f"Invalid argument for @controller: {path}")
+def controller(path_or_cls: str | type):
+    if isinstance(path_or_cls, str):
+        path = path_or_cls.strip("/")
+        cls = None
+    elif inspect.isclass(path_or_cls):
+        path = ""
+        cls = path_or_cls
+    else:
+        raise ValueError(f"@controller must be applied to class, '{path_or_cls}' given")
 
     def inner(arg: type):
         if not inspect.isclass(arg):
-            raise ValueError("Controller must be a class")
+            raise ValueError(f"@controller must be applied to class, '{arg}' given")
 
         setattr(arg, CONTROLLER_ATTRIBUTE, True)
         setattr(arg, PATH_ATTRIBUTE, path)
         return arg
 
-    return inner
+    return inner(cls) if cls else inner
 
 
-def route(method: HttpMethod | None, target: str | type):
-    if isinstance(target, str):
-        action = None
-        path = target.strip("/")
-    else:
-        action = target
-        path = ""
+def route(action=None, *, method: HttpMethod | None, path: str | None):
+    path = path.strip("/") if path else ""
 
     def inner(arg: Callable):
         setattr(arg, ACTION_ATTRIBUTE, ActionType(method))
@@ -53,25 +54,36 @@ def route(method: HttpMethod | None, target: str | type):
     return inner(action) if action else inner
 
 
-def get(path: str | type):
-    return route(HttpMethod.GET, path)
+def _route(method: HttpMethod | None, path_or_action: str | Callable):
+    if isinstance(path_or_action, str):
+        path = path_or_action.strip("/")
+        action = None
+    else:
+        path = ""
+        action = path_or_action
+
+    return route(action, method=method, path=path)
 
 
-def post(path: str | type):
-    return route(HttpMethod.POST, path)
+def get(path_or_action: str | type):
+    return _route(HttpMethod.GET, path_or_action)
 
 
-def put(path: str | type):
-    return route(HttpMethod.PUT, path)
+def post(path_or_action: str | type):
+    return _route(HttpMethod.POST, path_or_action)
 
 
-def patch(path: str | type):
-    return route(HttpMethod.PATCH, path)
+def put(path_or_action: str | type):
+    return _route(HttpMethod.PUT, path_or_action)
 
 
-def delete(path: str | type):
-    return route(HttpMethod.DELETE, path)
+def patch(path_or_action: str | type):
+    return _route(HttpMethod.PATCH, path_or_action)
 
 
-def websocket(path: str | type):
-    return route(None, path)
+def delete(path_or_action: str | type):
+    return _route(HttpMethod.DELETE, path_or_action)
+
+
+def websocket(path_or_action: str | type):
+    return _route(None, path_or_action)

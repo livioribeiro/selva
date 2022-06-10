@@ -5,7 +5,7 @@ from selva.web import JsonResponse, controller, get
 from .services import Repository
 
 
-@controller("/")
+@controller
 class Controller:
     def __init__(self, repository: Repository):
         self.repository = repository
