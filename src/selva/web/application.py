@@ -12,12 +12,14 @@ from asgikit.responses import HttpResponse
 
 from selva.di import Container
 from selva.di.decorators import DI_SERVICE_ATTRIBUTE
-from selva.utils import package_scan
+from selva.utils.base_types import get_base_types
 from selva.utils.maybe_async import maybe_async
+from selva.utils.package_scan import scan_packages
+from selva.web.errors import HttpError
 from selva.web.middleware.base import Middleware
 from selva.web.middleware.decorators import MIDDLEWARE_ATTRIBUTE
 from selva.web.request import FromRequest, RequestContext, from_request_impl
-from selva.web.response import IntoResponse, get_base_types, into_response_impl
+from selva.web.response import IntoResponse, into_response_impl
 from selva.web.routing import param_converter
 from selva.web.routing.decorators import CONTROLLER_ATTRIBUTE
 from selva.web.routing.router import Router
@@ -37,7 +39,7 @@ def _is_middleware(arg) -> TypeGuard[Type[Middleware]]:
     return hasattr(arg, MIDDLEWARE_ATTRIBUTE)
 
 
-def _is_controller_or_service_or_middleware(arg) -> bool:
+def _is_registerable(arg) -> bool:
     return any(i(arg) for i in [_is_controller, _is_service, _is_middleware])
 
 
@@ -82,9 +84,7 @@ class Application:
                 self.middleware_classes[item] = None
                 self.middleware_classes.move_to_end(item)
             elif inspect.ismodule(item) or isinstance(item, str):
-                for subitem in package_scan.scan_packages(
-                    [item], _is_controller_or_service_or_middleware
-                ):
+                for subitem in scan_packages([item], _is_registerable):
                     if _is_controller(subitem):
                         self.router.route(subitem)
                     elif _is_service(subitem):
@@ -124,9 +124,17 @@ class Application:
         request_params = {}
 
         for name, item_type in params.items():
-            converter = await self.di.get(FromRequest[item_type])
-            value = await converter.from_request(context)
-            request_params[name] = value
+            for base_type in get_base_types(item_type):
+                if converter := await self.di.get(
+                    FromRequest[base_type], optional=True
+                ):
+                    value = await maybe_async(converter.from_request, context)
+                    request_params[name] = value
+                    break
+            else:
+                raise RuntimeError(
+                    f"no implementation of 'FromRequest' found for type {item_type}"
+                )
 
         return request_params
 
@@ -163,21 +171,22 @@ class Application:
         controller = match.route.controller
         action = match.route.action
         path_params = match.params
-        request_params = await self._params_from_request(
-            context, match.route.request_params
-        )
-
-        all_params = path_params | request_params
 
         try:
+            request_params = await self._params_from_request(
+                context, match.route.request_params
+            )
+
+            all_params = path_params | request_params
             instance = await self.di.create(controller, context=context)
             response = await maybe_async(action, instance, **all_params)
 
             return await self._into_response(response)
+        except HttpError as err:
+            return HttpResponse(status=err.status)
         except Exception as err:
             LOGGER.exception(err)
-            response = HttpResponse(status=HTTPStatus.INTERNAL_SERVER_ERROR)
-            return response
+            return HttpResponse(status=HTTPStatus.INTERNAL_SERVER_ERROR)
 
     async def _into_response(self, value: Any | None) -> Optional[HttpResponse]:
         if value is None:
@@ -186,8 +195,7 @@ class Application:
         if isinstance(value, HttpResponse):
             return value
 
-        bases = get_base_types(value)
-        for base in bases:
+        for base in get_base_types(type(value)):
             if converter := await self.di.get(IntoResponse[base], optional=True):
                 return await maybe_async(converter.into_response, value)
 

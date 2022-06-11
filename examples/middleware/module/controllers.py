@@ -2,6 +2,7 @@ from http import HTTPStatus
 
 from selva.web import HttpResponse, RequestContext, controller, get
 
+from .auth import User
 from .services import Greeter
 
 
@@ -16,9 +17,8 @@ class Controller:
         return {"message": self.greeter.greet(name)}
 
     @get("/protected")
-    def protected(self, context: RequestContext):
-        user = context["user"]
-        return {"message": f"Access granted to: {user}"}
+    def protected(self, user: User):
+        return {"message": f"Access granted to: {user.name}"}
 
     @get("/logout")
     def logout(self):
