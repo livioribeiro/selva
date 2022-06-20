@@ -15,6 +15,7 @@ from selva.di.decorators import DI_SERVICE_ATTRIBUTE
 from selva.utils.base_types import get_base_types
 from selva.utils.maybe_async import maybe_async
 from selva.utils.package_scan import scan_packages
+from selva.web.configuration import Settings
 from selva.web.errors import HttpError
 from selva.web.middleware.base import Middleware
 from selva.web.middleware.decorators import MIDDLEWARE_ATTRIBUTE
@@ -60,6 +61,9 @@ class Application:
 
         self.di.define_singleton(Router, self.router)
         self.di.scan(from_request_impl, param_converter, into_response_impl)
+
+        settings = Settings()
+        self.di.define_singleton(Settings, settings)
 
     async def __call__(self, scope, receive, send):
         match scope["type"]:
@@ -165,8 +169,7 @@ class Application:
         match = self.router.match(method, path)
 
         if not match:
-            response = HttpResponse(status=HTTPStatus.NOT_FOUND)
-            return response
+            return HttpResponse(status=HTTPStatus.NOT_FOUND)
 
         controller = match.route.controller
         action = match.route.action
@@ -181,7 +184,8 @@ class Application:
             instance = await self.di.create(controller, context=context)
             response = await maybe_async(action, instance, **all_params)
 
-            return await self._into_response(response)
+            if context.is_http:
+                return await self._into_response(response)
         except HttpError as err:
             return HttpResponse(status=err.status)
         except Exception as err:
@@ -189,9 +193,6 @@ class Application:
             return HttpResponse(status=HTTPStatus.INTERNAL_SERVER_ERROR)
 
     async def _into_response(self, value: Any | None) -> Optional[HttpResponse]:
-        if value is None:
-            return None
-
         if isinstance(value, HttpResponse):
             return value
 

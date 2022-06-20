@@ -47,3 +47,9 @@ class SetIntoResponse(IntoResponse[set]):
 class TupleIntoResponse(IntoResponse[tuple]):
     def into_response(self, value: tuple) -> HttpResponse:
         return JsonResponse(value)
+
+
+@service(provides=IntoResponse[None])
+class NoneIntoResponse(IntoResponse[None]):
+    def into_response(self, value: None) -> HttpResponse:
+        return HttpResponse(status=HTTPStatus.NO_CONTENT)
