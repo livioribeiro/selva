@@ -5,9 +5,11 @@ build-backend = "poetry.core.masonry.api"
 [tool.poetry]
 name = "selva"
 version = "0.1.0"
-description = "Web Framework, IoC Container"
+description = "ASGI Web Framework with Dependency Injection"
 authors = ["Livio Ribeiro <livioribeiro@outlook.com>"]
 license = "MIT"
+readme = "README.md"
+repository = "https://github.com/livioribeiro/selva"
 keywords = ["asgi", "framework", "asyncio", "web"]
 classifiers = [
     "Development Status :: 4 - Beta",
