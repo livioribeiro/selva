@@ -9,6 +9,7 @@ from selva.web import (
     get,
     websocket,
 )
+from selva.web.configuration import Settings
 from selva.web.errors import WebSocketDisconnectError, WebSocketStateError
 
 
@@ -33,12 +34,13 @@ class WebSocketService:
 
 @controller
 class WebSocketController:
-    def __init__(self, handler: WebSocketService):
+    def __init__(self, handler: WebSocketService, settings: Settings):
         self.handler = handler
+        self.settings = settings
 
     @get
     def index(self):
-        return FileResponse(Path(__file__).parent / "index.html")
+        return FileResponse(self.settings.resource_path("static", "index.html"))
 
     @websocket("/chat")
     async def chat(self, context: RequestContext):

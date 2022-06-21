@@ -18,5 +18,4 @@ class Controller:
         return {"result": body}
 
 
-app = Application()
-app.register(Controller)
+app = Application(Controller)

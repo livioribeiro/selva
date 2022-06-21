@@ -6,7 +6,7 @@ from .auth import User
 from .services import Greeter
 
 
-@controller("/")
+@controller
 class Controller:
     def __init__(self, greeter: Greeter):
         self.greeter = greeter

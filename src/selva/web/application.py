@@ -2,7 +2,7 @@ import asyncio
 import functools
 import inspect
 import logging
-from collections import OrderedDict
+from importlib import import_module
 from collections.abc import Callable
 from http import HTTPStatus
 from types import ModuleType
@@ -41,29 +41,51 @@ def _is_middleware(arg) -> TypeGuard[Type[Middleware]]:
 
 
 def _is_registerable(arg) -> bool:
-    return any(i(arg) for i in [_is_controller, _is_service, _is_middleware])
+    return any(i(arg) for i in [_is_controller, _is_service])
 
 
 background_tasks = set()
 
 
 class Application:
+    """Entrypoint class for a Selva Application
+
+    Will try to automatically import and register a application called "application".
+    Other modules and classes can be registered using the "register" method
+    """
+
     def __init__(
         self,
-        *,
+        *components,
+        middleware: list[Type[Middleware]] = None,
         debug=False,
     ):
         self.debug = debug
         self.di = Container()
         self.router = Router()
-        self.middleware_classes: OrderedDict[Type[Middleware], None] = OrderedDict()
         self.handler = self._process_request
+        self.middleware_classes: list[Type[Middleware]] = middleware or []
 
         self.di.define_singleton(Router, self.router)
         self.di.scan(from_request_impl, param_converter, into_response_impl)
 
-        settings = Settings()
-        self.di.define_singleton(Settings, settings)
+        self.di.define_singleton(Settings, Settings())
+
+        for mid in self.middleware_classes:
+            self.di.register(mid)
+
+        components = set(components)
+
+        # try to automatically import and register a application called "application"
+        try:
+            import application as app
+        except ImportError:
+            app = None
+
+        if app and (app not in components or app.__name__ not in components):
+            components.add(app)
+
+        self.register(*components)
 
     async def __call__(self, scope, receive, send):
         match scope["type"]:
@@ -80,27 +102,14 @@ class Application:
                 self.router.route(item)
             elif _is_service(item):
                 self.di.service(item)
-            elif _is_middleware(item):
-                # Middleware execution order is defined by the declaration order in the
-                # Application.register method, therefore when a middleware is found, it
-                # is put at the chain to override the order or middlewares found in the
-                # modules provided to the Application.register method
-                self.middleware_classes[item] = None
-                self.middleware_classes.move_to_end(item)
             elif inspect.ismodule(item) or isinstance(item, str):
                 for subitem in scan_packages([item], _is_registerable):
                     if _is_controller(subitem):
                         self.router.route(subitem)
                     elif _is_service(subitem):
                         self.di.service(subitem)
-                    elif _is_middleware(subitem):
-                        # Middlewares found in modules are ordered as they are found
-                        self.middleware_classes[subitem] = None
             else:
-                raise ValueError(f"{item} is not a controller, service or module")
-
-        for mid in self.middleware_classes.keys():
-            self.di.register(mid)
+                raise ValueError(f"{item} is not a controller, service or application")
 
     async def _handle_lifespan(self, _scope, receive, send):
         while True:
@@ -143,7 +152,7 @@ class Application:
         return request_params
 
     async def _handle_request(self, context: RequestContext):
-        for cls in self.middleware_classes.keys():
+        for cls in self.middleware_classes:
             middleware = await self.di.get(cls)
             self.handler = functools.partial(middleware.execute, self.handler)
 

@@ -18,8 +18,7 @@ class Controller:
         return "Hello, World!"
 
 
-app = Application()
-app.register(Controller)
+app = Application(Controller)
 ```
 
 Add a service
@@ -45,8 +44,7 @@ class Controller:
         return self.greeter.greet("World")
 
 
-app = Application()
-app.register(Controller, Greeter)
+app = Application(Greeter, Controller)
 ```
 
 Get parameters from path
@@ -74,8 +72,7 @@ class Controller:
         return {"greeting": greeting}
 
 
-app = Application()
-app.register(Controller, Greeter)
+app = Application(Greeter, Controller)
 ```
 
 Configurations with [Pydantic](https://pydantic-docs.helpmanual.io/usage/settings/)
@@ -122,8 +119,7 @@ class Controller:
         return {"greeting": greeting}
 
 
-app = Application()
-app.register(Controller, Greeter)
+app = Application(Greeter, Controller)
 ```
 
 Manage services lifecycle (e.g [Databases](https://www.encode.io/databases/))
@@ -197,14 +193,13 @@ class Controller:
         return {"greeting": greeting}
 
 
-app = Application()
-app.register(Controller, Greeter)
+app = Application(settings_factory, Repository, Greeter, Controller)
 ```
 
-Define controllers and services in separate modules
+Define controllers and services in a separate module
 
 ```
-├───modules
+├───application
 │   ├───controllers.py
 │   ├───repository.py
 │   ├───services.py
@@ -213,7 +208,7 @@ Define controllers and services in separate modules
 ```
 
 ```python
-### modules/settings.py
+### application/settings.py
 from selva.di import service
 from pydantic import BaseSettings, PostgresDsn
 
@@ -229,7 +224,7 @@ def settings_factory() -> Settings:
 ```
 
 ```python
-### modules/repository.py
+### application/repository.py
 from selva.di import service, initializer, finalizer
 from databases import Database
 from .settings import Settings
@@ -259,7 +254,7 @@ class Repository:
 ```
 
 ```python
-### modules/services.py
+### application/services.py
 from selva.di import service
 from .settings import Settings
 from .repository import Repository
@@ -277,7 +272,7 @@ class Greeter:
 ```
 
 ```python
-### modules/controllers.py
+### application/controllers.py
 from selva.web import RequestContext, controller, get
 from .services import Greeter
 
@@ -301,11 +296,10 @@ class Controller:
 ```python
 ### main.py
 from selva.web import Application
-from . import modules
 
 
+# module named "application" is automatically registered
 app = Application()
-app.register(modules)
 ```
 
 Websockets
@@ -340,8 +334,7 @@ class WebSocketController:
                 break
 
 
-app = Application()
-app.register(WebSocketController)
+app = Application(WebSocketController)
 ```
 
 ```html

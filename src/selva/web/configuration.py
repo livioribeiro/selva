@@ -3,17 +3,17 @@ from collections.abc import Iterable
 from pathlib import Path
 from typing import Any, Optional
 
-CONFIGURATION_DIR_NAME = "conf"
-MAIN_SETTINGS_FILE = "application.toml"
-ENV_SETTINGS_FILE = "application-{}.toml"
-SELVA_ENV = "SELVA_ENV"
-SELVA_ENV_PREFIX = "SELVA_"
-
-
 try:
     import tomllib as toml
 except ImportError:
     import tomli as toml
+
+
+RESOURCES_DIR_NAME = "resources"
+MAIN_SETTINGS_FILE = "application.toml"
+ENV_SETTINGS_FILE = "application-{}.toml"
+SELVA_ENV = "SELVA_ENV"
+SELVA_ENV_PREFIX = "SELVA_"
 
 
 def _flatten_dict(source: dict) -> Iterable[tuple[str, Any]]:
@@ -70,13 +70,13 @@ def load_config_env() -> dict[str, Any]:
 
 
 def get_settings() -> dict[str, Any]:
-    settings_dir = Path(os.getcwd()) / CONFIGURATION_DIR_NAME
-    main_settings_file = settings_dir / MAIN_SETTINGS_FILE
+    resources_dir = Path(os.getcwd()) / RESOURCES_DIR_NAME
+    main_settings_file = resources_dir / MAIN_SETTINGS_FILE
 
     settings = load_config_file(main_settings_file)
 
     if selva_env := os.getenv(SELVA_ENV):
-        env_settings_file = settings_dir / ENV_SETTINGS_FILE.format(selva_env)
+        env_settings_file = resources_dir / ENV_SETTINGS_FILE.format(selva_env)
         settings |= load_config_file(env_settings_file)
 
     settings |= load_config_env()
@@ -85,9 +85,24 @@ def get_settings() -> dict[str, Any]:
 
 
 class Settings:
-    def __init__(self):
+    def __init__(self, initial: dict = None):
         self._data = get_settings()
+        if initial:
+            self._data |= flatten_dict(initial)
 
     def get(self, *args) -> Optional[Any]:
         key = ":".join(args).lower()
         return self._data.get(key)
+
+    def __getitem__(self, item):
+        if isinstance(item, tuple):
+            return self.get(*item)
+        return self.get(item)
+
+    @property
+    def resources_path(self):
+        return Path(os.getcwd()) / "resources"
+
+    def resource_path(self, *args: str):
+        resources = self.resources_path
+        resources.joinpath(*args)

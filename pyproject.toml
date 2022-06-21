@@ -8,13 +8,27 @@ version = "0.1.0"
 description = "Web Framework, IoC Container"
 authors = ["Livio Ribeiro <livioribeiro@outlook.com>"]
 license = "MIT"
+keywords = ["asgi", "framework", "asyncio", "web"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Web Environment",
+    "Framework :: AsyncIO",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Topic :: Internet :: WWW/HTTP",
+    "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
+    "Topic :: Software Development :: Libraries :: Application Frameworks",
+]
 packages = [
     { include = "selva", from = "src" }
 ]
 
 [tool.poetry.dependencies]
 python = "^3.10"
-asgikit = { path = "../asgikit", develop = true }
+asgikit = "^0.1.2"
 tomli = { version = "^2.0.0", python = "< 3.11" }
 
 [tool.poetry.dev-dependencies]
@@ -26,7 +40,7 @@ pylint = "^2.14.1"
 black = "^22.3.0"
 isort = "^5.10.1"
 flake8 = "^4.0.1"
-mypy = "^0.960"
+mypy = "^0.961"
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

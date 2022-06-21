@@ -7,6 +7,7 @@ from selva.web.configuration import (
     get_settings,
     load_config_env,
     load_config_file,
+    Settings,
 )
 
 
@@ -81,3 +82,67 @@ def test_get_settings_include(monkeypatch):
     expected = {"name": "application", "included": True}
 
     assert result == expected
+
+
+def test_settings_get_str_key():
+    settings = Settings({
+        "conf1": 1,
+        "conf2": {
+            "conf1": 2,
+            "conf2": {
+                "conf1": 3,
+            },
+        },
+    })
+
+    assert settings.get("conf1") == 1
+    assert settings.get("conf2:conf1") == 2
+    assert settings.get("conf2:conf2:conf1") == 3
+
+
+def test_settings_getitem_str_key():
+    settings = Settings({
+        "conf1": 1,
+        "conf2": {
+            "conf1": 2,
+            "conf2": {
+                "conf1": 3,
+            },
+        },
+    })
+
+    assert settings["conf1"] == 1
+    assert settings["conf2:conf1"] == 2
+    assert settings["conf2:conf2:conf1"] == 3
+
+
+def test_settings_get_list_key():
+    settings = Settings({
+        "conf1": 1,
+        "conf2": {
+            "conf1": 2,
+            "conf2": {
+                "conf1": 3,
+            },
+        },
+    })
+
+    assert settings.get("conf1") == 1
+    assert settings.get("conf2", "conf1") == 2
+    assert settings.get("conf2", "conf2", "conf1") == 3
+
+
+def test_settings_getitem_list_key():
+    settings = Settings({
+        "conf1": 1,
+        "conf2": {
+            "conf1": 2,
+            "conf2": {
+                "conf1": 3,
+            },
+        },
+    })
+
+    assert settings["conf1"] == 1
+    assert settings["conf2", "conf1"] == 2
+    assert settings["conf2", "conf2", "conf1"] == 3

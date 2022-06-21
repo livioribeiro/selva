@@ -1,0 +1,2 @@
+[database]
+url = "sqlite:///database.sqlite3"

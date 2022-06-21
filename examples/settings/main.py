@@ -16,5 +16,4 @@ class Controller:
 
 # os.putenv("SELVA_ENV", "dev")
 
-app = Application()
-app.register(Controller)
+app = Application(Controller)
