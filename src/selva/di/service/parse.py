@@ -4,7 +4,6 @@ import warnings
 from collections.abc import Callable
 from typing import Annotated, Any, Optional, TypeVar, Union
 
-from selva.di.annotations import Name
 from selva.di.decorators import DI_FINALIZER_ATTRIBUTE, DI_INITIALIZER_ATTRIBUTE
 from selva.di.errors import (
     FactoryMissingReturnTypeError,
@@ -59,7 +58,7 @@ def get_dependencies(service: InjectableType) -> list[tuple[str, ServiceDependen
         if not optional:
             type_hint, optional = _get_optional(type_hint)
 
-        dependency_names = [a.value for a in annotations if isinstance(a, Name)]
+        dependency_names = [a for a in annotations if isinstance(a, str)]
         if len(dependency_names) > 1:
             raise MultipleNameAnnotationsError(dependency_names, name, service)
         dependency_name = dependency_names[0] if len(dependency_names) == 1 else None

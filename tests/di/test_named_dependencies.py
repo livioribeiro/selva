@@ -2,7 +2,7 @@ from typing import Annotated
 
 import pytest
 
-from selva.di import Container, Name, Scope
+from selva.di import Container, Scope
 from selva.di.errors import (
     MultipleNameAnnotationsError,
     ServiceAlreadyRegisteredError,
@@ -16,12 +16,12 @@ class DependentService:
 
 
 class ServiceWithNamedDep:
-    def __init__(self, dependent: Annotated[DependentService, Name("1")]):
+    def __init__(self, dependent: Annotated[DependentService, "1"]):
         self.dependent = dependent
 
 
 class ServiceWithMultiNameAnnotations:
-    def __init__(self, dependent: Annotated[DependentService, Name("1"), Name("2")]):
+    def __init__(self, dependent: Annotated[DependentService, "1", "2"]):
         self.dependent = dependent
 
 
