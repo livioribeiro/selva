@@ -11,7 +11,7 @@ from asgikit.responses import (
 from asgikit.websockets import WebSocket
 
 from selva.web.application import Application
-from selva.web.middleware.decorators import middleware
+from selva.web.middleware import Middleware
 from selva.web.request import RequestContext
 from selva.web.routing.decorators import (
     controller,

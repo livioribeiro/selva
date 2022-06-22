@@ -50,7 +50,7 @@ class Controller:
         return self.greeter.greet("World")
 
 
-app = Application(Greeter, Controller)
+app = Application(Controller, Greeter)
 ```
 
 Get parameters from path
@@ -78,7 +78,7 @@ class Controller:
         return {"greeting": greeting}
 
 
-app = Application(Greeter, Controller)
+app = Application(Controller, Greeter)
 ```
 
 Configurations with [Pydantic](https://pydantic-docs.helpmanual.io/usage/settings/)
@@ -125,7 +125,7 @@ class Controller:
         return {"greeting": greeting}
 
 
-app = Application(Greeter, Controller)
+app = Application(Controller, Greeter, settings_factory)
 ```
 
 Manage services lifecycle (e.g [Databases](https://www.encode.io/databases/))
@@ -199,7 +199,7 @@ class Controller:
         return {"greeting": greeting}
 
 
-app = Application(settings_factory, Repository, Greeter, Controller)
+app = Application(Controller, Greeter, Repository, settings_factory)
 ```
 
 Define controllers and services in a separate module

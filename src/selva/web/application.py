@@ -2,11 +2,10 @@ import asyncio
 import functools
 import inspect
 import logging
-from importlib import import_module
 from collections.abc import Callable
 from http import HTTPStatus
 from types import ModuleType
-from typing import Any, Optional, Type, TypeGuard
+from typing import Any, Type
 
 from asgikit.responses import HttpResponse
 
@@ -17,8 +16,7 @@ from selva.utils.maybe_async import maybe_async
 from selva.utils.package_scan import scan_packages
 from selva.web.configuration import Settings
 from selva.web.errors import HttpError
-from selva.web.middleware.base import Middleware
-from selva.web.middleware.decorators import MIDDLEWARE_ATTRIBUTE
+from selva.web.middleware import Middleware
 from selva.web.request import FromRequest, RequestContext, from_request_impl
 from selva.web.response import IntoResponse, into_response_impl
 from selva.web.routing import param_converter
@@ -34,10 +32,6 @@ def _is_controller(arg) -> bool:
 
 def _is_service(arg) -> bool:
     return hasattr(arg, DI_SERVICE_ATTRIBUTE)
-
-
-def _is_middleware(arg) -> TypeGuard[Type[Middleware]]:
-    return hasattr(arg, MIDDLEWARE_ATTRIBUTE)
 
 
 def _is_registerable(arg) -> bool:
@@ -201,7 +195,7 @@ class Application:
             LOGGER.exception(err)
             return HttpResponse(status=HTTPStatus.INTERNAL_SERVER_ERROR)
 
-    async def _into_response(self, value: Any | None) -> Optional[HttpResponse]:
+    async def _into_response(self, value: Any | None) -> HttpResponse | None:
         if isinstance(value, HttpResponse):
             return value
 
