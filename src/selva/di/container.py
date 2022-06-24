@@ -2,7 +2,7 @@ import functools
 from collections import defaultdict
 from collections.abc import Callable
 from types import ModuleType
-from typing import Any, Optional, TypeVar, Union
+from typing import Any, Optional, TypeVar, Union, Type
 
 from selva.utils.maybe_async import maybe_async
 from selva.utils.package_scan import scan_packages
@@ -16,6 +16,7 @@ from .errors import (
     ServiceNotFoundError,
     ServiceWithoutDecoratorError,
 )
+from .interceptor import Interceptor
 from .service.model import InjectableType, Scope, ServiceDefinition, ServiceDependency
 from .service.parse import get_dependencies, parse_definition
 from .service.registry import ServiceRegistry
@@ -29,6 +30,7 @@ class Container:
         self.store_singleton: dict[type, Any] = {}
         self.store_dependent: dict[int, dict[type, Any]] = defaultdict(dict)
         self.finalizers: dict[int | None, list[Callable]] = defaultdict(list)
+        self.interceptors: list[Type[Interceptor]] = []
 
     def register(
         self,
@@ -64,8 +66,11 @@ class Container:
 
             self.register(defined_only_factory, scope=Scope.DEPENDENT)
 
-        # service = weakref.proxy(instance) if instance is context else instance
         self.store_dependent[id(context)][service_type] = instance
+
+    def interceptor(self, interceptor: Type[Interceptor]):
+        self.register(interceptor, provides=Interceptor, name=f"{interceptor.__module__}.{interceptor.__qualname__}")
+        self.interceptors.append(interceptor)
 
     def scan(self, *packages: Union[str, ModuleType]):
         def predicate(item: Any):
@@ -181,6 +186,9 @@ class Container:
         await self._run_initializer(definition, instance, context)
         await self._setup_finalizer(definition, instance, context)
 
+        if definition.provides is not Interceptor:
+            await self._run_interceptors(instance, definition.provides)
+
         return instance
 
     async def _run_initializer(
@@ -204,6 +212,11 @@ class Container:
 
         finalizer_key = None if definition.scope is Scope.SINGLETON else id(context)
         self.finalizers[finalizer_key].append(functools.partial(finalizer, instance))
+
+    async def _run_interceptors(self, instance: Any, service_type: type):
+        for cls in self.interceptors:
+            interceptor = await self.get(Interceptor, name=f"{cls.__module__}.{cls.__qualname__}")
+            await maybe_async(interceptor.intercept, instance, service_type)
 
     async def run_finalizers(self, context=None):
         context_id = id(context) if context else None
