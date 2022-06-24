@@ -1,5 +1,3 @@
-import os
-
 from selva.web import Application, controller, get
 from selva.web.configuration import Settings
 
@@ -13,7 +11,5 @@ class Controller:
     def index(self) -> str:
         return self.settings.get("message")
 
-
-# os.putenv("SELVA_ENV", "dev")
 
 app = Application(Controller)

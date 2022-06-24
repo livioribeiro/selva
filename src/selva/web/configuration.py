@@ -9,6 +9,7 @@ except ImportError:
     import tomli as toml
 
 
+CONFIGURATION_DIR_NAME = "configuration"
 RESOURCES_DIR_NAME = "resources"
 MAIN_SETTINGS_FILE = "application.toml"
 ENV_SETTINGS_FILE = "application-{}.toml"
@@ -70,13 +71,13 @@ def load_config_env() -> dict[str, Any]:
 
 
 def get_settings() -> dict[str, Any]:
-    resources_dir = Path(os.getcwd()) / RESOURCES_DIR_NAME
-    main_settings_file = resources_dir / MAIN_SETTINGS_FILE
+    configuration_dir = Path(os.getcwd()) / CONFIGURATION_DIR_NAME
+    main_settings_file = configuration_dir / MAIN_SETTINGS_FILE
 
     settings = load_config_file(main_settings_file)
 
     if selva_env := os.getenv(SELVA_ENV):
-        env_settings_file = resources_dir / ENV_SETTINGS_FILE.format(selva_env)
+        env_settings_file = configuration_dir / ENV_SETTINGS_FILE.format(selva_env)
         settings |= load_config_file(env_settings_file)
 
     settings |= load_config_env()
@@ -90,11 +91,11 @@ class Settings:
         if initial:
             self._data |= flatten_dict(initial)
 
-    def get(self, *args) -> Optional[Any]:
+    def get(self, *args) -> Any | None:
         key = ":".join(args).lower()
         return self._data.get(key)
 
-    def __getitem__(self, item):
+    def __getitem__(self, item) -> Any | None:
         if isinstance(item, tuple):
             return self.get(*item)
         return self.get(item)
@@ -105,4 +106,4 @@ class Settings:
 
     def resource_path(self, *args: str):
         resources = self.resources_path
-        resources.joinpath(*args)
+        return resources.joinpath(*args)

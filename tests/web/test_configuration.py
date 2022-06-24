@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 import pytest
@@ -146,3 +147,13 @@ def test_settings_getitem_list_key():
     assert settings["conf1"] == 1
     assert settings["conf2", "conf1"] == 2
     assert settings["conf2", "conf2", "conf1"] == 3
+
+
+def test_resources_path():
+    settings = Settings()
+    assert settings.resources_path == Path(os.getcwd()) / "resources"
+
+
+def test_get_resource_path():
+    settings = Settings()
+    assert settings.resource_path("static") == Path(os.getcwd()) / "resources" / "static"
