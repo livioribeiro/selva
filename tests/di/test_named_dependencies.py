@@ -99,5 +99,5 @@ def test_named_with_wrong_argument_types_should_fail():
 
 
 def test_new_named_should_fail():
-    with pytest.raises(NotImplementedError):
+    with pytest.raises(TypeError):
         Named()

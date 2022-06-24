@@ -4,7 +4,7 @@ from typing import Annotated
 
 class Named:
     def __init__(self):
-        raise NotImplementedError()
+        raise TypeError("Cannot instantiate Named")
 
     def __class_getitem__(cls, item: tuple[type, str]):
         if not isinstance(item, tuple) or len(item) != 2:
