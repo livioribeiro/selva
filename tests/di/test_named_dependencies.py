@@ -3,6 +3,7 @@ from typing import Annotated
 import pytest
 
 from selva.di import Container, Scope
+from selva.di.service.named import Named
 from selva.di.errors import (
     MultipleNameAnnotationsError,
     ServiceAlreadyRegisteredError,
@@ -22,6 +23,11 @@ class ServiceWithNamedDep:
 
 class ServiceWithMultiNameAnnotations:
     def __init__(self, dependent: Annotated[DependentService, "1", "2"]):
+        self.dependent = dependent
+
+
+class ServiceWithNamedAttribute:
+    def __init__(self, dependent: Named[DependentService, "1"]):
         self.dependent = dependent
 
 
@@ -54,3 +60,44 @@ async def test_register_two_services_with_the_same_name_should_fail(ioc: Contain
     ioc.register(DependentService, Scope.TRANSIENT, name="1")
     with pytest.raises(ServiceAlreadyRegisteredError):
         ioc.register(DependentService, Scope.TRANSIENT, name="1")
+
+
+async def test_dependency_with_named_attribute(ioc: Container):
+    ioc.register(DependentService, Scope.TRANSIENT, name="1")
+    ioc.register(ServiceWithNamedAttribute, Scope.TRANSIENT)
+
+    service = await ioc.get(ServiceWithNamedAttribute)
+    dependent = service.dependent
+    assert isinstance(dependent, DependentService)
+
+
+def test_named_with_one_args_should_fail():
+    class TestClass:
+        pass
+
+    with pytest.raises(ValueError):
+        Named[TestClass]
+
+
+def test_named_with_too_much_arguments_should_fail():
+    class TestClass:
+        pass
+
+    with pytest.raises(ValueError):
+        Named[TestClass, "name", 1]
+
+
+def test_named_with_wrong_argument_types_should_fail():
+    class TestClass:
+        pass
+
+    with pytest.raises(ValueError):
+        Named[TestClass, 1]
+
+    with pytest.raises(ValueError):
+        Named[1, "name"]
+
+
+def test_new_named_should_fail():
+    with pytest.raises(NotImplementedError):
+        Named()

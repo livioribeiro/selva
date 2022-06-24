@@ -2,7 +2,7 @@ import functools
 from collections import defaultdict
 from collections.abc import Callable
 from types import ModuleType
-from typing import Any, Optional, TypeVar, Union, Type
+from typing import Any, Optional, Type, TypeVar, Union
 
 from selva.utils.maybe_async import maybe_async
 from selva.utils.package_scan import scan_packages
@@ -69,7 +69,11 @@ class Container:
         self.store_dependent[id(context)][service_type] = instance
 
     def interceptor(self, interceptor: Type[Interceptor]):
-        self.register(interceptor, provides=Interceptor, name=f"{interceptor.__module__}.{interceptor.__qualname__}")
+        self.register(
+            interceptor,
+            provides=Interceptor,
+            name=f"{interceptor.__module__}.{interceptor.__qualname__}",
+        )
         self.interceptors.append(interceptor)
 
     def scan(self, *packages: Union[str, ModuleType]):
@@ -215,7 +219,9 @@ class Container:
 
     async def _run_interceptors(self, instance: Any, service_type: type):
         for cls in self.interceptors:
-            interceptor = await self.get(Interceptor, name=f"{cls.__module__}.{cls.__qualname__}")
+            interceptor = await self.get(
+                Interceptor, name=f"{cls.__module__}.{cls.__qualname__}"
+            )
             await maybe_async(interceptor.intercept, instance, service_type)
 
     async def run_finalizers(self, context=None):
