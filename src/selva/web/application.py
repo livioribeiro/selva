@@ -14,6 +14,7 @@ from selva.di.decorators import DI_SERVICE_ATTRIBUTE
 from selva.utils.base_types import get_base_types
 from selva.utils.maybe_async import maybe_async
 from selva.utils.package_scan import scan_packages
+from selva.web.background_tasks import BackgroundTasks
 from selva.web.configuration import Settings
 from selva.web.errors import HttpError
 from selva.web.middleware import Middleware
@@ -62,6 +63,7 @@ class Application:
 
         self.di.define_singleton(Router, self.router)
         self.di.scan(from_request_impl, param_converter, into_response_impl)
+        self.di.service(BackgroundTasks)
 
         self.di.define_singleton(Settings, Settings())
 
