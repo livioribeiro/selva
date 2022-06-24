@@ -1,6 +1,6 @@
 import typing
 import warnings
-from typing import Optional, Union
+from typing import Union
 
 from ..errors import ServiceAlreadyRegisteredError, ServiceNotFoundError
 from .model import ServiceDefinition
@@ -8,7 +8,7 @@ from .model import ServiceDefinition
 
 class ServiceRecord:
     def __init__(self):
-        self.providers: dict[Optional[str], ServiceDefinition] = {}
+        self.providers: dict[str | None, ServiceDefinition] = {}
 
     def add(self, service: ServiceDefinition, name: str = None):
         if name in self.providers:
@@ -16,7 +16,7 @@ class ServiceRecord:
 
         self.providers[name] = service
 
-    def get(self, name: str = None) -> Optional[ServiceDefinition]:
+    def get(self, name: str = None) -> ServiceDefinition | None:
         if service := self.providers.get(name):
             return service
 
@@ -31,11 +31,11 @@ class ServiceRecord:
 
         return None
 
-    def __contains__(self, name: Optional[str]) -> bool:
+    def __contains__(self, name: str | None) -> bool:
         return name in self.providers
 
 
-def _get_key_with_name(key: type | tuple[type, str]) -> tuple[type, Optional[str]]:
+def _get_key_with_name(key: type | tuple[type, str]) -> tuple[type, str | None]:
     # typing.get_origin(k) to test Generic[T]
     if isinstance(key, type) or typing.get_origin(key) is not None:
         return key, None
@@ -50,7 +50,7 @@ class ServiceRegistry:
     def __init__(self):
         self.data: dict[type, ServiceRecord] = {}
 
-    def get(self, key: type, name: str = None) -> Optional[ServiceDefinition]:
+    def get(self, key: type, name: str = None) -> ServiceDefinition | None:
         if (key, name) not in self:
             return None
         return self[key, name]

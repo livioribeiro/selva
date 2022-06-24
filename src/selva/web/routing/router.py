@@ -1,6 +1,5 @@
 import inspect
 from collections import OrderedDict
-from typing import Optional
 
 from asgikit.requests import HttpMethod, HttpRequest
 from asgikit.websockets import WebSocket
@@ -75,7 +74,7 @@ class Router:
 
             self.routes[route_name] = route
 
-    def match(self, method: HttpMethod | None, path: str) -> Optional[RouteMatch]:
+    def match(self, method: HttpMethod | None, path: str) -> RouteMatch | None:
         for route in self.routes.values():
             if (match := route.match(method, path)) is not None:
                 return RouteMatch(route, method, path, match)

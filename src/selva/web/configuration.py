@@ -1,7 +1,7 @@
 import os
 from collections.abc import Iterable
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 try:
     import tomllib as toml

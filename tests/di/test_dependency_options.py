@@ -19,6 +19,11 @@ class ServiceWithOptionalDepNone:
         self.dependent = dependent
 
 
+class ServiceWithOptionalDepOrNone:
+    def __init__(self, dependent: DependentService | None):
+        self.dependent = dependent
+
+
 class LazyDependency:
     def method(self):
         return 1
@@ -34,7 +39,7 @@ async def test_optional_dependency(ioc: Container):
     assert isinstance(service.dependent, DependentService)
 
 
-async def test_optional_dependency_with_none_as_default_value(ioc: Container):
+async def test_optional_dependency_with_none_as_default(ioc: Container):
     ioc.register(ServiceWithOptionalDepNone, Scope.TRANSIENT)
     service = await ioc.get(ServiceWithOptionalDepNone)
     assert service.dependent is None
@@ -42,3 +47,14 @@ async def test_optional_dependency_with_none_as_default_value(ioc: Container):
     ioc.register(DependentService, Scope.TRANSIENT)
     service = await ioc.get(ServiceWithOptionalDepNone)
     assert isinstance(service.dependent, DependentService)
+
+
+async def test_optional_dependency_with_or_none(ioc: Container):
+    ioc.register(ServiceWithOptionalDepOrNone, Scope.TRANSIENT)
+    service = await ioc.get(ServiceWithOptionalDepOrNone)
+    assert service.dependent is None
+
+    ioc.register(DependentService, Scope.TRANSIENT)
+    service = await ioc.get(ServiceWithOptionalDepOrNone)
+    assert isinstance(service.dependent, DependentService)
+

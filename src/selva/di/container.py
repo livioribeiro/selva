@@ -2,7 +2,7 @@ import functools
 from collections import defaultdict
 from collections.abc import Callable
 from types import ModuleType
-from typing import Any, Optional, Type, TypeVar, Union
+from typing import Any, Type, TypeVar, Union
 
 from selva.utils.maybe_async import maybe_async
 from selva.utils.package_scan import scan_packages
@@ -123,7 +123,7 @@ class Container:
         context: Any = None,
         valid_scope: Scope = None,
         stack: list = None,
-    ) -> Optional[Any]:
+    ) -> Any | None:
         service_type, name = dependency.service, dependency.name
 
         # try getting from singleton store

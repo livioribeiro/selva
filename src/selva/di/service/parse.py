@@ -2,6 +2,7 @@ import inspect
 import typing
 import warnings
 from collections.abc import Callable
+from types import NoneType, UnionType
 from typing import Annotated, Any, Optional, TypeVar, Union
 
 from selva.di.decorators import DI_FINALIZER_ATTRIBUTE, DI_INITIALIZER_ATTRIBUTE
@@ -22,10 +23,18 @@ from selva.di.service.model import (
 
 
 def _get_optional(type_hint) -> tuple[type, bool]:
+    if typing.get_origin(type_hint) is UnionType:
+        type_args = list(typing.get_args(type_hint))
+        if NoneType in type_args:
+            type_args.remove(NoneType)
+            type_arg = type_args[0]
+            return type_arg, True
+
     if typing.get_origin(type_hint) is Union:
         type_arg = typing.get_args(type_hint)[0]
         if type_hint == Optional[type_arg]:
             return type_arg, True
+
     return type_hint, False
 
 
@@ -72,8 +81,8 @@ def get_dependencies(service: InjectableType) -> list[tuple[str, ServiceDependen
 
 
 def _parse_definition_class(
-    service: type, provides: Optional[type]
-) -> tuple[type, Optional[Callable], Optional[Callable]]:
+    service: type, provides: type | None
+) -> tuple[type, Callable | None, Callable | None]:
     initializer = None
     finalizer = None
 
@@ -105,8 +114,8 @@ def _parse_definition_class(
 
 
 def _parse_definition_factory(
-    service: Callable, provides: Optional[type]
-) -> tuple[type, Optional[Callable], Optional[Callable]]:
+    service: Callable, provides: type | None
+) -> tuple[type, Callable | None, Callable | None]:
     initializer = None
     finalizer = None
 

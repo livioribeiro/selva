@@ -1,7 +1,7 @@
 from collections.abc import Callable
 from enum import IntEnum
 from types import FunctionType, MethodType
-from typing import NamedTuple, Optional
+from typing import NamedTuple
 
 InjectableType = type | FunctionType | MethodType
 
@@ -14,14 +14,14 @@ class Scope(IntEnum):
 
 class ServiceInfo(NamedTuple):
     scope: Scope
-    provides: Optional[type]
-    name: Optional[str]
+    provides: type | None
+    name: str | None
 
 
 class ServiceDependency(NamedTuple):
     service: type
-    name: Optional[str]
-    optional: Optional[bool] = False
+    name: str | None
+    optional: bool = False
 
 
 class ServiceDefinition(NamedTuple):
@@ -29,8 +29,8 @@ class ServiceDefinition(NamedTuple):
     scope: Scope
     factory: InjectableType
     dependencies: list[tuple[str, ServiceDependency]]
-    initializer: Optional[Callable]
-    finalizer: Optional[Callable]
+    initializer: Callable | None
+    finalizer: Callable | None
 
     def accept_scope(self, scope: Scope) -> bool:
         return self.scope <= scope
