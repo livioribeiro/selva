@@ -1,6 +1,5 @@
 import typing
 import warnings
-from typing import Union
 
 from ..errors import ServiceAlreadyRegisteredError, ServiceNotFoundError
 from .model import ServiceDefinition
@@ -55,7 +54,7 @@ class ServiceRegistry:
             return None
         return self[key, name]
 
-    def __getitem__(self, key: Union[type, tuple[type, str]]):
+    def __getitem__(self, key: type | tuple[type, str]):
         inner_key, name = _get_key_with_name(key)
 
         if (
@@ -66,7 +65,7 @@ class ServiceRegistry:
 
         raise ServiceNotFoundError(inner_key, name=name)
 
-    def __setitem__(self, key: Union[type, tuple[type, str]], value: ServiceDefinition):
+    def __setitem__(self, key: type | tuple[type, str], value: ServiceDefinition):
         inner_key, name = _get_key_with_name(key)
 
         if inner_key not in self.data:
@@ -74,6 +73,6 @@ class ServiceRegistry:
 
         self.data[inner_key].add(value, name)
 
-    def __contains__(self, key: Union[type, tuple[type, str]]):
+    def __contains__(self, key: type | tuple[type, str]):
         inner_key, name = _get_key_with_name(key)
         return inner_key in self.data and name in self.data[inner_key]

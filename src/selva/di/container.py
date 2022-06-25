@@ -2,7 +2,7 @@ import functools
 from collections import defaultdict
 from collections.abc import Callable
 from types import ModuleType
-from typing import Any, Type, TypeVar, Union
+from typing import Any, Type, TypeVar
 
 from selva.utils.maybe_async import maybe_async
 from selva.utils.package_scan import scan_packages
@@ -76,7 +76,7 @@ class Container:
         )
         self.interceptors.append(interceptor)
 
-    def scan(self, *packages: Union[str, ModuleType]):
+    def scan(self, *packages: str | ModuleType):
         def predicate(item: Any):
             return hasattr(item, DI_SERVICE_ATTRIBUTE)
 
