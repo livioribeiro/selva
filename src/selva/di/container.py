@@ -117,6 +117,18 @@ class Container:
             for name, dep in get_dependencies(service)
         }
 
+    def _get_from_cache(self, service_type: type, context: Any | None) -> Any | None:
+        # try getting from singleton store
+        if instance := self.store_singleton.get(service_type):
+            return instance
+
+        # try from the dependent store
+        if store := self.store_dependent.get(id(context)):
+            if instance := store.get(service_type):
+                return instance
+
+        return None
+
     async def _get(
         self,
         dependency: ServiceDependency,
@@ -126,14 +138,7 @@ class Container:
     ) -> Any | None:
         service_type, name = dependency.service, dependency.name
 
-        # try getting from singleton store
-        if instance := self.store_singleton.get(service_type):
-            return instance
-
-        # try from the dependent store
-        if (store := self.store_dependent.get(id(context))) and (
-            instance := store.get(service_type)
-        ):
+        if instance := self._get_from_cache(service_type, context):
             return instance
 
         try:
@@ -160,8 +165,8 @@ class Container:
             raise DependencyLoopError(stack + [service_type])
 
         stack.append(service_type)
-
         instance = await self._create_service(definition, valid_scope, stack, context)
+        stack.pop()
 
         return instance
 
@@ -178,6 +183,10 @@ class Container:
             name: await self._get(dep, context, valid_scope, stack)
             for name, dep in definition.dependencies
         }
+
+        # check if service have been created from initializers
+        if instance := self._get_from_cache(definition.provides, context):
+            return instance
 
         instance = await maybe_async(factory, **dependencies)
 
