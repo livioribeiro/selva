@@ -27,8 +27,8 @@ TService = TypeVar("TService")
 class Container:
     def __init__(self):
         self.registry = ServiceRegistry()
-        self.store_singleton: dict[type, Any] = {}
-        self.store_dependent: dict[int, dict[type, Any]] = defaultdict(dict)
+        self.store_singleton: dict[tuple[type, str | None], Any] = {}
+        self.store_dependent: dict[int, dict[tuple[type, str | None], Any]] = defaultdict(dict)
         self.finalizers: dict[int | None, list[Callable]] = defaultdict(list)
         self.interceptors: list[Type[Interceptor]] = []
 
@@ -52,10 +52,10 @@ class Container:
         scope, provides, name = service_info
         self.register(service_type, scope, provides=provides, name=name)
 
-    def define_singleton(self, service_type: type, instance: Any):
-        self.store_singleton[service_type] = instance
+    def define_singleton(self, service_type: type, instance: Any, *, name: str = None):
+        self.store_singleton[service_type, name] = instance
 
-    def define_dependent(self, service_type: type, instance: Any, *, context: Any):
+    def define_dependent(self, service_type: type, instance: Any, *, context: Any, name: str = None):
         if context is None:
             raise MissingDependentContextError()
 
@@ -66,7 +66,7 @@ class Container:
 
             self.register(defined_only_factory, scope=Scope.DEPENDENT)
 
-        self.store_dependent[id(context)][service_type] = instance
+        self.store_dependent[id(context)][service_type, name] = instance
 
     def interceptor(self, interceptor: Type[Interceptor]):
         self.register(
@@ -117,14 +117,14 @@ class Container:
             for name, dep in get_dependencies(service)
         }
 
-    def _get_from_cache(self, service_type: type, context: Any | None) -> Any | None:
+    def _get_from_cache(self, service_type: type, name: str | None, context: Any = None) -> Any | None:
         # try getting from singleton store
-        if instance := self.store_singleton.get(service_type):
+        if instance := self.store_singleton.get((service_type, name)):
             return instance
 
         # try from the dependent store
         if store := self.store_dependent.get(id(context)):
-            if instance := store.get(service_type):
+            if instance := store.get((service_type, name)):
                 return instance
 
         return None
@@ -138,7 +138,7 @@ class Container:
     ) -> Any | None:
         service_type, name = dependency.service, dependency.name
 
-        if instance := self._get_from_cache(service_type, context):
+        if instance := self._get_from_cache(service_type, name, context):
             return instance
 
         try:
@@ -165,7 +165,7 @@ class Container:
             raise DependencyLoopError(stack + [service_type])
 
         stack.append(service_type)
-        instance = await self._create_service(definition, valid_scope, stack, context)
+        instance = await self._create_service(definition, valid_scope, stack, name, context)
         stack.pop()
 
         return instance
@@ -175,6 +175,7 @@ class Container:
         definition: ServiceDefinition,
         valid_scope: Scope,
         stack: list[type],
+        name: str = None,
         context: Any = None,
     ) -> Any:
         factory = definition.factory
@@ -185,16 +186,16 @@ class Container:
         }
 
         # check if service have been created from initializers
-        if instance := self._get_from_cache(definition.provides, context):
+        if instance := self._get_from_cache(definition.provides, name, context):
             return instance
 
         instance = await maybe_async(factory, **dependencies)
 
         match definition.scope:
             case Scope.SINGLETON:
-                self.store_singleton[definition.provides] = instance
+                self.store_singleton[definition.provides, name] = instance
             case Scope.DEPENDENT:
-                self.store_dependent[id(context)][definition.provides] = instance
+                self.store_dependent[id(context)][definition.provides, name] = instance
 
         await self._run_initializer(definition, instance, context)
         await self._setup_finalizer(definition, instance, context)

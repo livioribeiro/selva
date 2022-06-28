@@ -31,6 +31,18 @@ class ServiceWithNamedAttribute:
         self.dependent = dependent
 
 
+class Interface:
+    pass
+
+
+class Impl1(Interface):
+    pass
+
+
+class Impl2(Interface):
+    pass
+
+
 async def test_dependency_with_name(ioc: Container):
     ioc.register(DependentService, Scope.TRANSIENT, name="1")
     ioc.register(ServiceWithNamedDep, Scope.TRANSIENT)
@@ -69,6 +81,16 @@ async def test_dependency_with_named_attribute(ioc: Container):
     service = await ioc.get(ServiceWithNamedAttribute)
     dependent = service.dependent
     assert isinstance(dependent, DependentService)
+
+
+async def test_dependencies_with_same_interface(ioc: Container):
+    ioc.register(Impl1, provides=Interface, name="impl1")
+    ioc.register(Impl2, provides=Interface, name="impl2")
+
+    service1 = await ioc.get(Interface, name="impl1")
+    service2 = await ioc.get(Interface, name="impl2")
+
+    assert service1 is not service2
 
 
 def test_named_with_one_args_should_fail():
