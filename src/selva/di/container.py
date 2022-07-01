@@ -28,7 +28,9 @@ class Container:
     def __init__(self):
         self.registry = ServiceRegistry()
         self.store_singleton: dict[tuple[type, str | None], Any] = {}
-        self.store_dependent: dict[int, dict[tuple[type, str | None], Any]] = defaultdict(dict)
+        self.store_dependent: dict[
+            int, dict[tuple[type, str | None], Any]
+        ] = defaultdict(dict)
         self.finalizers: dict[int | None, list[Callable]] = defaultdict(list)
         self.interceptors: list[Type[Interceptor]] = []
 
@@ -55,7 +57,9 @@ class Container:
     def define_singleton(self, service_type: type, instance: Any, *, name: str = None):
         self.store_singleton[service_type, name] = instance
 
-    def define_dependent(self, service_type: type, instance: Any, *, context: Any, name: str = None):
+    def define_dependent(
+        self, service_type: type, instance: Any, *, context: Any, name: str = None
+    ):
         if context is None:
             raise MissingDependentContextError()
 
@@ -117,7 +121,9 @@ class Container:
             for name, dep in get_dependencies(service)
         }
 
-    def _get_from_cache(self, service_type: type, name: str | None, context: Any = None) -> Any | None:
+    def _get_from_cache(
+        self, service_type: type, name: str | None, context: Any = None
+    ) -> Any | None:
         # try getting from singleton store
         if instance := self.store_singleton.get((service_type, name)):
             return instance
@@ -165,7 +171,9 @@ class Container:
             raise DependencyLoopError(stack + [service_type])
 
         stack.append(service_type)
-        instance = await self._create_service(definition, valid_scope, stack, name, context)
+        instance = await self._create_service(
+            definition, valid_scope, stack, name, context
+        )
         stack.pop()
 
         return instance
@@ -237,7 +245,7 @@ class Container:
     async def run_finalizers(self, context=None):
         context_id = id(context) if context else None
 
-        for finalizer in self.finalizers[context_id]:
+        for finalizer in reversed(self.finalizers[context_id]):
             await maybe_async(finalizer)
 
         self.finalizers.pop(context_id, None)

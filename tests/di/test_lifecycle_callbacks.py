@@ -62,6 +62,29 @@ def factory_async_finalize() -> Service:
     return Service()
 
 
+class FinalizerOrder1:
+    @initializer
+    def initialize(self):
+        print("initialize 1", flush=True)
+
+    @finalizer
+    def finalize(self):
+        print("finalize 1", flush=True)
+
+
+class FinalizerOrder2:
+    def __init__(self, dep: FinalizerOrder1):
+        pass
+
+    @initializer
+    def initialize(self):
+        print("initialize 2", flush=True)
+
+    @finalizer
+    def finalize(self):
+        print("finalize 2", flush=True)
+
+
 async def test_call_initialize(ioc: Container):
     ioc.register(Dependency, Scope.TRANSIENT)
     ioc.register(ServiceInitialize, Scope.TRANSIENT)
@@ -116,3 +139,15 @@ async def test_call_factory_async_finalize(ioc: Container, capsys):
     await ioc.run_finalizers(context)
 
     assert capsys.readouterr().out == "factory async finalize\n"
+
+
+async def test_finalizer_order(ioc: Container, capsys):
+    ioc.register(FinalizerOrder1)
+    ioc.register(FinalizerOrder2)
+
+    await ioc.get(FinalizerOrder2)
+    await ioc.run_finalizers()
+
+    expected = "initialize 1\ninitialize 2\nfinalize 2\nfinalize 1\n"
+    assert capsys.readouterr().out == expected
+
