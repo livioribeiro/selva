@@ -9,12 +9,15 @@ from selva.web.configuration import Settings
 
 def database_finalizer(database: Database):
     os.unlink(database.url.database)
+    print("Sqlite database destroyed")
 
 
 @service
 @finalizer(database_finalizer)
 def database_factory(settings: Settings) -> Database:
-    return Database(settings["database:url"])
+    database = Database(settings["database:url"])
+    print("Sqlite database created")
+    return database
 
 
 @service
@@ -36,8 +39,6 @@ class Repository:
     async def finalize(self):
         await self.database.disconnect()
         print("Sqlite database connection closed")
-        # await asyncio.to_thread(DB_FILE.unlink, missing_ok=True)
-        await asyncio.to_thread(self.settings, missing_ok=True)
 
     async def test(self):
         await self.database.execute("select 1")
