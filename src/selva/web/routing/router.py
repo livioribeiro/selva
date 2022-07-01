@@ -10,16 +10,6 @@ from .decorators import ACTION_ATTRIBUTE, CONTROLLER_ATTRIBUTE, PATH_ATTRIBUTE
 from .route import Route, RouteMatch
 
 
-def _name_transform(name: str) -> str:
-    yield name[0].lower()
-    for letter in name[1:]:
-        if letter.isupper():
-            yield "-"
-            yield letter.lower()
-        else:
-            yield letter
-
-
 def _path_with_prefix(path: str, prefix: str):
     path = path.strip("/")
     prefix = prefix.strip("/")
