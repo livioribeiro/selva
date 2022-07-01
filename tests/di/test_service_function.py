@@ -132,7 +132,7 @@ async def test_interface_implementation(ioc: Container):
 
 def test_factory_function_without_return_type_should_fail(ioc: Container):
     async def service_factory():
-        return Service1()
+        pass
 
     with pytest.raises(FactoryMissingReturnTypeError):
         ioc.register(service_factory, Scope.SINGLETON)
@@ -155,7 +155,7 @@ async def test_sync_factory(ioc: Container):
 
 async def test_register_a_service_twice_should_fail(ioc: Container):
     async def duplicate_factory() -> Service1:
-        return Service1()
+        pass
 
     with pytest.raises(ServiceAlreadyRegisteredError):
         ioc.register(service1_factory, Scope.SINGLETON)

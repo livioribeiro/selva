@@ -25,8 +25,7 @@ class ServiceWithOptionalDepOrNone:
 
 
 class LazyDependency:
-    def method(self):
-        return 1
+    pass
 
 
 async def test_optional_dependency(ioc: Container):

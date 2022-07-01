@@ -12,8 +12,8 @@ class Service1:
 
 
 class Service2:
-    def __init__(self, service1: Service1):
-        self.service1 = service1
+    def __init__(self, _service1: Service1):
+        pass
 
 
 async def test_inject_transient_into_dependent_should_fail(ioc: Container):
