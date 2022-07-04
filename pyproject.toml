@@ -84,11 +84,12 @@ format = [
 [tool.hatch.envs.docs]
 detached = true
 dependencies = [
-  "mkdocs-material~=8.3.8"
+  "mkdocs-material~=8.3.8",
+  "mdx-include~=1.4.1",
 ]
 [tool.hatch.envs.docs.scripts]
 build = "mkdocs build"
-serve = "mkdocs serve --dev-addr 0.0.0.0:8000"
+serve = "mkdocs serve"
 
 [tool.hatch.envs.examples]
 dependencies = [
