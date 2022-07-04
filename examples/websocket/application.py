@@ -18,18 +18,27 @@ class WebSocketService:
     def __init__(self):
         self.clients: set[WebSocket] = set()
 
+    async def handle_client(self, client: WebSocket):
+        self.clients.add(client)
+        while True:
+            try:
+                message = await client.receive()
+                print(f"[message] {message}")
+                await self.broadcast(message)
+            except WebSocketDisconnectError:
+                print("[close] Client disconnected")
+                self.clients.remove(client)
+                break
+
     async def broadcast(self, message: str):
         if message.lower() == "ping":
             message = "Pong"
 
-        disconnected = set()
         for client in self.clients:
             try:
                 await client.send_text(message)
             except WebSocketStateError:
-                disconnected.add(client)
-
-        self.clients -= disconnected
+                print("Client disconnected")
 
 
 @controller
@@ -49,13 +58,4 @@ class WebSocketController:
         await client.accept()
         print("[open] Client connected")
 
-        self.handler.clients.add(client)
-
-        while True:
-            try:
-                message = await client.receive()
-                print(f"[message] {message}")
-                await self.handler.broadcast(message)
-            except WebSocketDisconnectError:
-                print("[close] Client disconnected")
-                break
+        await self.handler.handle_client(client)

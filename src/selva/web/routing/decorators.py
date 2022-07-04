@@ -2,6 +2,8 @@ import inspect
 from enum import Enum
 from typing import Callable
 
+from selva.di import service
+
 from asgikit.requests import HttpMethod
 
 CONTROLLER_ATTRIBUTE = "__selva_web_controller__"
@@ -38,7 +40,8 @@ def controller(path_or_cls: str | type):
 
         setattr(arg, CONTROLLER_ATTRIBUTE, True)
         setattr(arg, PATH_ATTRIBUTE, path)
-        return arg
+
+        return service(arg)
 
     return inner(cls) if cls else inner
 

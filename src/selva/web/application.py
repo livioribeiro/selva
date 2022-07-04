@@ -35,6 +35,10 @@ def _is_service(arg) -> bool:
     return hasattr(arg, DI_SERVICE_ATTRIBUTE)
 
 
+def _is_module(arg) -> bool:
+    return inspect.ismodule(arg) or isinstance(arg, str)
+
+
 def _is_registerable(arg) -> bool:
     return any(i(arg) for i in [_is_controller, _is_service])
 
@@ -81,7 +85,7 @@ class Application:
         if app and (app not in components or app.__name__ not in components):
             components.add(app)
 
-        self.register(*components)
+        self._register(*components)
 
     async def __call__(self, scope, receive, send):
         match scope["type"]:
@@ -92,18 +96,18 @@ class Application:
             case _:
                 raise RuntimeError(f"unknown scope '{scope['type']}'")
 
-    def register(self, *args: type | Callable | Type[Middleware] | ModuleType | str):
+    def _register(self, *args: type | Callable | ModuleType | str):
         for item in args:
-            if _is_controller(item):
-                self.router.route(item)
-            elif _is_service(item):
+            if _is_service(item):
                 self.di.service(item)
-            elif inspect.ismodule(item) or isinstance(item, str):
+                if _is_controller(item):
+                    self.router.route(item)
+            elif _is_module(item):
                 for subitem in scan_packages([item], _is_registerable):
-                    if _is_controller(subitem):
-                        self.router.route(subitem)
-                    elif _is_service(subitem):
+                    if _is_service(subitem):
                         self.di.service(subitem)
+                        if _is_controller(subitem):
+                            self.router.route(subitem)
             else:
                 raise ValueError(f"{item} is not a controller, service or application")
 
@@ -186,7 +190,7 @@ class Application:
             )
 
             all_params = path_params | request_params
-            instance = await self.di.create(controller, context=context)
+            instance = await self.di.get(controller)
             response = await maybe_async(action, instance, **all_params)
 
             if context.is_http:

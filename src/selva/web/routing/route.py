@@ -1,6 +1,5 @@
 import re
 import typing
-from abc import ABC
 from collections import Counter
 from re import Pattern
 from typing import Callable, NamedTuple
@@ -63,7 +62,7 @@ def build_path_regex(
     return param_types, re.compile(regex)
 
 
-class Route(ABC):
+class Route:
     def __init__(
         self,
         method: HttpMethod | None,
