@@ -8,14 +8,11 @@ on:
 jobs:
   docs:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python: [ "3.10" ]
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
         with:
-          python-version: ${{ matrix.python }}
+          python-version: 3.x
       - run: pip install pipx
       - run: pipx install hatch
       - run: hatch run docs:deploy
