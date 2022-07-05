@@ -2,9 +2,9 @@ import inspect
 from enum import Enum
 from typing import Callable
 
-from selva.di import service
-
 from asgikit.requests import HttpMethod
+
+from selva.di import service
 
 CONTROLLER_ATTRIBUTE = "__selva_web_controller__"
 ACTION_ATTRIBUTE = "__selva_web_action__"

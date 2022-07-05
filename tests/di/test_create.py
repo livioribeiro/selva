@@ -1,7 +1,6 @@
-from selva.di import Container, Scope
+from selva.di import Container
 
 from .fixtures import ioc
-from .utils import Context
 
 
 class Service1:
@@ -27,8 +26,8 @@ class Creatable:
 
 
 async def test_create_object_with_class(ioc: Container):
-    ioc.register(Service1, Scope.TRANSIENT)
-    ioc.register(Service2, Scope.TRANSIENT)
+    ioc.register(Service1)
+    ioc.register(Service2)
 
     result = await ioc.create(Creatable)
 
@@ -37,27 +36,10 @@ async def test_create_object_with_class(ioc: Container):
 
 
 async def test_create_object_with_factory(ioc: Container):
-    ioc.register(service1_factory, Scope.TRANSIENT)
-    ioc.register(service2_factory, Scope.TRANSIENT)
+    ioc.register(service1_factory)
+    ioc.register(service2_factory)
 
     result = await ioc.create(Creatable)
 
     assert isinstance(result.service2, Service2)
     assert isinstance(result.service2.service1, Service1)
-
-
-async def test_create_object_with_context(ioc: Container):
-    ioc.register(Service1, Scope.DEPENDENT)
-    ioc.register(Service2, Scope.DEPENDENT)
-
-    context = Context()
-
-    result1 = await ioc.create(Creatable, context=context)
-
-    assert isinstance(result1.service2, Service2)
-    assert isinstance(result1.service2.service1, Service1)
-
-    result2 = await ioc.create(Creatable, context=context)
-
-    assert result2 is not result1
-    assert result2.service2 is result1.service2

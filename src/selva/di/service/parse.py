@@ -14,12 +14,7 @@ from selva.di.errors import (
     NonInjectableTypeError,
     TypeVarInGenericServiceError,
 )
-from selva.di.service.model import (
-    InjectableType,
-    Scope,
-    ServiceDefinition,
-    ServiceDependency,
-)
+from selva.di.service.model import InjectableType, ServiceDefinition, ServiceDependency
 
 
 def _get_optional(type_hint) -> tuple[type, bool]:
@@ -82,9 +77,9 @@ def get_dependencies(service: InjectableType) -> list[tuple[str, ServiceDependen
 
 def _parse_definition_class(
     service: type, provides: type | None
-) -> tuple[type, Callable | None, Callable | None]:
-    initializer = None
-    finalizer = None
+) -> tuple[type, list[Callable], list[Callable]]:
+    initializers = []
+    finalizers = []
 
     if provides:
         origin = typing.get_origin(provides)
@@ -101,22 +96,19 @@ def _parse_definition_class(
 
     provided_service = provides or service
 
-    # get initializer and finalizer for service class
+    # get initializers and finalizers for service class
     for _, function in inspect.getmembers(service, inspect.isfunction):
-        if initializer is not None and finalizer is not None:
-            break
-        if initializer is None and getattr(function, DI_INITIALIZER_ATTRIBUTE, False):
-            initializer = function
-        if finalizer is None and getattr(function, DI_FINALIZER_ATTRIBUTE, False):
-            finalizer = function
+        if getattr(function, DI_INITIALIZER_ATTRIBUTE, None):
+            initializers.append(function)
+        if getattr(function, DI_FINALIZER_ATTRIBUTE, None):
+            finalizers.append(function)
 
-    return provided_service, initializer, finalizer
+    return provided_service, initializers, finalizers
 
 
 def _parse_definition_factory(
     service: Callable, provides: type | None
-) -> tuple[type, Callable | None, Callable | None]:
-    initializer = None
+) -> tuple[type, Callable | None]:
     finalizer = None
 
     if provides:
@@ -129,26 +121,24 @@ def _parse_definition_factory(
 
     provided_service = service_type
 
-    # get initializer and finalizer for service factory
-    if func := getattr(service, DI_INITIALIZER_ATTRIBUTE, None):
-        initializer = func
+    # get finalizer for service factory
     if func := getattr(service, DI_FINALIZER_ATTRIBUTE, None):
         finalizer = func
 
-    return provided_service, initializer, finalizer
+    return provided_service, finalizer
 
 
 def parse_definition(
-    service: InjectableType, scope: Scope, provides: type = None
+    service: InjectableType, provides: type = None
 ) -> ServiceDefinition:
     if inspect.isclass(service):
-        provided_service, initializer, finalizer = _parse_definition_class(
+        provided_service, initializers, finalizers = _parse_definition_class(
             service, provides
         )
-    elif callable(service):
-        provided_service, initializer, finalizer = _parse_definition_factory(
-            service, provides
-        )
+    elif inspect.isfunction(service):
+        provided_service, finalizer = _parse_definition_factory(service, provides)
+        initializers = []
+        finalizers = [finalizer] if finalizer else []
     else:
         raise NonInjectableTypeError(service)
 
@@ -156,9 +146,8 @@ def parse_definition(
 
     return ServiceDefinition(
         provides=provided_service,
-        scope=scope,
         factory=service,
         dependencies=dependencies,
-        initializer=initializer,
-        finalizer=finalizer,
+        initializers=initializers,
+        finalizers=finalizers,
     )

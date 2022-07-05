@@ -1,6 +1,6 @@
-from collections import defaultdict
 import typing
 import warnings
+from collections import defaultdict
 
 from ..errors import ServiceAlreadyRegisteredError, ServiceNotFoundError
 from .model import ServiceDefinition

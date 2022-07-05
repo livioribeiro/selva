@@ -1,16 +1,6 @@
-from selva.di import Scope, service
+from selva.di import service
 
 
 @service
-class SingletonService:
-    pass
-
-
-@service(scope=Scope.DEPENDENT)
-class DependentService:
-    pass
-
-
-@service(scope=Scope.TRANSIENT)
-class TransientService:
+class Service:
     pass

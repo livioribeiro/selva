@@ -2,7 +2,7 @@ from typing import Annotated
 
 import pytest
 
-from selva.di import Container, Scope
+from selva.di import Container
 from selva.di.service.named import Named
 from selva.di.errors import (
     MultipleNameAnnotationsError,
@@ -44,8 +44,8 @@ class Impl2(Interface):
 
 
 async def test_dependency_with_name(ioc: Container):
-    ioc.register(DependentService, Scope.TRANSIENT, name="1")
-    ioc.register(ServiceWithNamedDep, Scope.TRANSIENT)
+    ioc.register(DependentService, name="1")
+    ioc.register(ServiceWithNamedDep)
 
     service = await ioc.get(ServiceWithNamedDep)
     dependent = service.dependent
@@ -53,8 +53,8 @@ async def test_dependency_with_name(ioc: Container):
 
 
 async def test_default_dependency(ioc: Container):
-    ioc.register(DependentService, Scope.TRANSIENT)
-    ioc.register(ServiceWithNamedDep, Scope.TRANSIENT)
+    ioc.register(DependentService)
+    ioc.register(ServiceWithNamedDep)
 
     with pytest.warns(UserWarning):
         service = await ioc.get(ServiceWithNamedDep)
@@ -65,18 +65,18 @@ async def test_default_dependency(ioc: Container):
 
 async def test_multiple_name_annotations_should_fail(ioc: Container):
     with pytest.raises(MultipleNameAnnotationsError):
-        ioc.register(ServiceWithMultiNameAnnotations, Scope.TRANSIENT)
+        ioc.register(ServiceWithMultiNameAnnotations)
 
 
 async def test_register_two_services_with_the_same_name_should_fail(ioc: Container):
-    ioc.register(DependentService, Scope.TRANSIENT, name="1")
+    ioc.register(DependentService, name="1")
     with pytest.raises(ServiceAlreadyRegisteredError):
-        ioc.register(DependentService, Scope.TRANSIENT, name="1")
+        ioc.register(DependentService, name="1")
 
 
 async def test_dependency_with_named_attribute(ioc: Container):
-    ioc.register(DependentService, Scope.TRANSIENT, name="1")
-    ioc.register(ServiceWithNamedAttribute, Scope.TRANSIENT)
+    ioc.register(DependentService, name="1")
+    ioc.register(ServiceWithNamedAttribute)
 
     service = await ioc.get(ServiceWithNamedAttribute)
     dependent = service.dependent

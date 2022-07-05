@@ -14,7 +14,6 @@ from selva.di.decorators import DI_SERVICE_ATTRIBUTE
 from selva.utils.base_types import get_base_types
 from selva.utils.maybe_async import maybe_async
 from selva.utils.package_scan import scan_packages
-from selva.web.background_tasks import BackgroundTasks
 from selva.web.configuration import Settings
 from selva.web.errors import HttpError
 from selva.web.middleware import Middleware
@@ -67,7 +66,6 @@ class Application:
 
         self.di.define_singleton(Router, self.router)
         self.di.scan(from_request_impl, param_converter, into_response_impl)
-        self.di.service(BackgroundTasks)
 
         self.di.define_singleton(Settings, Settings())
 
@@ -164,14 +162,17 @@ class Application:
         try:
             if response := await self.handler(context):
                 await response(context.request)
+            for result in await asyncio.gather(
+                *context.delayed_tasks, return_exceptions=True
+            ):
+                if isinstance(result, Exception):
+                    LOGGER.exception(result)
         finally:
-            task = asyncio.create_task(self.di.run_finalizers(context))
+            task = asyncio.create_task(self.di.run_finalizers())
             background_tasks.add(task)
             task.add_done_callback(background_tasks.discard)
 
     async def _process_request(self, context: RequestContext) -> HttpResponse:
-        self.di.define_dependent(RequestContext, context, context=context)
-
         method = context.method if context.is_http else None
         path = context.path
 

@@ -1,6 +1,6 @@
 import pytest
 
-from selva.di import Container, Scope
+from selva.di import Container
 from selva.di.errors import ServiceNotFoundError
 
 from .fixtures import ioc
@@ -21,6 +21,6 @@ async def test_get_unknwon_service(ioc: Container):
 
 
 async def test_service_with_name_not_found(ioc: Container):
-    ioc.register(Service, Scope.TRANSIENT, name="1")
+    ioc.register(Service, name="1")
     with pytest.raises(ServiceNotFoundError):
         await ioc.get(Service, name="2")

@@ -20,20 +20,6 @@ class DependencyInjectionError(Exception):
     pass
 
 
-class InvalidScopeError(DependencyInjectionError):
-    def __init__(
-        self, service: type, scope: str, requested_scope: str, requester: type = None
-    ):
-        msg = f"service '{_type_name(service)}' with scope '{scope}'"
-
-        if requester:
-            msg += f", requested from '{_type_name(service)}'"
-
-        msg += f" cannot be requested from scope '{requested_scope}'."
-
-        super().__init__(msg)
-
-
 class DependencyLoopError(DependencyInjectionError):
     def __init__(self, dependency_stack: list[type]):
         loop = " -> ".join([dep.__name__ for dep in dependency_stack])
@@ -59,11 +45,6 @@ class ServiceNotFoundError(DependencyInjectionError):
             message += f" with name '{name}'"
 
         super().__init__(message)
-
-
-class MissingDependentContextError(DependencyInjectionError):
-    def __init__(self):
-        super().__init__("context is required for DEPENDENT scope")
 
 
 class NonInjectableTypeError(DependencyInjectionError):
@@ -115,12 +96,4 @@ class ServiceWithoutDecoratorError(DependencyInjectionError):
         super().__init__(
             f"service {service.__module__}.{service.__qualname__}"
             " must be decorated with @service"
-        )
-
-
-class InstanceNotDefinedError(DependencyInjectionError):
-    def __init__(self, service: type):
-        super().__init__(
-            f"{service.__module__}.{service.__qualname__} must be defined"
-            " for the given context"
         )

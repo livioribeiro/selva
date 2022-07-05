@@ -1,8 +1,14 @@
-from selva.web.background_tasks import BackgroundTasks
+from selva.web import RequestContext
+
+ASGI_SCOPE = {
+    "type": "http",
+    "http_version": "1.1",
+    "method": "GET",
+}
 
 
 async def test_sync_tasks():
-    bt = BackgroundTasks()
+    ctx = RequestContext(ASGI_SCOPE, None, None)
 
     result = False
 
@@ -10,13 +16,15 @@ async def test_sync_tasks():
         nonlocal result
         result = True
 
-    bt.add_task(task)
-    await bt._run_tasks()
+    ctx.add_delayed_task(task)
+    for task in ctx.delayed_tasks:
+        await task
+
     assert result
 
 
 async def test_async_tasks():
-    bt = BackgroundTasks()
+    ctx = RequestContext(ASGI_SCOPE, None, None)
 
     result = False
 
@@ -24,13 +32,15 @@ async def test_async_tasks():
         nonlocal result
         result = True
 
-    bt.add_task(task)
-    await bt._run_tasks()
+    ctx.add_delayed_task(task)
+    for task in ctx.delayed_tasks:
+        await task
+
     assert result
 
 
 async def test_awaitable_tasks():
-    bt = BackgroundTasks()
+    ctx = RequestContext(ASGI_SCOPE, None, None)
 
     result = False
 
@@ -38,13 +48,15 @@ async def test_awaitable_tasks():
         nonlocal result
         result = True
 
-    bt.add_task(task())
-    await bt._run_tasks()
+    ctx.add_delayed_task(task())
+    for task in ctx.delayed_tasks:
+        await task
+
     assert result
 
 
 async def test_sync_tasks_with_args():
-    bt = BackgroundTasks()
+    ctx = RequestContext(ASGI_SCOPE, None, None)
 
     result = None
 
@@ -52,13 +64,15 @@ async def test_sync_tasks_with_args():
         nonlocal result
         result = arg
 
-    bt.add_task(task, "arg")
-    await bt._run_tasks()
+    ctx.add_delayed_task(task, "arg")
+    for task in ctx.delayed_tasks:
+        await task
+
     assert result == "arg"
 
 
 async def test_async_tasks_with_args():
-    bt = BackgroundTasks()
+    ctx = RequestContext(ASGI_SCOPE, None, None)
 
     result = None
 
@@ -66,13 +80,15 @@ async def test_async_tasks_with_args():
         nonlocal result
         result = arg
 
-    bt.add_task(task, "arg")
-    await bt._run_tasks()
+    ctx.add_delayed_task(task, "arg")
+    for task in ctx.delayed_tasks:
+        await task
+
     assert result == "arg"
 
 
 async def test_sync_tasks_with_kwargs():
-    bt = BackgroundTasks()
+    ctx = RequestContext(ASGI_SCOPE, None, None)
 
     result = None
 
@@ -80,13 +96,15 @@ async def test_sync_tasks_with_kwargs():
         nonlocal result
         result = kwarg
 
-    bt.add_task(task, kwarg="kwarg")
-    await bt._run_tasks()
+    ctx.add_delayed_task(task, kwarg="kwarg")
+    for task in ctx.delayed_tasks:
+        await task
+
     assert result == "kwarg"
 
 
 async def test_async_tasks_with_kwargs():
-    bt = BackgroundTasks()
+    ctx = RequestContext(ASGI_SCOPE, None, None)
 
     result = None
 
@@ -94,13 +112,15 @@ async def test_async_tasks_with_kwargs():
         nonlocal result
         result = kwarg
 
-    bt.add_task(task, kwarg="kwarg")
-    await bt._run_tasks()
+    ctx.add_delayed_task(task, kwarg="kwarg")
+    for task in ctx.delayed_tasks:
+        await task
+
     assert result == "kwarg"
 
 
 async def test_sync_tasks_with_args_and_kwargs():
-    bt = BackgroundTasks()
+    ctx = RequestContext(ASGI_SCOPE, None, None)
 
     result = None, None
 
@@ -108,13 +128,15 @@ async def test_sync_tasks_with_args_and_kwargs():
         nonlocal result
         result = arg, kwarg
 
-    bt.add_task(task, "arg", kwarg="kwarg")
-    await bt._run_tasks()
+    ctx.add_delayed_task(task, "arg", kwarg="kwarg")
+    for task in ctx.delayed_tasks:
+        await task
+
     assert result == ("arg", "kwarg")
 
 
 async def test_async_tasks_with_args_and_kwargs():
-    bt = BackgroundTasks()
+    ctx = RequestContext(ASGI_SCOPE, None, None)
 
     result = None, None
 
@@ -122,13 +144,15 @@ async def test_async_tasks_with_args_and_kwargs():
         nonlocal result
         result = arg, kwarg
 
-    bt.add_task(task, "arg", kwarg="kwarg")
-    await bt._run_tasks()
+    ctx.add_delayed_task(task, "arg", kwarg="kwarg")
+    for task in ctx.delayed_tasks:
+        await task
+
     assert result == ("arg", "kwarg")
 
 
 async def test_multiple_tasks():
-    bt = BackgroundTasks()
+    ctx = RequestContext(ASGI_SCOPE, None, None)
 
     result1 = None
     result2 = None
@@ -146,11 +170,13 @@ async def test_multiple_tasks():
         nonlocal result3
         result3 = "value3"
 
-    bt.add_task(sync_task, "value1")
-    bt.add_task(async_task, "value2")
-    bt.add_task(coro_task())
+    ctx.add_delayed_task(sync_task, "value1")
+    ctx.add_delayed_task(async_task, "value2")
+    ctx.add_delayed_task(coro_task())
 
-    await bt._run_tasks()
+    for task in ctx.delayed_tasks:
+        await task
+
     assert result1 == "value1"
     assert result2 == "value2"
     assert result3 == "value3"
