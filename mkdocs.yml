@@ -12,6 +12,8 @@ repo_url: https://github.com/livioribeiro/selva
 edit_uri: ''
 
 markdown_extensions:
+  - admonition
+  - pymdownx.details
   - pymdownx.highlight:
       anchor_linenums: true
   - pymdownx.inlinehilite
@@ -23,3 +25,4 @@ markdown_extensions:
 nav:
   - Selva: index.md
   - tutorial.md
+  - controllers.md
