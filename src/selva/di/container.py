@@ -1,5 +1,4 @@
-import functools
-from collections.abc import Callable
+from collections.abc import Awaitable
 from types import ModuleType
 from typing import Any, Type, TypeVar
 
@@ -23,8 +22,8 @@ TService = TypeVar("TService")
 class Container:
     def __init__(self):
         self.registry = ServiceRegistry()
-        self.store_singleton: dict[tuple[type, str | None], Any] = {}
-        self.finalizers: list[Callable] = []
+        self.store: dict[tuple[type, str | None], Any] = {}
+        self.finalizers: list[Awaitable] = []
         self.interceptors: list[Type[Interceptor]] = []
 
     def register(
@@ -47,7 +46,7 @@ class Container:
         self.register(service_type, provides=provides, name=name)
 
     def define_singleton(self, service_type: type, instance: Any, *, name: str = None):
-        self.store_singleton[service_type, name] = instance
+        self.store[service_type, name] = instance
 
     def interceptor(self, interceptor: Type[Interceptor]):
         self.register(
@@ -93,7 +92,7 @@ class Container:
 
     def _get_from_cache(self, service_type: type, name: str | None) -> Any | None:
         # try getting from singleton store
-        if instance := self.store_singleton.get((service_type, name)):
+        if instance := self.store.get((service_type, name)):
             return instance
 
         return None
@@ -147,10 +146,10 @@ class Container:
 
         instance = await maybe_async(factory, **dependencies)
 
-        self.store_singleton[definition.provides, name] = instance
+        self.store[definition.provides, name] = instance
 
         await self._run_initializer(definition, instance)
-        await self._setup_finalizers(definition, instance)
+        self._setup_finalizers(definition, instance)
 
         if definition.provides is not Interceptor:
             await self._run_interceptors(instance, definition.provides)
@@ -162,9 +161,9 @@ class Container:
             dependencies = await self._resolve_dependencies(initializer)
             await maybe_async(initializer, instance, **dependencies)
 
-    async def _setup_finalizers(self, definition: ServiceDefinition, instance: Any):
+    def _setup_finalizers(self, definition: ServiceDefinition, instance: Any):
         for finalizer in definition.finalizers:
-            self.finalizers.append(functools.partial(finalizer, instance))
+            self.finalizers.append(maybe_async(finalizer, instance))
 
     async def _run_interceptors(self, instance: Any, service_type: type):
         for cls in self.interceptors:
@@ -175,6 +174,6 @@ class Container:
 
     async def run_finalizers(self):
         for finalizer in reversed(self.finalizers):
-            await maybe_async(finalizer)
+            await finalizer
 
         self.finalizers.clear()
