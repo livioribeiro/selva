@@ -1,10 +1,8 @@
-from selva.di import service
-
-from .converter import PathParamConverter
+from .converter import path_param_converter
 
 
-@service(provides=PathParamConverter[int])
-class IntPathParamConverter(PathParamConverter[int]):
+@path_param_converter(int)
+class IntPathParamConverter:
     async def from_path(self, value: str) -> int:
         return int(value)
 
@@ -12,8 +10,8 @@ class IntPathParamConverter(PathParamConverter[int]):
         return str(obj)
 
 
-@service(provides=PathParamConverter[float])
-class FloatPathParamConverter(PathParamConverter[float]):
+@path_param_converter(float)
+class FloatPathParamConverter:
     async def from_path(self, value: str) -> float:
         return float(value)
 
@@ -21,8 +19,8 @@ class FloatPathParamConverter(PathParamConverter[float]):
         return str(obj)
 
 
-@service(provides=PathParamConverter[str])
-class StrPathParamConverter(PathParamConverter[str]):
+@path_param_converter(str)
+class StrPathParamConverter:
     async def from_path(self, value: str) -> str:
         return value
 
@@ -30,8 +28,8 @@ class StrPathParamConverter(PathParamConverter[str]):
         return obj
 
 
-@service(provides=PathParamConverter[bool])
-class BoolPathParamConverter(PathParamConverter[bool]):
+@path_param_converter(bool)
+class BoolPathParamConverter:
     async def from_path(self, value: str) -> bool:
         return value in ["1", "true", "True"]
 

@@ -19,7 +19,8 @@ from selva.web.errors import HttpError
 from selva.web.middleware import Middleware
 from selva.web.request import FromRequest, RequestContext, from_request_impl
 from selva.web.response import IntoResponse, into_response_impl
-from selva.web.routing import param_converter
+from selva.web.routing import path_param_converter_impl
+from selva.web.routing.converter import PathParamConverter
 from selva.web.routing.decorators import CONTROLLER_ATTRIBUTE
 from selva.web.routing.router import Router
 
@@ -65,7 +66,7 @@ class Application:
         self.middleware_classes: list[Type[Middleware]] = middleware or []
 
         self.di.define_singleton(Router, self.router)
-        self.di.scan(from_request_impl, param_converter, into_response_impl)
+        self.di.scan(from_request_impl, path_param_converter_impl, into_response_impl)
 
         self.di.define_singleton(Settings, Settings())
 
@@ -127,6 +128,28 @@ class Application:
                     )
                 break
 
+    async def _params_from_path(
+        self,
+        values: dict[str, str],
+        params: dict[str, type],
+    ) -> dict[str, Any]:
+        path_params = {}
+
+        for name, item_type in params.items():
+            for base_type in get_base_types(item_type):
+                if converter := await self.di.get(
+                    PathParamConverter[base_type], optional=True
+                ):
+                    value = await maybe_async(converter.from_path, values[name])
+                    path_params[name] = value
+                    break
+            else:
+                raise RuntimeError(
+                    f"no implementation of 'PathParamConverter' found for type {item_type}"
+                )
+
+        return path_params
+
     async def _params_from_request(
         self,
         context: RequestContext,
@@ -186,6 +209,7 @@ class Application:
         path_params = match.params
 
         try:
+            path_params = await self._params_from_path(path_params, match.route.path_params)
             request_params = await self._params_from_request(
                 context, match.route.request_params
             )
