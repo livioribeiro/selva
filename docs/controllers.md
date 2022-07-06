@@ -29,7 +29,7 @@ class AdminController:
 
 ## Path parameters
 
-Parameters can be defined in the handlers' path:
+Parameters can be defined in the handler's path:
 
 ```python
 @controller
@@ -49,10 +49,12 @@ class Controller:
         return {f"repeat {i}": i for i in range(amount)}
 ```
 
-Conversion can be customized by implementing `PathParamConverter`
+Conversion can be customized by decorating a class with `path_param_converter`,
+which must have the methods `from_path(value: str) -> T` and `to_path(obj: T) -> str`:
 
 ```python
 from dataclasses import dataclass
+from selva.web import controller, get
 from selva.web.routing.converter import path_param_converter
 
 
