@@ -1,6 +1,6 @@
 from http import HTTPStatus
 
-from asgikit.responses import HttpResponse, JsonResponse, PlainTextResponse
+from asgikit.responses import HttpResponse
 
 from selva.di import service
 
@@ -22,34 +22,34 @@ class HTTPStatusIntoResponse(IntoResponse[HTTPStatus]):
 @service(provides=IntoResponse[str])
 class StrIntoResponse(IntoResponse[str]):
     def into_response(self, value: str) -> HttpResponse:
-        return PlainTextResponse(value)
+        return HttpResponse.text(value)
 
 
 @service(provides=IntoResponse[list])
 class ListIntoResponse(IntoResponse[list]):
     def into_response(self, value: list) -> HttpResponse:
-        return JsonResponse(value)
+        return HttpResponse.json(value)
 
 
 @service(provides=IntoResponse[dict])
 class DictIntoResponse(IntoResponse[dict]):
     def into_response(self, value: dict) -> HttpResponse:
-        return JsonResponse(value)
+        return HttpResponse.json(value)
 
 
 @service(provides=IntoResponse[set])
 class SetIntoResponse(IntoResponse[set]):
     def into_response(self, value: set) -> HttpResponse:
-        return JsonResponse(value)
+        return HttpResponse.json(value)
 
 
 @service(provides=IntoResponse[tuple])
 class TupleIntoResponse(IntoResponse[tuple]):
     def into_response(self, value: tuple) -> HttpResponse:
-        return JsonResponse(value)
+        return HttpResponse.json(value)
 
 
 @service(provides=IntoResponse[None])
 class NoneIntoResponse(IntoResponse[None]):
     def into_response(self, value: None) -> HttpResponse:
-        return HttpResponse(status=HTTPStatus.NO_CONTENT)
+        return HttpResponse.no_content()

@@ -1,123 +1,64 @@
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
 
-[project]
+[tool.poetry]
 name = "selva"
-description = 'ASGI Web Framework with Dependency Injection'
-readme = "README.md"
-requires-python = ">=3.10"
+version = "0.1.7"
+description = "ASGI Web Framework with Dependency Injection"
+authors = ["Livio Ribeiro <livioribeiro@outlook.com>"]
 license = "MIT"
+readme = "README.md"
+repository = "https://github.com/livioribeiro/selva"
 keywords = ["asgi", "framework", "asyncio", "web"]
-authors = [
-  { name = "Livio Ribeiro", email = "livioribeiro@outlook.com" },
-]
 classifiers = [
-  "Development Status :: 4 - Beta",
-  "Environment :: Web Environment",
-  "Framework :: AsyncIO",
-  "Intended Audience :: Developers",
-  "License :: OSI Approved :: MIT License",
-  "Operating System :: OS Independent",
-  "Programming Language :: Python",
-  "Programming Language :: Python :: 3.10",
-  "Programming Language :: Python :: Implementation :: CPython",
-  "Programming Language :: Python :: Implementation :: PyPy",
-  "Topic :: Internet :: WWW/HTTP",
-  "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
-  "Topic :: Software Development :: Libraries :: Application Frameworks",
+    "Development Status :: 4 - Beta",
+    "Environment :: Web Environment",
+    "Framework :: AsyncIO",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Programming Language :: Python :: Implementation :: PyPy",
+    "Topic :: Internet :: WWW/HTTP",
+    "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
+    "Topic :: Software Development :: Libraries :: Application Frameworks",
 ]
-dependencies = [
-  "asgikit~=0.1.3",
-  "tomli~=2.0; python_version <= '3.10'"
-]
-
-dynamic = ["version"]
-
-[project.urls]
-Documentation = "https://github.com/livioribeiro/selva#readme"
-Issues = "https://github.com/livioribeiro/selva/issues"
-Source = "https://github.com/livioribeiro/selva"
-
-[tool.hatch.version]
-path = "src/selva/__about__.py"
-
-[tool.hatch.build]
-packages = ["src/selva"]
-
-[tool.hatch.envs.default]
-dependencies = [
-  "pytest~=7.1",
-  "pytest-asyncio~=0.18.3",
-  "pytest-cov~=3.0",
-]
-[tool.hatch.envs.default.scripts]
-test = "pytest"
-cov = "pytest --cov-report=term-missing --cov-config=pyproject.toml --cov=selva --cov=tests"
-no-cov = "cov --no-cov"
-
-[[tool.hatch.envs.test.matrix]]
-python = ["310"]
-
-[tool.hatch.envs.style]
-detached = true
-dependencies = [
-  "pylint~=2.14",
-  "black~=22.3",
-  "isort~=5.10",
-  "flake8~=4.0",
-  "mypy~=0.961",
-]
-[tool.hatch.envs.style.scripts]
-check = [
-  "flake8 --exit-zero src",
-  "black --check --diff src",
-  "isort --check-only --diff src",
-]
-lint = "pylint src"
-format = [
-  "isort src",
-  "black src",
-  "check",
+packages = [
+    { include = "selva", from = "src" }
 ]
 
-[tool.hatch.envs.docs]
-detached = true
-dependencies = [
-  "mkdocs-material~=8.3.8",
-]
-[tool.hatch.envs.docs.scripts]
-build = "mkdocs build"
-serve = "mkdocs serve"
-deploy = "mkdocs gh-deploy --force"
+[tool.poetry.dependencies]
+python = "^3.10"
+asgikit = "^0.2.0"
+tomli = { version = "^2.0.0", python = "< 3.11" }
 
-[tool.hatch.envs.examples]
-dependencies = [
-  "uvicorn[standard]~=0.18",
-  "databases[aiosqlite]",
-]
-
-[tool.hatch.envs.examples.scripts]
-background-tasks = "cd examples && cd background_tasks && uvicorn main:app"
-database = "cd examples && cd database && uvicorn main:app"
-middleware = "cd examples && cd middleware && uvicorn main:app"
-settings = "cd examples && cd settings && uvicorn main:app"
-websocket = "cd examples && cd websocket && uvicorn main:app"
+[tool.poetry.dev-dependencies]
+uvicorn = { version = "^0.18", extras = ["standard"] }
+mkdocs-material = "^8.3.8"
+pytest = "^7.1"
+pytest-asyncio = "^0.18.3"
+pytest-cov = "^3.0"
+coverage = { version = "^6.4", extras = ["toml"] }
+pylint = "^2.14"
+black = "^22.3"
+isort = "^5.10"
+flake8 = "^4.0"
+mypy = "^0.961"
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
-testpaths = ["tests"]
+testpaths = [
+    "tests",
+]
 
 [tool.coverage.run]
-branch = true
-parallel = true
-omit = [
-  "src/selva/__about__.py",
-]
+source = ["src"]
 
-[tool.coverage.report]
-exclude_lines = [
-  "no cov",
-  "if __name__ == .__main__.:",
-  "if TYPE_CHECKING:",
-]
+[tool.pylint.MASTER]
+disable = ["C0114", "C0115", "C0116"] # ignore missing docstrings
+
+[tool.mypy]
+ignore_missing_imports = true
