@@ -4,6 +4,8 @@ site_url: https://livioribeiro.github.io/selva/
 
 theme:
   name: material
+  features:
+    - content.code.annotate
 
 repo_name: livioribeiro/selva
 repo_url: https://github.com/livioribeiro/selva
@@ -12,4 +14,12 @@ edit_uri: ''
 markdown_extensions:
   - pymdownx.highlight:
       anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
   - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+
+nav:
+  - Selva: index.md
+  - tutorial.md
