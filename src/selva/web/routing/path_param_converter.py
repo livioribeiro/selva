@@ -1,4 +1,3 @@
-from abc import ABCMeta, abstractmethod
 from typing import Protocol, TypeVar, runtime_checkable
 
 from selva.di import service
@@ -9,14 +8,12 @@ T = TypeVar("T")
 
 
 @runtime_checkable
-class PathParamConverter(Protocol[T], metaclass=ABCMeta):
-    @abstractmethod
+class PathParamConverter(Protocol[T]):
     async def from_path(self, value: str) -> T:
-        pass
+        raise NotImplementedError()
 
-    @abstractmethod
     async def to_path(self, obj: T) -> str:
-        pass
+        return str(obj)
 
 
 def path_param_converter(target_type: type):

@@ -6,12 +6,8 @@ from typing import Callable, NamedTuple
 
 from asgikit.requests import HttpMethod
 
-PATH_PARAMS_RE = re.compile(r"\{([a-zA-Z\w]+)\}")
-
-PATH_PARAM_INT = r"\d+"
-PATH_PARAM_FLOAT = r"\d+(\.\d+)?"
-PATH_PARAM_BOOL = r"1|0|true|false|True|False"
-PATH_PARAM_STR = r".+?"
+PATH_PARAM_SPEC_RE = re.compile(r"\{([a-zA-Z\w]+)\}")
+PATH_PARAM_PATTERN = r".+?"
 
 
 def build_path_regex(
@@ -23,7 +19,7 @@ def build_path_regex(
     """
     regex = path
 
-    path_params = PATH_PARAMS_RE.findall(path)
+    path_params = PATH_PARAM_SPEC_RE.findall(path)
 
     # verify that path does not have duplicate parameters
     counter = Counter(path_params)
@@ -38,16 +34,7 @@ def build_path_regex(
         type_hint = type_hints.get(param, str)
         param_types[param] = type_hint
 
-        if type_hint is int:
-            param_regex = PATH_PARAM_INT
-        elif type_hint is float:
-            param_regex = PATH_PARAM_FLOAT
-        elif type_hint is bool:
-            param_regex = PATH_PARAM_BOOL
-        else:
-            param_regex = PATH_PARAM_STR
-
-        param_regex = f"(?P<{param}>{param_regex})"
+        param_regex = f"(?P<{param}>{PATH_PARAM_PATTERN})"
         regex = regex.replace(f"{{{param}}}", param_regex)
 
     if not regex.startswith("/"):

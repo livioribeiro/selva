@@ -1,22 +1,6 @@
+from selva.web.errors import NotFoundError
+
 from .converter import path_param_converter
-
-
-@path_param_converter(int)
-class IntPathParamConverter:
-    async def from_path(self, value: str) -> int:
-        return int(value)
-
-    async def to_path(self, obj: int) -> str:
-        return str(obj)
-
-
-@path_param_converter(float)
-class FloatPathParamConverter:
-    async def from_path(self, value: str) -> float:
-        return float(value)
-
-    async def to_path(self, obj: float) -> str:
-        return str(obj)
 
 
 @path_param_converter(str)
@@ -28,10 +12,41 @@ class StrPathParamConverter:
         return obj
 
 
+@path_param_converter(int)
+class IntPathParamConverter:
+    async def from_path(self, value: str) -> int | None:
+        try:
+            return int(value)
+        except ValueError:
+            raise NotFoundError()
+
+    async def to_path(self, obj: int) -> str:
+        return str(obj)
+
+
+@path_param_converter(float)
+class FloatPathParamConverter:
+    async def from_path(self, value: str) -> float | None:
+        try:
+            return float(value)
+        except ValueError:
+            raise NotFoundError()
+
+    async def to_path(self, obj: float) -> str:
+        return str(obj)
+
+
 @path_param_converter(bool)
 class BoolPathParamConverter:
-    async def from_path(self, value: str) -> bool:
-        return value in ["1", "true", "True"]
+    TRUE_VALUES = ["1", "true", "True", "TRUE"]
+    FALSE_VALUES = ["0", "false", "False", "FALSE"]
+    POSSIBLE_VALUE = TRUE_VALUES + FALSE_VALUES
+
+    async def from_path(self, value: str) -> bool | None:
+        if value in self.POSSIBLE_VALUE:
+            return value in self.TRUE_VALUES
+
+        raise NotFoundError()
 
     async def to_path(self, obj: bool) -> str:
         return str(obj)
