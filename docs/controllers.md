@@ -27,75 +27,84 @@ class AdminController:
     Defining a path on `@controller` or `@get @post etc...` is optional and
     defaults to an empty string `""`.
 
-## Path parameters
+## Dependencies
 
-Parameters can be defined in the handler's path:
-
-```python
-@controller
-class Controller:
-    @get("hello/{name}")
-    def handler(self, name: str):
-        return f"Hello, {name}"
-```
-
-Parameter conversion is done by the type annotation on the parameter:
+Controllers themselves are services, and therefore can have services injected.
 
 ```python
-@controller
-class Controller:
-    @get("repeat/{amount}")
-    def handler(self, amount: int):
-        return {f"repeat {i}": i for i in range(amount)}
-```
-
-Conversion can be customized by decorating a class with `path_param_converter`,
-which must have the methods `from_path(value: str) -> T` and `to_path(obj: T) -> str`:
-
-```python
-from dataclasses import dataclass
-from selva.web import controller, get
-from selva.web.routing.converter import path_param_converter
+from selva.di import service
+from selva.web import controller
 
 
-@dataclass
-class MyModel:
-    name: str
-
-
-@path_param_converter(MyModel)
-class MyModelPathParamConverter:
-    async def from_path(self, value: str) -> MyModel:
-        return MyModel(value)
-
-    async def to_path(self, obj: MyModel) -> str:
-        return obj.name
+@service
+class MyService:
+    pass
 
 
 @controller
 class MyController:
-    @get("{model}")
-    def handler(self, model: MyModel):
-        return str(model)
+    def __init__(self, my_service: MyService):
+        self.service = my_service
 ```
 
 ## Request Information
 
 Handler methods can receive a parameter annotated with type `RequestContext`
 that provides access to request information (path, method, headers, query
-string, request  body). There are several methods to access the request body:
+string, request body). The underlying http request or websocket from
+[asgikit](https://pypi.org/project/asgikit/) can be accessed via  the properties
+`RequestContext.request` or `RequestContext.websocket`, respectively.
 
-* `async def stream() -> AsyncIterable[bytes]`
-* `async def body() -> bytes`
-* `async def text() -> str`
-* `async def json() -> dict | list`
-* `async def form() -> dict`
+!!! attention
 
-For websocket, the `RequestContext` will have other methods available:
+    For http requests, `RequestContext.websocket` will be `None`, and for
+    websocket requests, `RequestContext.request` will be `None`
 
-* `async def accept()`
-* `async def receive() -> str | bytes`
-* `async def send_text(data: str)`
-* `async def send_bytes(data: bytes)`
-* `async def send_json(data: dict)`
-* `async def close(code: int = None)`
+`RequestContext` uses `__getattr__` to proxy methods from the underlying `HttpRequest` or `WebSocket`
+
+```python
+from selva.web import RequestContext, controller, get, websocket
+
+
+@controller
+class MyController:
+    @get
+    def handler(self, context: RequestContext):
+        assert context.request is not None
+        assert context.websocket is None
+        return context.path
+
+    @websocket
+    async def ws_handler(self, context: RequestContext):
+        assert context.request is None
+        assert context.websocket is not None
+        await context.accept()
+        while True:
+            data = await context.receive()
+            await context.send_text(data)
+```
+
+## Request body
+
+There are several methods to access the request body:
+
+```python
+async def stream() -> AsyncIterable[bytes]
+async def body() -> bytes
+async def text() -> str
+async def json() -> dict | list
+async def form() -> dict
+```
+
+## Websockets
+
+For websocket, `RequestContext` will have following methods:
+
+```python
+async def accept()
+async def receive() -> str | bytes
+async def send_text(data: str)
+async def send_bytes(data: bytes)
+async def send_json(data: dict)
+async def close(code: int = None)
+```
