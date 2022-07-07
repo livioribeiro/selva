@@ -19,3 +19,4 @@ from selva.web.routing.decorators import (
     put,
     websocket,
 )
+from selva.web.routing.path_param_converter import path_param_converter

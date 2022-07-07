@@ -9,7 +9,7 @@ __all__ = ("RequestContext",)
 
 
 class RequestContext:
-    __slots__ = ("attributes", "delayed_tasks", "_inner", "__weakref__")
+    __slots__ = ("attributes", "delayed_tasks", "_inner")
 
     def __init__(self, scope, receive, send):
         if scope["type"] == "http":

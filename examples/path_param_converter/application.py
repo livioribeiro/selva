@@ -1,7 +1,6 @@
 from dataclasses import dataclass
 
-from selva.web import controller, get
-from selva.web.routing.converter import path_param_converter
+from selva.web import controller, get, path_param_converter
 
 
 @dataclass
@@ -20,6 +19,10 @@ class MyModelPathParamConverter:
 
 @controller
 class MyController:
-    @get("{my_model}")
-    def handler(self, my_model: MyModel):
+    @get("/int/{param}")
+    def handler_int(self, param: int):
+        return str(param)
+
+    @get("/custom/{my_model}")
+    def handler_custom(self, my_model: MyModel):
         return str(my_model)
