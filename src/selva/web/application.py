@@ -20,7 +20,7 @@ from selva.web.middleware import Middleware
 from selva.web.request import FromRequest, RequestContext, from_request_impl
 from selva.web.response import IntoResponse, into_response_impl
 from selva.web.routing import path_param_converter_impl
-from selva.web.routing.converter import PathParamConverter
+from selva.web.routing.path_param_converter import PathParamConverter
 from selva.web.routing.decorators import CONTROLLER_ATTRIBUTE
 from selva.web.routing.router import Router
 

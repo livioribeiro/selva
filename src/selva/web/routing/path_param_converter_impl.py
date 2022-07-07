@@ -1,6 +1,6 @@
 from selva.web.errors import NotFoundError
 
-from .converter import path_param_converter
+from .path_param_converter import path_param_converter
 
 
 @path_param_converter(str)
