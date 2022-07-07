@@ -27,7 +27,8 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Application Frameworks",
 ]
 packages = [
-    { include = "selva", from = "src" }
+    { include = "selva", from = "src" },
+    { include = "selva/py.typed", from = "src" },
 ]
 
 [tool.poetry.dependencies]
