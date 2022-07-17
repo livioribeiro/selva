@@ -7,10 +7,10 @@ __all__ = ("get_base_types",)
 @cache
 def get_base_types(base_class: type) -> list[type | Generic]:
     if origin := get_origin(base_class):
-        result = [base_class] + list(origin.__mro__)
+        result = [base_class] + list(origin.mro())
         base_class = origin
     else:
-        result = list(base_class.__mro__)
+        result = list(base_class.mro())
 
     # remove 'object' type
     result.pop()
