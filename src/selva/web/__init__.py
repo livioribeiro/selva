@@ -1,3 +1,4 @@
+from asgikit.requests import HttpMethod
 from asgikit.responses import (
     FileResponse,
     HttpResponse,
