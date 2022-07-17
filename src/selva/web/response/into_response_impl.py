@@ -1,8 +1,7 @@
 from http import HTTPStatus
 
-from asgikit.responses import HttpResponse
-
 from selva.di import service
+from selva.web import HttpResponse
 
 from .into_response import IntoResponse
 
@@ -41,15 +40,3 @@ class DictIntoResponse(IntoResponse[dict]):
 class SetIntoResponse(IntoResponse[set]):
     def into_response(self, value: set) -> HttpResponse:
         return HttpResponse.json(value)
-
-
-@service(provides=IntoResponse[tuple])
-class TupleIntoResponse(IntoResponse[tuple]):
-    def into_response(self, value: tuple) -> HttpResponse:
-        return HttpResponse.json(value)
-
-
-@service(provides=IntoResponse[None])
-class NoneIntoResponse(IntoResponse[None]):
-    def into_response(self, value: None) -> HttpResponse:
-        return HttpResponse.no_content()
