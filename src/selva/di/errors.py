@@ -26,14 +26,6 @@ class DependencyLoopError(DependencyInjectionError):
         super().__init__(f"dependency loop detected: {loop}")
 
 
-class IncompatibleTypesError(DependencyInjectionError):
-    def __init__(self, implementation: type, interface: type):
-        super().__init__(
-            f"service '{_type_name(implementation)}'"
-            f" does not derive from '{_type_name(interface)}'"
-        )
-
-
 class ServiceNotFoundError(DependencyInjectionError):
     def __init__(
         self,

@@ -3,10 +3,7 @@ from dataclasses import dataclass
 import pytest
 
 from selva.di import Container
-from selva.di.errors import (
-    IncompatibleTypesError,
-    ServiceAlreadyRegisteredError,
-)
+from selva.di.errors import ServiceAlreadyRegisteredError
 
 from .fixtures import ioc
 
@@ -67,14 +64,6 @@ async def test_interface_and_implementation(ioc: Container):
 
     service = await ioc.get(Interface)
     assert isinstance(service, Implementation)
-
-
-def test_incompatible_types_should_fail(ioc: Container):
-    class NotImplementation:
-        pass
-
-    with pytest.raises(IncompatibleTypesError):
-        ioc.register(NotImplementation, provides=Interface)
 
 
 async def test_register_a_service_twice_should_fail(ioc: Container):

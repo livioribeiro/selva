@@ -32,17 +32,11 @@ Selva already provide converters for the types `str`, `int`, `float` and `bool`.
 
 ## Custom parameter conversion
 
-Conversion can be customized by decorating a class with `:::python @path_param_converter`,
-which must implement the following methods
-
-* `:::python from_path(value: str) -> T`
-* `:::python to_path(obj: T) -> str`:
-
-The method `to_path` is used to build url for routes.
+Conversion can be customized by providing an implementing of `selva.web.PathConverter[Type]`.
 
 ```python
 from dataclasses import dataclass
-from selva.web import controller, get, path_param_converter
+from selva.web import PathConverter, controller, get
 
 
 @dataclass
@@ -50,13 +44,9 @@ class MyModel:
     name: str
 
 
-@path_param_converter(MyModel)
-class MyModelPathParamConverter:
-    async def from_path(self, value: str) -> MyModel:
+class MyModelPathParamConverter(PathConverter[MyModel]):
+    def from_path(self, value: str) -> MyModel:
         return MyModel(value)
-
-    async def to_path(self, obj: MyModel) -> str:
-        return obj.name
 
 
 @controller
@@ -65,3 +55,11 @@ class MyController:
     def handler(self, model: MyModel):
         return str(model)
 ```
+
+If the `PathConverter` implementation raise an error, the handler is not called.
+And if the error is a subclass of `selva.web.errors.HttpError`, for example
+`UnathorizedError`, a response will be returned according to the error.
+
+The `PathConverter` can also be provided a method called `:::into_path(self, obj) -> str`
+that is used to convert the object back into the path. This is used to build urls
+from routes. If not implemented, the default calls `str` on the object.

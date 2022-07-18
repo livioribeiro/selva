@@ -17,11 +17,13 @@ from selva.utils.package_scan import scan_packages
 from selva.web.configuration import Settings
 from selva.web.errors import HttpError
 from selva.web.middleware import Middleware
-from selva.web.request import FromRequest, RequestContext, from_request_impl
-from selva.web.response import IntoResponse, into_response_impl
-from selva.web.routing import path_param_converter_impl
-from selva.web.routing.path_param_converter import PathParamConverter
+from selva.web.request import RequestContext, from_request_impl
+from selva.web.request.from_request import FromRequest
+from selva.web.response import into_response_impl
+from selva.web.response.into_response import IntoResponse
+from selva.web.routing import path_converter_impl
 from selva.web.routing.decorators import CONTROLLER_ATTRIBUTE
+from selva.web.routing.path_converter import PathConverter
 from selva.web.routing.router import Router
 
 LOGGER = logging.getLogger(__name__)
@@ -57,16 +59,14 @@ class Application:
         self,
         *components,
         middleware: list[Type[Middleware]] = None,
-        debug=False,
     ):
-        self.debug = debug
         self.di = Container()
         self.router = Router()
         self.handler = self._process_request
         self.middleware_classes: list[Type[Middleware]] = middleware or []
 
         self.di.define_singleton(Router, self.router)
-        self.di.scan(from_request_impl, path_param_converter_impl, into_response_impl)
+        self.di.scan(path_converter_impl, from_request_impl, into_response_impl)
 
         self.di.define_singleton(Settings, Settings())
 
@@ -138,14 +138,14 @@ class Application:
         for name, item_type in params.items():
             for base_type in get_base_types(item_type):
                 if converter := await self.di.get(
-                    PathParamConverter[base_type], optional=True
+                    PathConverter[base_type], optional=True
                 ):
                     value = await maybe_async(converter.from_path, values[name])
                     path_params[name] = value
                     break
             else:
                 raise RuntimeError(
-                    f"no implementation of 'PathParamConverter' found for type {item_type}"
+                    f"no implementation of '{PathConverter.__name__}' found for type {item_type}"
                 )
 
         return path_params
@@ -167,7 +167,7 @@ class Application:
                     break
             else:
                 raise RuntimeError(
-                    f"no implementation of 'FromRequest' found for type {item_type}"
+                    f"no implementation of '{FromRequest.__name__}' found for type {item_type}"
                 )
 
         return request_params
@@ -182,18 +182,14 @@ class Application:
         return await self._initialized_handle_request(context)
 
     async def _initialized_handle_request(self, context: RequestContext):
-        try:
-            if response := await self.handler(context):
-                await response(context.request)
-            for result in await asyncio.gather(
-                *context.delayed_tasks, return_exceptions=True
-            ):
-                if isinstance(result, Exception):
-                    LOGGER.exception(result)
-        finally:
-            task = asyncio.create_task(self.di.run_finalizers())
-            background_tasks.add(task)
-            task.add_done_callback(background_tasks.discard)
+        if response := await self.handler(context):
+            await response(context.request)
+
+        for result in await asyncio.gather(
+            *context.delayed_tasks, return_exceptions=True
+        ):
+            if isinstance(result, Exception):
+                LOGGER.exception(result)
 
     async def _process_request(self, context: RequestContext) -> HttpResponse:
         method = context.method if context.is_http else None
@@ -202,14 +198,16 @@ class Application:
         match = self.router.match(method, path)
 
         if not match:
-            return HttpResponse(status=HTTPStatus.NOT_FOUND)
+            return HttpResponse.not_found()
 
         controller = match.route.controller
         action = match.route.action
         path_params = match.params
 
         try:
-            path_params = await self._params_from_path(path_params, match.route.path_params)
+            path_params = await self._params_from_path(
+                path_params, match.route.path_params
+            )
             request_params = await self._params_from_request(
                 context, match.route.request_params
             )
@@ -235,5 +233,5 @@ class Application:
                 return await maybe_async(converter.into_response, value)
 
         raise RuntimeError(
-            f"no implementation of 'IntoResponse' found for type '{type(value)}'"
+            f"no implementation of '{IntoResponse.__name__}' found for type '{type(value)}'"
         )

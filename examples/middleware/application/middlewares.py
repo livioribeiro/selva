@@ -24,7 +24,7 @@ class LoggingMiddleware(Middleware):
 
         client = f"{context.client[0]}:{context.client[1]}"
         request_line = (
-            f"{context.method} {context.path} HTTP/{context.scope['http_version']}"
+            f"{context.method} {context.path} HTTP/{context.http_version}"
         )
         status = f"{response.status.value} {response.status.phrase}"
 

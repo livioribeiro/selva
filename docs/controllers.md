@@ -127,15 +127,13 @@ async def close(code: int = None)
 ## Request Parameters
 
 Handler methods can receive additional parameters, which will be extracted from
-the request context using an implementation of `selva.web.request.FromRequest[Type]`.
+the request context using an implementation of `selva.web.FromRequest[Type]`.
 If there is no direct implementation of `FromRequest[Type]`, Selva will iterate
 over the base types of `Type` until an implementation is found or an error will
 be returned if there is none.
 
 ```python
-from selva.di import service
-from selva.web import RequestContext, controller, get
-from selva.web.request import FromRequest
+from selva.web import RequestContext, FromRequest, controller, get
 
 
 class Param:
@@ -143,8 +141,7 @@ class Param:
         self.request_path = path
 
 
-@service(provides=FromRequest[Param])
-class ParamFromRequest:
+class ParamFromRequest(FromRequest[Param]):
     def from_request(self, context: RequestContext) -> Param:
         return Param(context.path)
 
@@ -164,8 +161,7 @@ And if the error is a subclass of `selva.web.errors.HttpError`, for example
 from selva.web.errors import UnauthorizedError
 
 
-@service(provides=FromRequest[Param])
-class ParamFromRequest:
+class ParamFromRequest(FromRequest[Param]):
     def from_request(self, context: RequestContext) -> Param:
         if "authorization" not in context.headers:
             raise UnauthorizedError()
@@ -188,14 +184,12 @@ class Controller:
         return HttpResponse.text("Ok")
 ```
 
-Handler methods can also return objects that have a corresponding `selva.web.response.IntoResponse[Type]`
+Handler methods can also return objects that have a corresponding `selva.web.IntoResponse[Type]`
 implementation. As with `FromRequest[Type]`, Selva will iterate over the base
 types of `Type` until an implementation is found or an error will be returned.
 
 ```python
-from selva.di import service
-from selva.web import HttpResponse, controller, get
-from selva.web.response import IntoResponse
+from selva.web import HttpResponse, IntoResponse, controller, get
 
 
 class Result:
@@ -203,8 +197,7 @@ class Result:
         self.data = data
 
 
-@service(provides=IntoResponse[Result])
-class ResultIntoResponse:
+class ResultIntoResponse(IntoResponse[Result]):
     def into_response(self, value: Result) -> HttpResponse:
         return HttpResponse.json({"result": value.data})
 

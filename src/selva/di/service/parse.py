@@ -8,7 +8,6 @@ from typing import Annotated, Any, Optional, TypeVar, Union
 from selva.di.decorators import DI_FINALIZER_ATTRIBUTE, DI_INITIALIZER_ATTRIBUTE
 from selva.di.errors import (
     FactoryMissingReturnTypeError,
-    IncompatibleTypesError,
     InvalidServiceTypeError,
     MultipleNameAnnotationsError,
     NonInjectableTypeError,
@@ -86,13 +85,6 @@ def _parse_definition_class(
         if origin:
             if any(isinstance(a, TypeVar) for a in typing.get_args(provides)):
                 raise TypeVarInGenericServiceError(provides)
-
-            orig_bases = getattr(service, "__orig_bases__", None)
-            if orig_bases and provides not in orig_bases:
-                raise IncompatibleTypesError(service, provides)
-
-        if not issubclass(service, origin or provides):
-            raise IncompatibleTypesError(service, provides)
 
     provided_service = provides or service
 
