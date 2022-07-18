@@ -44,7 +44,7 @@ class MyModel:
     name: str
 
 
-class MyModelPathParamConverter(PathConverter[MyModel]):
+class MyModelPathConverter(PathConverter[MyModel]):
     def from_path(self, value: str) -> MyModel:
         return MyModel(value)
 
@@ -60,6 +60,6 @@ If the `PathConverter` implementation raise an error, the handler is not called.
 And if the error is a subclass of `selva.web.errors.HttpError`, for example
 `UnathorizedError`, a response will be returned according to the error.
 
-The `PathConverter` can also be provided a method called `:::into_path(self, obj) -> str`
+The `PathConverter` can also be provided a method called `:::python into_path(self, obj) -> str`
 that is used to convert the object back into the path. This is used to build urls
 from routes. If not implemented, the default calls `str` on the object.
