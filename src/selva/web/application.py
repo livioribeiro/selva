@@ -48,10 +48,10 @@ def _is_registerable(arg) -> bool:
 background_tasks = set()
 
 
-class Application:
+class Selva:
     """Entrypoint class for a Selva Application
 
-    Will try to automatically import and register a application called "application".
+    Will try to automatically import and register a module called "application".
     Other modules and classes can be registered using the "register" method
     """
 
@@ -96,17 +96,18 @@ class Application:
                 raise RuntimeError(f"unknown scope '{scope['type']}'")
 
     def _register(self, *args: type | Callable | ModuleType | str):
-        for item in args:
+        def register_item(item: type | Callable | ModuleType | str):
             if _is_service(item):
                 self.di.service(item)
-                if _is_controller(item):
-                    self.router.route(item)
-            elif _is_module(item):
+            if _is_controller(item):
+                self.router.route(item)
+
+        for item in args:
+            if _is_module(item):
                 for subitem in scan_packages([item], _is_registerable):
-                    if _is_service(subitem):
-                        self.di.service(subitem)
-                        if _is_controller(subitem):
-                            self.router.route(subitem)
+                    register_item(subitem)
+            elif _is_service(item):
+                register_item(item)
             else:
                 raise ValueError(f"{item} is not a controller, service or application")
 
@@ -177,7 +178,7 @@ class Application:
             middleware = await self.di.get(cls)
             self.handler = functools.partial(middleware.execute, self.handler)
 
-        Application._handle_request = Application._initialized_handle_request
+        Selva._handle_request = Selva._initialized_handle_request
 
         return await self._initialized_handle_request(context)
 

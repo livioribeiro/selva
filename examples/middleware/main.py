@@ -1,8 +1,8 @@
-from selva.web import Application
+from selva.web import Selva
 
 from application.middlewares import AuthMiddleware, LoggingMiddleware, TimingMiddleware
 
-app = Application(
+app = Selva(
     middleware=[
         TimingMiddleware,
         LoggingMiddleware,

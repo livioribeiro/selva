@@ -15,7 +15,7 @@ pip install selva uvicorn
 Create file `main.py`:
 
 ```python
-from selva.web import Application, controller, get
+from selva.web import Selva, controller, get
 
 
 @controller
@@ -25,7 +25,7 @@ class Controller:
         return "Hello, World"
 
 
-app = Application(Controller)
+app = Selva(Controller)
 ```
 
 Run application with `uvicorn`:

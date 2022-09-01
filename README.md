@@ -14,7 +14,7 @@ pip install selva
 Create an application and controller
 
 ```python
-from selva.web import Application, controller, get
+from selva.web import Selva, controller, get
 
 
 @controller
@@ -24,14 +24,14 @@ class Controller:
         return "Hello, World!"
 
 
-app = Application(Controller)
+app = Selva(Controller)
 ```
 
 Add a service
 
 ```python
 from selva.di import service
-from selva.web import Application, controller, get
+from selva.web import Selva, controller, get
 
 
 @service
@@ -50,14 +50,14 @@ class Controller:
         return self.greeter.greet("World")
 
 
-app = Application(Controller, Greeter)
+app = Selva(Controller, Greeter)
 ```
 
 Get parameters from path
 
 ```python
 from selva.di import service
-from selva.web import Application, controller, get
+from selva.web import Selva, controller, get
 
 
 @service
@@ -78,14 +78,14 @@ class Controller:
         return {"greeting": greeting}
 
 
-app = Application(Controller, Greeter)
+app = Selva(Controller, Greeter)
 ```
 
 Configurations with [Pydantic](https://pydantic-docs.helpmanual.io/usage/settings/)
 
 ```python
 from selva.di import service
-from selva.web import Application, RequestContext, controller, get
+from selva.web import Selva, RequestContext, controller, get
 from pydantic import BaseSettings
 
 
@@ -125,14 +125,14 @@ class Controller:
         return {"greeting": greeting}
 
 
-app = Application(Controller, Greeter, settings_factory)
+app = Selva(Controller, Greeter, settings_factory)
 ```
 
 Manage services lifecycle (e.g [Databases](https://www.encode.io/databases/))
 
 ```python
 from selva.di import service, initializer, finalizer
-from selva.web import Application, RequestContext, controller, get
+from selva.web import Selva, RequestContext, controller, get
 from pydantic import BaseSettings, PostgresDsn
 from databases import Database
 
@@ -199,7 +199,7 @@ class Controller:
         return {"greeting": greeting}
 
 
-app = Application(Controller, Greeter, Repository, settings_factory)
+app = Selva(Controller, Greeter, Repository, settings_factory)
 ```
 
 Define controllers and services in a separate module
@@ -301,19 +301,19 @@ class Controller:
 
 ```python
 ### main.py
-from selva.web import Application
-
+from selva.web import Selva
 
 # module named "application" is automatically registered
-app = Application()
+app = Selva()
 ```
 
 Websockets
 
 ```python
 from pathlib import Path
-from selva.web import Application, FileResponse, RequestContext, controller, get, websocket
+from selva.web import Selva, FileResponse, RequestContext, controller, get, websocket
 from selva.web.errors import WebSocketDisconnectError
+
 
 @controller
 class WebSocketController:
@@ -340,7 +340,7 @@ class WebSocketController:
                 break
 
 
-app = Application(WebSocketController)
+app = Selva(WebSocketController)
 ```
 
 ```html

@@ -8,7 +8,7 @@ from asgikit.responses import (
 )
 from asgikit.websockets import WebSocket
 
-from selva.web.application import Application
+from selva.web.application import Selva
 from selva.web.middleware import Middleware
 from selva.web.request import RequestContext
 from selva.web.request.from_request import FromRequest

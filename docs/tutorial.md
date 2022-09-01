@@ -32,8 +32,9 @@ project/
 The `main.py` is just the entrypoint of the application.
 
 ```python
-from selva.web import Application
-app = Application()
+from selva.web import Selva
+
+app = Selva()
 ```
 
 And... that's it! Any module or package named `application` will automatically

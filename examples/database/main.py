@@ -1,3 +1,3 @@
-from selva.web import Application
+from selva.web import Selva
 
-app = Application()
+app = Selva()

@@ -1,5 +1,5 @@
 from selva.di import service
-from selva.web import Application, RequestContext, controller, get, post
+from selva.web import Selva, RequestContext, controller, get, post
 
 
 @service
@@ -30,4 +30,4 @@ class Controller:
         return {"result": body}
 
 
-app = Application(Controller, Greeter)
+app = Selva(Controller, Greeter)

@@ -1,4 +1,4 @@
-from selva.web import Application, controller, get
+from selva.web import Selva, controller, get
 from selva.web.configuration import Settings
 
 
@@ -12,4 +12,4 @@ class Controller:
         return self.settings.get("message")
 
 
-app = Application(Controller)
+app = Selva(Controller)
