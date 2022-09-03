@@ -1,5 +1,5 @@
 from selva.web import Selva, controller, get
-from selva.web.configuration import Settings
+from selva.configuration import Settings
 
 
 @controller
@@ -9,7 +9,7 @@ class Controller:
 
     @get
     def index(self) -> str:
-        return self.settings.get("message")
+        return self.settings["message"]
 
 
 app = Selva(Controller)

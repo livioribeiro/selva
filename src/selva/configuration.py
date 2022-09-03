@@ -101,9 +101,9 @@ class Settings:
         return self.get(item)
 
     @property
-    def resources_path(self):
+    def resources_path(self) -> Path:
         return Path(os.getcwd()) / "resources"
 
-    def resource_path(self, *args: str):
+    def get_resource_path(self, *args: str) -> Path:
         resources = self.resources_path
         return resources.joinpath(*args)

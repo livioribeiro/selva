@@ -2,10 +2,13 @@ import asyncio
 import functools
 import inspect
 import logging
-from collections.abc import Callable
+import logging.config
+import os
+from collections.abc import Callable, Iterable
 from http import HTTPStatus
+from pathlib import Path
 from types import ModuleType
-from typing import Any, Type
+from typing import cast, Any, TypeGuard
 
 from asgikit.responses import HttpResponse
 
@@ -14,7 +17,7 @@ from selva.di.decorators import DI_SERVICE_ATTRIBUTE
 from selva.utils.base_types import get_base_types
 from selva.utils.maybe_async import maybe_async
 from selva.utils.package_scan import scan_packages
-from selva.web.configuration import Settings
+from selva.configuration import Settings
 from selva.web.errors import HttpError
 from selva.web.middleware import Middleware
 from selva.web.request import RequestContext, from_request_impl
@@ -29,6 +32,16 @@ from selva.web.routing.router import Router
 LOGGER = logging.getLogger(__name__)
 
 
+@functools.cache
+def _selva_environment() -> str | None:
+    return os.getenv("SELVA_ENV", None)
+
+
+@functools.cache
+def _selva_debug() -> bool:
+    return os.getenv("DEBUG", None) in ("1", "true", "True")
+
+
 def _is_controller(arg) -> bool:
     return inspect.isclass(arg) and hasattr(arg, CONTROLLER_ATTRIBUTE)
 
@@ -37,12 +50,27 @@ def _is_service(arg) -> bool:
     return hasattr(arg, DI_SERVICE_ATTRIBUTE)
 
 
+def _is_middleware(arg) -> TypeGuard[Middleware]:
+    return inspect.isclass(arg) and issubclass(arg, Middleware)
+
+
 def _is_module(arg) -> bool:
     return inspect.ismodule(arg) or isinstance(arg, str)
 
 
 def _is_registerable(arg) -> bool:
     return any(i(arg) for i in [_is_controller, _is_service])
+
+
+def _get_registerables(*args: type | Callable | ModuleType | str) -> Iterable[type]:
+    for item in args:
+        if _is_module(item):
+            for subitem in scan_packages([item], _is_registerable):
+                yield subitem
+        elif _is_service(item):
+            yield item
+        else:
+            raise ValueError(f"{item} is not a controller, service or application")
 
 
 background_tasks = set()
@@ -57,34 +85,26 @@ class Selva:
 
     def __init__(
         self,
-        *components,
-        middleware: list[Type[Middleware]] = None,
+        *components: type | Callable | ModuleType | str,
     ):
         self.di = Container()
         self.router = Router()
         self.handler = self._process_request
-        self.middleware_classes: list[Type[Middleware]] = middleware or []
+
+        self.components = list(components)
 
         self.di.define_singleton(Router, self.router)
         self.di.scan(path_converter_impl, from_request_impl, into_response_impl)
 
         self.di.define_singleton(Settings, Settings())
 
-        for mid in self.middleware_classes:
-            self.di.register(mid)
-
-        components = set(components)
-
-        # try to automatically import and register a application called "application"
+        # try to automatically import and register a module called "application"
         try:
             import application as app
+            if app not in components or app.__name__ not in components:
+                self.components.append(app)
         except ImportError:
-            app = None
-
-        if app and (app not in components or app.__name__ not in components):
-            components.add(app)
-
-        self._register(*components)
+            pass
 
     async def __call__(self, scope, receive, send):
         match scope["type"]:
@@ -95,27 +115,42 @@ class Selva:
             case _:
                 raise RuntimeError(f"unknown scope '{scope['type']}'")
 
-    def _register(self, *args: type | Callable | ModuleType | str):
-        def register_item(item: type | Callable | ModuleType | str):
-            if _is_service(item):
-                self.di.service(item)
+    async def _initialize(self):
+        services: list[type] = []
+        controllers: list[type] = []
+        middleware: list[Middleware] = []
+
+        for item in _get_registerables(*self.components):
+            self.di.service(item)
             if _is_controller(item):
                 self.router.route(item)
-
-        for item in args:
-            if _is_module(item):
-                for subitem in scan_packages([item], _is_registerable):
-                    register_item(subitem)
-            elif _is_service(item):
-                register_item(item)
+                controllers.append(item)
+            elif _is_middleware(item):
+                mid = await self.di.get(item)
+                middleware.append(cast(Middleware, mid))
             else:
-                raise ValueError(f"{item} is not a controller, service or application")
+                services.append(item)
+
+        LOGGER.info("Services:")
+        for cls in services:
+            LOGGER.info(f"- %s %s", cls.__module__, cls.__name__)
+
+        LOGGER.info("Controllers:")
+        for cls in controllers:
+            LOGGER.info(f"- %s %s", cls.__module__, cls.__name__)
+
+        LOGGER.info("Middlewares:")
+        for mid in sorted(middleware):
+            cls = mid.__class__
+            LOGGER.info(f"- %s %s", cls.__module__, cls.__name__)
+            self.handler = functools.partial(mid.execute, self.handler)
 
     async def _handle_lifespan(self, _scope, receive, send):
         while True:
             message = await receive()
             if message["type"] == "lifespan.startup":
                 try:
+                    await self._initialize()
                     await send({"type": "lifespan.startup.complete"})
                 except Exception as err:
                     await send({"type": "lifespan.startup.failed", "message": str(err)})
@@ -128,6 +163,49 @@ class Selva:
                         {"type": "lifespan.shutdown.failed", "message": str(err)}
                     )
                 break
+
+    async def _handle_request(self, context: RequestContext):
+        if response := await self.handler(context):
+            await response(context.request)
+
+        for result in await asyncio.gather(
+            *context.delayed_tasks, return_exceptions=True
+        ):
+            if isinstance(result, Exception):
+                LOGGER.exception(result)
+
+    async def _process_request(self, context: RequestContext) -> HttpResponse:
+        method = context.method if context.is_http else None
+        path = context.path
+
+        match = self.router.match(method, path)
+
+        if not match:
+            return HttpResponse.not_found()
+
+        controller = match.route.controller
+        action = match.route.action
+        path_params = match.params
+
+        try:
+            path_params = await self._params_from_path(
+                path_params, match.route.path_params
+            )
+            request_params = await self._params_from_request(
+                context, match.route.request_params
+            )
+
+            all_params = path_params | request_params
+            instance = await self.di.get(controller)
+            response = await maybe_async(action, instance, **all_params)
+
+            if context.is_http:
+                return await self._into_response(response)
+        except HttpError as err:
+            return HttpResponse(status=err.status)
+        except Exception as err:
+            LOGGER.exception(err)
+            return HttpResponse(status=HTTPStatus.INTERNAL_SERVER_ERROR)
 
     async def _params_from_path(
         self,
@@ -172,58 +250,6 @@ class Selva:
                 )
 
         return request_params
-
-    async def _handle_request(self, context: RequestContext):
-        for cls in self.middleware_classes:
-            middleware = await self.di.get(cls)
-            self.handler = functools.partial(middleware.execute, self.handler)
-
-        Selva._handle_request = Selva._initialized_handle_request
-
-        return await self._initialized_handle_request(context)
-
-    async def _initialized_handle_request(self, context: RequestContext):
-        if response := await self.handler(context):
-            await response(context.request)
-
-        for result in await asyncio.gather(
-            *context.delayed_tasks, return_exceptions=True
-        ):
-            if isinstance(result, Exception):
-                LOGGER.exception(result)
-
-    async def _process_request(self, context: RequestContext) -> HttpResponse:
-        method = context.method if context.is_http else None
-        path = context.path
-
-        match = self.router.match(method, path)
-
-        if not match:
-            return HttpResponse.not_found()
-
-        controller = match.route.controller
-        action = match.route.action
-        path_params = match.params
-
-        try:
-            path_params = await self._params_from_path(
-                path_params, match.route.path_params
-            )
-            request_params = await self._params_from_request(
-                context, match.route.request_params
-            )
-
-            all_params = path_params | request_params
-            instance = await self.di.get(controller)
-            response = await maybe_async(action, instance, **all_params)
-
-            if context.is_http:
-                return await self._into_response(response)
-        except HttpError as err:
-            return HttpResponse(status=err.status)
-        except Exception as err:
-            LOGGER.exception(err)
-            return HttpResponse(status=HTTPStatus.INTERNAL_SERVER_ERROR)
 
     async def _into_response(self, value: Any | None) -> HttpResponse | None:
         if isinstance(value, HttpResponse):

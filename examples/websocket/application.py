@@ -1,5 +1,3 @@
-from pathlib import Path
-
 from selva.di import service
 from selva.web import (
     FileResponse,
@@ -9,7 +7,7 @@ from selva.web import (
     get,
     websocket,
 )
-from selva.web.configuration import Settings
+from selva.configuration import Settings
 from selva.web.errors import WebSocketDisconnectError, WebSocketStateError
 
 
@@ -49,7 +47,7 @@ class WebSocketController:
 
     @get
     def index(self):
-        return FileResponse(self.settings.resource_path("static", "index.html"))
+        return FileResponse(self.settings.get_resource_path("static", "index.html"))
 
     @websocket("/chat")
     async def chat(self, context: RequestContext):

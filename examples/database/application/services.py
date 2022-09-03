@@ -1,10 +1,9 @@
-import asyncio
 import os
 
 from databases import Database
 
 from selva.di import finalizer, initializer, service
-from selva.web.configuration import Settings
+from selva.configuration import Settings
 
 
 def database_finalizer(database: Database):

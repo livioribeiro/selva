@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from selva.web.configuration import (
+from selva.configuration import (
     flatten_dict,
     get_settings,
     load_config_env,
@@ -156,4 +156,4 @@ def test_resources_path():
 
 def test_get_resource_path():
     settings = Settings()
-    assert settings.resource_path("static") == Path(os.getcwd()) / "resources" / "static"
+    assert settings.get_resource_path("static") == Path(os.getcwd()) / "resources" / "static"
