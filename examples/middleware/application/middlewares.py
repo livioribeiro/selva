@@ -7,8 +7,6 @@ from selva.web.middleware import Middleware
 
 
 class TimingMiddleware(Middleware):
-    order = 1
-
     async def execute(self, chain, context: RequestContext):
         request_start = datetime.now()
         response = await chain(context)
@@ -21,8 +19,6 @@ class TimingMiddleware(Middleware):
 
 
 class LoggingMiddleware(Middleware):
-    order = 2
-
     async def execute(self, chain, context: RequestContext):
         response = await chain(context)
 

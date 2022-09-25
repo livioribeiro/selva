@@ -2,22 +2,20 @@ import asyncio
 import functools
 import inspect
 import logging
-import logging.config
 import os
 from collections.abc import Callable, Iterable
 from http import HTTPStatus
-from pathlib import Path
 from types import ModuleType
-from typing import cast, Any, TypeGuard
+from typing import Any, TypeGuard
 
 from asgikit.responses import HttpResponse
 
+from selva.configuration import Settings
 from selva.di import Container
 from selva.di.decorators import DI_SERVICE_ATTRIBUTE
 from selva.utils.base_types import get_base_types
 from selva.utils.maybe_async import maybe_async
 from selva.utils.package_scan import scan_packages
-from selva.configuration import Settings
 from selva.web.errors import HttpError
 from selva.web.middleware import Middleware
 from selva.web.request import RequestContext, from_request_impl
@@ -28,6 +26,8 @@ from selva.web.routing import path_converter_impl
 from selva.web.routing.decorators import CONTROLLER_ATTRIBUTE
 from selva.web.routing.path_converter import PathConverter
 from selva.web.routing.router import Router
+
+MIDDLEWARE_SETTINGS_ATTRIBUTE = "SELVA__MIDDLEWARE_CLASSES"
 
 LOGGER = logging.getLogger(__name__)
 
@@ -96,11 +96,13 @@ class Selva:
         self.di.define_singleton(Router, self.router)
         self.di.scan(path_converter_impl, from_request_impl, into_response_impl)
 
-        self.di.define_singleton(Settings, Settings())
+        self.settings = Settings()
+        self.di.define_singleton(Settings, self.settings)
 
         # try to automatically import and register a module called "application"
         try:
             import application as app
+
             if app not in components or app.__name__ not in components:
                 self.components.append(app)
         except ImportError:
@@ -118,16 +120,12 @@ class Selva:
     async def _initialize(self):
         services: list[type] = []
         controllers: list[type] = []
-        middleware: list[Middleware] = []
 
         for item in _get_registerables(*self.components):
             self.di.service(item)
             if _is_controller(item):
                 self.router.route(item)
                 controllers.append(item)
-            elif _is_middleware(item):
-                mid = await self.di.get(item)
-                middleware.append(cast(Middleware, mid))
             else:
                 services.append(item)
 
@@ -140,10 +138,10 @@ class Selva:
             LOGGER.info(f"- %s %s", cls.__module__, cls.__name__)
 
         LOGGER.info("Middlewares:")
-        for mid in sorted(middleware):
-            cls = mid.__class__
+        for cls in getattr(self.settings, MIDDLEWARE_SETTINGS_ATTRIBUTE, []):
+            middleware: Middleware = await self.di.get(cls)
             LOGGER.info(f"- %s %s", cls.__module__, cls.__name__)
-            self.handler = functools.partial(mid.execute, self.handler)
+            self.handler = functools.partial(middleware.execute, self.handler)
 
     async def _handle_lifespan(self, _scope, receive, send):
         while True:
