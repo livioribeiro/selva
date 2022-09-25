@@ -9,7 +9,7 @@ class Controller:
 
     @get
     def index(self) -> str:
-        return self.settings["message"]
+        return self.settings.MESSAGE
 
 
 app = Selva(Controller)

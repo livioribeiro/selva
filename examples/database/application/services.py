@@ -14,7 +14,7 @@ def database_finalizer(database: Database):
 @service
 @finalizer(database_finalizer)
 def database_factory(settings: Settings) -> Database:
-    database = Database(settings["database:url"])
+    database = Database(settings.DATABASE_URL)
     print("Sqlite database created")
     return database
 
