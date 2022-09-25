@@ -7,6 +7,7 @@ from selva.configuration import (
     is_valid_conf,
     extract_valid_keys,
     get_settings,
+    get_settings_for_env,
     Settings,
 )
 
@@ -31,7 +32,7 @@ def test_valid_config_names(name: str):
         "all_undercase",
         "ONE_UNDERCASe",
         "_STARTS_WITH_UNDERSCORE",
-    ]
+    ],
 )
 def test_invalid_config_names(name: str):
     result = is_valid_conf(name)
@@ -57,8 +58,25 @@ def test_extract_valid_settings():
     }
 
 
+@pytest.mark.parametrize(
+    "env,expected",
+    [
+        (None, {"NAME": "application"}),
+        ("dev", {"ENVIRONMENT": "dev"}),
+        ("hlg", {"ENVIRONMENT": "hlg"}),
+        ("prd", {"ENVIRONMENT": "prd"}),
+    ],
+    ids=["None", "dev", "hlg", "prd"],
+)
+def test_get_settings_for_env(monkeypatch, env, expected):
+    monkeypatch.chdir(Path(__file__).parent / "envs")
+
+    result = get_settings_for_env(env)
+    assert result == expected
+
+
 def test_get_settings(monkeypatch):
-    monkeypatch.syspath_prepend(Path(__file__).parent / "base")
+    monkeypatch.chdir(Path(__file__).parent / "base")
 
     result = get_settings()
     assert result == {
@@ -74,7 +92,10 @@ def test_get_settings(monkeypatch):
 
 
 def test_configure_settings_module(monkeypatch):
-    monkeypatch.setenv("SELVA_SETTINGS_MODULE", "tests.configuration.base.configuration.settings")
+    monkeypatch.setenv(
+        "SELVA_SETTINGS_MODULE",
+        str(Path(__file__).parent / "base/configuration/settings"),
+    )
 
     result = get_settings()
     assert result == {
@@ -93,8 +114,8 @@ def test_configure_settings_module(monkeypatch):
     "env",
     ["dev", "hlg", "prd"],
 )
-def test_get_setttings_env(monkeypatch, env):
-    monkeypatch.syspath_prepend(Path(__file__).parent / "envs")
+def test_get_env_setttings(monkeypatch, env):
+    monkeypatch.chdir(Path(__file__).parent / "envs")
     monkeypatch.setenv("SELVA_ENV", env)
 
     result = get_settings()
@@ -108,8 +129,11 @@ def test_get_setttings_env(monkeypatch, env):
     "env",
     ["dev", "hlg", "prd"],
 )
-def test_configure_setttings_module_env(monkeypatch, env):
-    monkeypatch.setenv("SELVA_SETTINGS_MODULE", "tests.configuration.envs.configuration.settings")
+def test_configure_env_setttings_module(monkeypatch, env):
+    monkeypatch.setenv(
+        "SELVA_SETTINGS_MODULE",
+        str(Path(__file__).parent / "envs/configuration/settings"),
+    )
     monkeypatch.setenv("SELVA_ENV", env)
 
     result = get_settings()
@@ -119,8 +143,23 @@ def test_configure_setttings_module_env(monkeypatch, env):
     }
 
 
+@pytest.mark.parametrize(
+    "env",
+    ["dev", "hlg", "prd"],
+)
+def test_override_settings(monkeypatch, env):
+    monkeypatch.chdir(Path(__file__).parent / "override")
+
+    assert get_settings() == {"VALUE": "base"}
+
+    monkeypatch.setenv("SELVA_ENV", env)
+
+    result = get_settings()
+    assert result == {"VALUE": env}
+
+
 def test_settings_class(monkeypatch):
-    monkeypatch.syspath_prepend(Path(__file__).parent / "base")
+    monkeypatch.chdir(Path(__file__).parent / "base")
 
     settings = Settings()
     assert settings.CONF_STR == "str"
@@ -138,7 +177,7 @@ def test_settings_class(monkeypatch):
     ["dev", "hlg", "prd"],
 )
 def test_setttings_class_env(monkeypatch, env):
-    monkeypatch.syspath_prepend(Path(__file__).parent / "envs")
+    monkeypatch.chdir(Path(__file__).parent / "envs")
     monkeypatch.setenv("SELVA_ENV", env)
 
     settings = Settings()

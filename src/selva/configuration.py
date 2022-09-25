@@ -4,13 +4,13 @@ import inspect
 import os
 import warnings
 from pathlib import Path
-from typing import Any
 from types import ModuleType, SimpleNamespace
+from typing import Any
 
 __all__ = ("Settings",)
 
 SELVA_SETTINGS_MODULE = "SELVA_SETTINGS_MODULE"
-DEFAULT_SELVA_SETTINGS_MODULE = "configuration.settings"
+DEFAULT_SELVA_SETTINGS_MODULE = "configuration/settings.py"
 
 SELVA_ENV = "SELVA_ENV"
 
@@ -25,10 +25,7 @@ def is_valid_conf(conf: str) -> bool:
     if not (conf[0].isalpha() and conf[0].isupper()):
         return False
 
-    return all(
-        (i.isalpha() and i.isupper()) or i.isnumeric() or i == "_"
-        for i in conf
-    )
+    return all((i.isalpha() and i.isupper()) or i.isnumeric() or i == "_" for i in conf)
 
 
 def extract_valid_keys(settings: ModuleType) -> dict[str, Any]:
@@ -41,16 +38,32 @@ def extract_valid_keys(settings: ModuleType) -> dict[str, Any]:
 
 
 def get_settings_for_env(env: str = None) -> dict[str, Any]:
-    settings_module_path = os.getenv(SELVA_SETTINGS_MODULE, DEFAULT_SELVA_SETTINGS_MODULE)
+    settings_module_path = Path(
+        os.getenv(SELVA_SETTINGS_MODULE, DEFAULT_SELVA_SETTINGS_MODULE)
+    )
+    settings_module_path = settings_module_path.with_suffix(".py")
 
     if env is not None:
-        settings_module_path += f"_{env}"
+        settings_module_path = settings_module_path.with_stem(
+            f"{settings_module_path.stem}_{env}"
+        )
+
+    settings_module_path = settings_module_path.absolute()
 
     try:
-        settings_module = importlib.import_module(settings_module_path)
-    except ImportError:
+        spec = importlib.util.spec_from_file_location(
+            "selva_settings", settings_module_path
+        )
+        settings_module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(settings_module)
+    except FileNotFoundError:
+        # TODO: write tests
         warnings.warn(f"settings module not found: {settings_module_path}")
         return {}
+    except ImportError:
+        # TODO: find out what to do
+        # TODO: write tests
+        raise
 
     return extract_valid_keys(settings_module)
 
