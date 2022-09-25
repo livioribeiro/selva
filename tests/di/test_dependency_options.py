@@ -62,4 +62,3 @@ async def test_optional_dependency_with_or_none(ioc: Container):
     ioc.register(DependentService)
     service = await ioc.get(ServiceWithOptionalDepOrNone)
     assert isinstance(service.dependent, DependentService)
-

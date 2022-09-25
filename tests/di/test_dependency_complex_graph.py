@@ -31,7 +31,14 @@ class Service4:
 
 @service
 class Service5:
-    def __init__(self, dep1: Service1, dep2: Service2, dep3: Service3, dep4: Service4, dep6: "Service6"):
+    def __init__(
+        self,
+        dep1: Service1,
+        dep2: Service2,
+        dep3: Service3,
+        dep4: Service4,
+        dep6: "Service6",
+    ):
         self.dep1 = dep1
         self.dep2 = dep2
         self.dep3 = dep3

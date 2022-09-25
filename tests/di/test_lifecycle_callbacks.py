@@ -143,4 +143,3 @@ async def test_finalizer_order(ioc: Container, capsys):
 
     expected = "initialize 1\ninitialize 2\nfinalize 2\nfinalize 1\n"
     assert capsys.readouterr().out == expected
-

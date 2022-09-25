@@ -44,7 +44,10 @@ class ProtoImpl1(Proto1[str]):
     "base_type,expected",
     [
         (Impl12, [Impl12, Impl1, Interface1[int], Interface1]),
-        (Impl22, [Impl22, Impl2, Interface2[str], Interface2, Interface1[int], Interface1]),
+        (
+            Impl22,
+            [Impl22, Impl2, Interface2[str], Interface2, Interface1[int], Interface1],
+        ),
         (Interface1[str], [Interface1[str], Interface1]),
         (Interface2[str], [Interface2[str], Interface2, Interface1[int], Interface1]),
         (ProtoImpl1, [ProtoImpl1, Proto1[str], Proto1]),

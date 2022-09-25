@@ -46,7 +46,7 @@ async def test_get_generic_service_with_factory(ioc: Container):
 
 
 async def test_get_generic_service_with_class_with_dependency(ioc: Container):
-    ioc.register(Service,provides=GenericService[int])
+    ioc.register(Service, provides=GenericService[int])
     ioc.register(ServiceDepends)
 
     service = await ioc.get(ServiceDepends)
