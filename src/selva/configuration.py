@@ -1,18 +1,25 @@
 import importlib
 import importlib.util
 import inspect
+import logging
 import os
 import warnings
 from pathlib import Path
 from types import ModuleType, SimpleNamespace
 from typing import Any
 
-__all__ = ("Settings",)
+__all__ = ("Settings", "SettingsModuleError")
 
 SELVA_SETTINGS_MODULE = "SELVA_SETTINGS_MODULE"
-DEFAULT_SELVA_SETTINGS_MODULE = "configuration/settings.py"
+DEFAULT_SELVA_SETTINGS_MODULE = str(Path("configuration") / "settings.py")
 
 SELVA_ENV = "SELVA_ENV"
+
+
+class SettingsModuleError(Exception):
+    def __init__(self, path: Path):
+        super().__init__(f"cannot load settings module: {path}")
+        self.path = path
 
 
 def is_valid_conf(conf: str) -> bool:
@@ -38,12 +45,15 @@ def extract_valid_keys(settings: ModuleType) -> dict[str, Any]:
 
 
 def get_settings_for_env(env: str = None) -> dict[str, Any]:
+    settings_module_name = "selva_settings"
+
     settings_module_path = Path(
         os.getenv(SELVA_SETTINGS_MODULE, DEFAULT_SELVA_SETTINGS_MODULE)
     )
     settings_module_path = settings_module_path.with_suffix(".py")
 
     if env is not None:
+        settings_module_name += f"_{env}"
         settings_module_path = settings_module_path.with_stem(
             f"{settings_module_path.stem}_{env}"
         )
@@ -52,18 +62,15 @@ def get_settings_for_env(env: str = None) -> dict[str, Any]:
 
     try:
         spec = importlib.util.spec_from_file_location(
-            "selva_settings", settings_module_path
+            settings_module_name, settings_module_path
         )
         settings_module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(settings_module)
     except FileNotFoundError:
-        # TODO: write tests
         warnings.warn(f"settings module not found: {settings_module_path}")
         return {}
-    except ImportError:
-        # TODO: find out what to do
-        # TODO: write tests
-        raise
+    except Exception as e:
+        raise SettingsModuleError(settings_module_path) from e
 
     return extract_valid_keys(settings_module)
 

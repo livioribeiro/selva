@@ -4,11 +4,12 @@ from types import SimpleNamespace
 import pytest
 
 from selva.configuration import (
-    is_valid_conf,
+    Settings,
+    SettingsModuleError,
     extract_valid_keys,
     get_settings,
     get_settings_for_env,
-    Settings,
+    is_valid_conf,
 )
 
 
@@ -183,3 +184,26 @@ def test_setttings_class_env(monkeypatch, env):
     settings = Settings()
     assert settings.NAME == "application"
     assert settings.ENVIRONMENT == env
+
+
+def test_no_settings_file_should_raise_warning(monkeypatch):
+    monkeypatch.setenv("SELVA_SETTINGS_MODULE", "does_not_exist.py")
+
+    settings_path = Path.cwd() / "does_not_exist.py"
+    with pytest.warns(match=f"settings module not found: {settings_path}"):
+        get_settings()
+
+
+def test_no_env_settings_file_should_raise_warning(monkeypatch):
+    monkeypatch.chdir(Path(__file__).parent / "envs")
+    monkeypatch.setenv("SELVA_ENV", "does_not_exist")
+
+    settings_path = Path.cwd() / "configuration" / "settings_does_not_exist.py"
+    with pytest.warns(match=f"settings module not found: {settings_path}"):
+        get_settings()
+
+
+def test_invalid_settings_module_should_raise_error(monkeypatch):
+    monkeypatch.chdir(Path(__file__).parent / "invalid_settings")
+    with pytest.raises(SettingsModuleError):
+        get_settings()
