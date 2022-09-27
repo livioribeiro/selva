@@ -1,6 +1,6 @@
 from application.middlewares import TimingMiddleware, LoggingMiddleware, AuthMiddleware
 
-SELVA__MIDDLEWARE_CLASSES = [
+MIDDLEWARE = [
     TimingMiddleware,
     LoggingMiddleware,
     AuthMiddleware,

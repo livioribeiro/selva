@@ -54,6 +54,13 @@ class Router:
                 raise TypeError("http route cannot receive WebSocket")
 
             for current_route in self.routes.values():
+                # skip route if already registered
+                if (
+                    current_route.controller == route.controller
+                    and current_route.method == route.method
+                ):
+                    continue
+
                 if (
                     current_route.method == route.method
                     and current_route.regex == route.regex

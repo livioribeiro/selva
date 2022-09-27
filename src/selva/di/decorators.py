@@ -21,7 +21,7 @@ def service(
 
 def initializer(func: Callable):
     if not inspect.isfunction(func):
-        raise TypeError(f"@initializer should be applied to a function or method")
+        raise TypeError("@initializer should be applied to a function or method")
 
     setattr(func, DI_INITIALIZER_ATTRIBUTE, True)
     return func
@@ -29,7 +29,7 @@ def initializer(func: Callable):
 
 def finalizer(func: Callable):
     if not inspect.isfunction(func):
-        raise TypeError(f"@finalizer should be applied to a function or method")
+        raise TypeError("@finalizer should be applied to a function or method")
 
     if "self" in inspect.signature(func).parameters:
         setattr(func, DI_FINALIZER_ATTRIBUTE, True)

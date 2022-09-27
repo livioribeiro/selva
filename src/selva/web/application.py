@@ -1,12 +1,12 @@
 import asyncio
 import functools
+import importlib
 import inspect
 import logging
-import os
 from collections.abc import Callable, Iterable
 from http import HTTPStatus
 from types import ModuleType
-from typing import Any, TypeGuard
+from typing import Any
 
 from asgikit.responses import HttpResponse
 
@@ -27,19 +27,10 @@ from selva.web.routing.decorators import CONTROLLER_ATTRIBUTE
 from selva.web.routing.path_converter import PathConverter
 from selva.web.routing.router import Router
 
-MIDDLEWARE_SETTINGS_ATTRIBUTE = "SELVA__MIDDLEWARE_CLASSES"
+MIDDLEWARE_SETTINGS_ATTRIBUTE = "MIDDLEWARE"
+COMPONENTS_SETTINGS_ATTRIBUTE = "COMPONENTS"
 
 LOGGER = logging.getLogger(__name__)
-
-
-@functools.cache
-def _selva_environment() -> str | None:
-    return os.getenv("SELVA_ENV", None)
-
-
-@functools.cache
-def _selva_debug() -> bool:
-    return os.getenv("DEBUG", None) in ("1", "true", "True")
 
 
 def _is_controller(arg) -> bool:
@@ -48,10 +39,6 @@ def _is_controller(arg) -> bool:
 
 def _is_service(arg) -> bool:
     return hasattr(arg, DI_SERVICE_ATTRIBUTE)
-
-
-def _is_middleware(arg) -> TypeGuard[Middleware]:
-    return inspect.isclass(arg) and issubclass(arg, Middleware)
 
 
 def _is_module(arg) -> bool:
@@ -73,9 +60,6 @@ def _get_registerables(*args: type | Callable | ModuleType | str) -> Iterable[ty
             raise ValueError(f"{item} is not a controller, service or application")
 
 
-background_tasks = set()
-
-
 class Selva:
     """Entrypoint class for a Selva Application
 
@@ -91,22 +75,13 @@ class Selva:
         self.router = Router()
         self.handler = self._process_request
 
-        self.components = list(components)
+        self.components = set(components)
 
         self.di.define_singleton(Router, self.router)
         self.di.scan(path_converter_impl, from_request_impl, into_response_impl)
 
         self.settings = Settings()
         self.di.define_singleton(Settings, self.settings)
-
-        # try to automatically import and register a module called "application"
-        try:
-            import application as app
-
-            if app not in components or app.__name__ not in components:
-                self.components.append(app)
-        except ImportError:
-            pass
 
     async def __call__(self, scope, receive, send):
         match scope["type"]:
@@ -117,31 +92,58 @@ class Selva:
             case _:
                 raise RuntimeError(f"unknown scope '{scope['type']}'")
 
-    async def _initialize(self):
-        services: list[type] = []
-        controllers: list[type] = []
+    async def _register_components(self) -> dict[str, list[type]]:
+        components = getattr(self.settings, COMPONENTS_SETTINGS_ATTRIBUTE, [])
+        components.extend(self.components)
+        components = set(components)
 
-        for item in _get_registerables(*self.components):
+        try:
+            app = importlib.import_module("application")
+
+            if app not in components or app.__name__ not in components:
+                components.add(app)
+        except ImportError:
+            pass
+
+        result = {
+            "controllers": [],
+            "services": [],
+        }
+
+        for item in _get_registerables(*components):
             self.di.service(item)
             if _is_controller(item):
                 self.router.route(item)
-                controllers.append(item)
+                result["controllers"].append(item)
             else:
-                services.append(item)
+                result["services"].append(item)
+
+        return result
+
+    async def _get_middleware(self) -> list[Middleware]:
+        middleware_chain = getattr(self.settings, MIDDLEWARE_SETTINGS_ATTRIBUTE, [])
+        return [await self.di.get(cls) for cls in middleware_chain]
+
+    async def _initialize(self):
+        components = await self._register_components()
+        middleware = await self._get_middleware()
 
         LOGGER.info("Services:")
-        for cls in services:
-            LOGGER.info(f"- %s %s", cls.__module__, cls.__name__)
+        for cls in components["services"]:
+            LOGGER.info("- %s %s", cls.__module__, cls.__name__)
 
         LOGGER.info("Controllers:")
-        for cls in controllers:
-            LOGGER.info(f"- %s %s", cls.__module__, cls.__name__)
+        for cls in components["controllers"]:
+            LOGGER.info("- %s %s", cls.__module__, cls.__name__)
 
         LOGGER.info("Middlewares:")
-        for cls in getattr(self.settings, MIDDLEWARE_SETTINGS_ATTRIBUTE, []):
-            middleware: Middleware = await self.di.get(cls)
-            LOGGER.info(f"- %s %s", cls.__module__, cls.__name__)
-            self.handler = functools.partial(middleware.execute, self.handler)
+        for mid in middleware:
+            cls = mid.__class__
+            LOGGER.info("- %s %s", cls.__module__, cls.__name__)
+            self.handler = functools.partial(mid.execute, self.handler)
+
+    async def _finalize(self):
+        await self.di.run_finalizers()
 
     async def _handle_lifespan(self, _scope, receive, send):
         while True:
@@ -154,7 +156,7 @@ class Selva:
                     await send({"type": "lifespan.startup.failed", "message": str(err)})
             elif message["type"] == "lifespan.shutdown":
                 try:
-                    await self.di.run_finalizers()
+                    await self._finalize()
                     await send({"type": "lifespan.shutdown.complete"})
                 except Exception as err:
                     await send(
@@ -166,6 +168,7 @@ class Selva:
         if response := await self.handler(context):
             await response(context.request)
 
+        # process delayed tasks
         for result in await asyncio.gather(
             *context.delayed_tasks, return_exceptions=True
         ):
