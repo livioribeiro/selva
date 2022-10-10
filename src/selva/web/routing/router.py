@@ -4,10 +4,13 @@ from collections import OrderedDict
 from asgikit.requests import HttpMethod, HttpRequest
 from asgikit.websockets import WebSocket
 
+import selva.logging
 from selva.web.errors import NotFoundError
 
 from .decorators import ACTION_ATTRIBUTE, CONTROLLER_ATTRIBUTE, PATH_ATTRIBUTE
 from .route import Route, RouteMatch
+
+logger = selva.logging.get_logger()
 
 
 def _path_with_prefix(path: str, prefix: str):
@@ -28,6 +31,12 @@ class Router:
             )
 
         path_prefix = getattr(controller, PATH_ATTRIBUTE)
+
+        logger.debug(
+            "controller registered",
+            path=path_prefix or "/",
+            cls=controller,
+        )
 
         for name, action in inspect.getmembers(controller, inspect.isfunction):
             action_type = getattr(action, ACTION_ATTRIBUTE, None)
@@ -70,6 +79,14 @@ class Router:
                     )
 
             self.routes[route_name] = route
+            logger.debug(
+                "action registered",
+                name=route.name,
+                method=route.method,
+                path=route.path,
+                controller=controller,
+                action=route.action.__name__,
+            )
 
     def match(self, method: HttpMethod | None, path: str) -> RouteMatch | None:
         for route in self.routes.values():

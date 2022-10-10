@@ -5,3 +5,9 @@ MIDDLEWARE = [
     LoggingMiddleware,
     AuthMiddleware,
 ]
+
+LOGGING_LOGGERS = {
+    "selva": "DEBUG"
+}
+
+LOGGING_FORMATTER = "dev"

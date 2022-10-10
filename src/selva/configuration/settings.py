@@ -7,6 +7,8 @@ from pathlib import Path
 from types import ModuleType, SimpleNamespace
 from typing import Any
 
+from . import defaults
+
 __all__ = ("Settings", "SettingsModuleError")
 
 SELVA_SETTINGS_MODULE = "SELVA_SETTINGS_MODULE"
@@ -43,6 +45,10 @@ def extract_valid_keys(settings: ModuleType) -> dict[str, Any]:
     }
 
 
+def get_default_settings():
+    return extract_valid_keys(defaults)
+
+
 def get_settings_for_env(env: str = None) -> dict[str, Any]:
     settings_module_name = "selva_settings"
 
@@ -68,18 +74,19 @@ def get_settings_for_env(env: str = None) -> dict[str, Any]:
     except FileNotFoundError:
         warnings.warn(f"settings module not found: {settings_module_path}")
         return {}
-    except Exception as e:
-        raise SettingsModuleError(settings_module_path) from e
+    except Exception as err:
+        raise SettingsModuleError(settings_module_path) from err
 
     return extract_valid_keys(settings_module)
 
 
 def get_settings() -> dict[str, Any]:
-    settings = get_settings_for_env()
+    settings = get_default_settings()
+
+    settings |= get_settings_for_env()
 
     if active_env := os.getenv(SELVA_ENV):
-        env_settings = get_settings_for_env(active_env)
-        settings |= env_settings
+        settings |= get_settings_for_env(active_env)
 
     return settings
 
@@ -87,3 +94,6 @@ def get_settings() -> dict[str, Any]:
 class Settings(SimpleNamespace):
     def __init__(self):
         super().__init__(**get_settings())
+
+    def get(self, name: str, default=None) -> Any | None:
+        return getattr(self, name, default)

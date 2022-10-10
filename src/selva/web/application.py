@@ -2,22 +2,22 @@ import asyncio
 import functools
 import importlib
 import inspect
-import logging
 from collections.abc import Callable, Iterable
 from http import HTTPStatus
-from types import ModuleType
+from types import FunctionType, ModuleType
 from typing import Any
 
 from asgikit.responses import HttpResponse
 
-from selva.configuration import Settings
+import selva.logging
+import selva.logging.configuration
+from selva.configuration.settings import Settings
 from selva.di import Container
 from selva.di.decorators import DI_SERVICE_ATTRIBUTE
 from selva.utils.base_types import get_base_types
 from selva.utils.maybe_async import maybe_async
 from selva.utils.package_scan import scan_packages
 from selva.web.errors import HttpError
-from selva.web.middleware import Middleware
 from selva.web.request import RequestContext, from_request_impl
 from selva.web.request.from_request import FromRequest
 from selva.web.response import into_response_impl
@@ -27,10 +27,7 @@ from selva.web.routing.decorators import CONTROLLER_ATTRIBUTE
 from selva.web.routing.path_converter import PathConverter
 from selva.web.routing.router import Router
 
-MIDDLEWARE_SETTINGS_ATTRIBUTE = "MIDDLEWARE"
-COMPONENTS_SETTINGS_ATTRIBUTE = "COMPONENTS"
-
-LOGGER = logging.getLogger(__name__)
+logger = selva.logging.get_logger()
 
 
 def _is_controller(arg) -> bool:
@@ -75,13 +72,17 @@ class Selva:
         self.router = Router()
         self.handler = self._process_request
 
-        self.components = set(components)
-
-        self.di.define_singleton(Router, self.router)
-        self.di.scan(path_converter_impl, from_request_impl, into_response_impl)
-
         self.settings = Settings()
-        self.di.define_singleton(Settings, self.settings)
+        selva.logging.configuration.configure_logging(self.settings)
+
+        self.di.define(Settings, self.settings)
+        self.di.define(Router, self.router)
+
+        self.di.scan(path_converter_impl, from_request_impl, into_response_impl)
+        self.di.scan(self.settings.COMPONENTS)
+
+        components = self.settings.COMPONENTS + list(components)
+        self._register_components(components)
 
     async def __call__(self, scope, receive, send):
         match scope["type"]:
@@ -92,55 +93,44 @@ class Selva:
             case _:
                 raise RuntimeError(f"unknown scope '{scope['type']}'")
 
-    async def _register_components(self) -> dict[str, list[type]]:
-        components = getattr(self.settings, COMPONENTS_SETTINGS_ATTRIBUTE, [])
-        components.extend(self.components)
-        components = set(components)
-
+    def _register_components(
+        self, components: list[str | ModuleType | type | FunctionType]
+    ):
         try:
             app = importlib.import_module("application")
 
             if app not in components or app.__name__ not in components:
-                components.add(app)
+                components.append(app)
         except ImportError:
             pass
 
-        result = {
-            "controllers": [],
-            "services": [],
-        }
+        services = []
+        packages = []
 
-        for item in _get_registerables(*components):
-            self.di.service(item)
-            if _is_controller(item):
-                self.router.route(item)
-                result["controllers"].append(item)
+        for component in components:
+            if _is_service(component):
+                services.append(component)
+            elif _is_module(component):
+                packages.append(component)
             else:
-                result["services"].append(item)
+                raise TypeError(f"Invalid component: {component}")
 
-        return result
+        self.di.scan(*packages)
 
-    async def _get_middleware(self) -> list[Middleware]:
-        middleware_chain = getattr(self.settings, MIDDLEWARE_SETTINGS_ATTRIBUTE, [])
-        return [await self.di.get(cls) for cls in middleware_chain]
+        for service in services:
+            self.di.service(service)
+
+        for _iface, impl, _name in self.di.iter_all_services():
+            if _is_controller(impl):
+                self.router.route(impl)
+
+    async def _initialize_middleware(self):
+        middleware_chain = self.settings.MIDDLEWARE
+        for mid in [await self.di.get(cls) for cls in middleware_chain]:
+            self.handler = functools.partial(mid.execute, self.handler)
 
     async def _initialize(self):
-        components = await self._register_components()
-        middleware = await self._get_middleware()
-
-        LOGGER.info("Services:")
-        for cls in components["services"]:
-            LOGGER.info("- %s %s", cls.__module__, cls.__name__)
-
-        LOGGER.info("Controllers:")
-        for cls in components["controllers"]:
-            LOGGER.info("- %s %s", cls.__module__, cls.__name__)
-
-        LOGGER.info("Middlewares:")
-        for mid in middleware:
-            cls = mid.__class__
-            LOGGER.info("- %s %s", cls.__module__, cls.__name__)
-            self.handler = functools.partial(mid.execute, self.handler)
+        await self._initialize_middleware()
 
     async def _finalize(self):
         await self.di.run_finalizers()
@@ -173,7 +163,7 @@ class Selva:
             *context.delayed_tasks, return_exceptions=True
         ):
             if isinstance(result, Exception):
-                LOGGER.exception(result)
+                logger.exception("Error processing delayed task", exc_info=result)
 
     async def _process_request(self, context: RequestContext) -> HttpResponse:
         method = context.method if context.is_http else None
@@ -205,7 +195,7 @@ class Selva:
         except HttpError as err:
             return HttpResponse(status=err.status)
         except Exception as err:
-            LOGGER.exception(err)
+            logger.exception("Error processing delayed task", exc_info=err)
             return HttpResponse(status=HTTPStatus.INTERNAL_SERVER_ERROR)
 
     async def _params_from_path(

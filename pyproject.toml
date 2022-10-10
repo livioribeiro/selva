@@ -39,11 +39,20 @@ asgikit = "^0.2.2"
 optional = true
 
 [tool.poetry.group.dev.dependencies]
-hypercorn = "^0.14.1"
-pytest = "^7.1"
+uvicorn = { version = "^0.18.3", extras = ["standard"]}
+
+[tool.poetry.group.test]
+optional = true
+
+[tool.poetry.group.test.dependencies]
 pytest-asyncio = "^0.19.0"
 pytest-cov = "^3.0"
 coverage = { version = "^6.4", extras = ["toml"] }
+
+[tool.poetry.group.lint]
+optional = true
+
+[tool.poetry.group.lint.dependencies]
 pylint = "^2.15"
 black = "^22.8"
 isort = "^5.10"
@@ -70,3 +79,8 @@ disable = ["C0114", "C0115", "C0116"] # ignore missing docstrings
 
 [tool.mypy]
 ignore_missing_imports = true
+
+[tool.black]
+line-length = 88
+target-version = ['py310']
+extend-exclude = "^/tests/configuration/invalid_settings/configuration/settings\\.py"

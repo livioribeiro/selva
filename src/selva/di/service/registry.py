@@ -5,6 +5,8 @@ from collections import defaultdict
 from ..errors import ServiceAlreadyRegisteredError, ServiceNotFoundError
 from .model import ServiceDefinition
 
+__all__ = ("ServiceRecord", "ServiceRegistry")
+
 
 class ServiceRecord:
     def __init__(self):
@@ -48,7 +50,7 @@ def _get_key_with_name(key: type | tuple[type, str]) -> tuple[type, str | None]:
 
 class ServiceRegistry:
     def __init__(self):
-        self.data: dict[type, ServiceRecord] = defaultdict(ServiceRecord)
+        self.services: dict[type, ServiceRecord] = defaultdict(ServiceRecord)
 
     def get(self, key: type, name: str = None) -> ServiceDefinition | None:
         if (key, name) not in self:
@@ -58,15 +60,15 @@ class ServiceRegistry:
     def __getitem__(self, key: type | tuple[type, str]):
         inner_key, name = _get_key_with_name(key)
 
-        if service := self.data[inner_key].get(name):
+        if service := self.services[inner_key].get(name):
             return service
 
         raise ServiceNotFoundError(inner_key, name=name)
 
     def __setitem__(self, key: type | tuple[type, str], value: ServiceDefinition):
         inner_key, name = _get_key_with_name(key)
-        self.data[inner_key].add(value, name)
+        self.services[inner_key].add(value, name)
 
     def __contains__(self, key: type | tuple[type, str]):
         inner_key, name = _get_key_with_name(key)
-        return inner_key in self.data and name in self.data[inner_key]
+        return inner_key in self.services and name in self.services[inner_key]

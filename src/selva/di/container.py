@@ -1,7 +1,8 @@
-from collections.abc import Awaitable
-from types import ModuleType
+from collections.abc import Awaitable, Iterable
+from types import FunctionType, ModuleType
 from typing import Any, Type, TypeVar
 
+import selva.logging
 from selva.utils.maybe_async import maybe_async
 from selva.utils.package_scan import scan_packages
 
@@ -17,6 +18,9 @@ from .service.parse import get_dependencies, parse_definition
 from .service.registry import ServiceRegistry
 
 TService = TypeVar("TService")
+
+
+logger = selva.logging.get_logger()
 
 
 class Container:
@@ -37,6 +41,15 @@ class Container:
         provided_service = definition.provides
         self.registry[provided_service, name] = definition
 
+        logger.debug(
+            "service registered",
+            service=provided_service,
+            provider=definition.factory
+            if definition.provides is not definition.factory
+            else None,
+            name=name,
+        )
+
     def service(self, service_type: type):
         service_info = getattr(service_type, DI_SERVICE_ATTRIBUTE, None)
         if not service_info:
@@ -45,8 +58,9 @@ class Container:
         provides, name = service_info
         self.register(service_type, provides=provides, name=name)
 
-    def define_singleton(self, service_type: type, instance: Any, *, name: str = None):
+    def define(self, service_type: type, instance: Any, *, name: str = None):
         self.store[service_type, name] = instance
+        logger.debug("service defined", service=service_type, name=name)
 
     def interceptor(self, interceptor: Type[Interceptor]):
         self.register(
@@ -55,6 +69,8 @@ class Container:
             name=f"{interceptor.__module__}.{interceptor.__qualname__}",
         )
         self.interceptors.append(interceptor)
+
+        logger.debug("interceptor registered", interceptor=interceptor)
 
     def scan(self, *packages: str | ModuleType):
         def predicate(item: Any):
@@ -67,6 +83,23 @@ class Container:
     def has(self, service: type) -> bool:
         definition = self.registry.get(service)
         return definition is not None
+
+    def iter_service(
+        self, key: type
+    ) -> Iterable[tuple[type | FunctionType, str | None]]:
+        record = self.registry.services.get(key)
+        if not record:
+            raise ServiceNotFoundError(key)
+
+        for name, definition in record.providers.items():
+            yield definition.factory or key, name
+
+    def iter_all_services(
+        self,
+    ) -> Iterable[tuple[type, type | FunctionType | None, str | None]]:
+        for interface, record in self.registry.services.items():
+            for name, definition in record.providers.items():
+                yield interface, definition.factory, name
 
     async def get(
         self,
