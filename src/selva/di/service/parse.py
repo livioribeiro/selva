@@ -16,23 +16,27 @@ from selva.di.errors import (
 from selva.di.service.model import InjectableType, ServiceDefinition, ServiceDependency
 
 
-def _get_optional(type_hint) -> tuple[type, bool]:
+def _get_optional(type_hint: type, default: Any) -> tuple[type, bool]:
+    is_optional = default is not inspect.Parameter.empty
+
     if typing.get_origin(type_hint) is UnionType:
         type_args = list(typing.get_args(type_hint))
         if NoneType in type_args:
             type_args.remove(NoneType)
-            type_arg = type_args[0]
-            return type_arg, True
+
+            type_hint = type_args[0]
+            is_optional = True
 
     if typing.get_origin(type_hint) is Union:
         type_arg = typing.get_args(type_hint)[0]
         if type_hint == Optional[type_arg]:
-            return type_arg, True
+            type_hint = type_arg
+            is_optional = True
 
-    return type_hint, False
+    return type_hint, is_optional
 
 
-def _get_annotations(type_hint) -> tuple[type, list[Any]]:
+def _get_annotations(type_hint: type) -> tuple[type, list[Any]]:
     if typing.get_origin(type_hint) is Annotated:
         type_hint, *annotations = typing.get_args(type_hint)
         return type_hint, annotations
@@ -42,10 +46,13 @@ def _get_annotations(type_hint) -> tuple[type, list[Any]]:
 def get_dependencies(service: InjectableType) -> list[tuple[str, ServiceDependency]]:
     if inspect.isclass(service):
         types = typing.get_type_hints(service.__init__, include_extras=True)
+        signature = inspect.signature(service.__init__)
     elif inspect.isfunction(service) or inspect.ismethod(service):
         types = typing.get_type_hints(service, include_extras=True)
+        signature = inspect.signature(service)
     elif call := getattr(service, "__call__", None):
         types = typing.get_type_hints(call, include_extras=True)
+        signature = inspect.signature(service)
     else:
         raise InvalidServiceTypeError(service)
 
@@ -54,12 +61,14 @@ def get_dependencies(service: InjectableType) -> list[tuple[str, ServiceDependen
     result = []
 
     for name, type_hint in types.items():
-        type_hint, optional = _get_optional(type_hint)
+        parameter = signature.parameters[name]
+
+        type_hint, optional = _get_optional(type_hint, parameter.default)
         type_hint, annotations = _get_annotations(type_hint)
 
         # in case Optional is wrapped in Annotated
         if not optional:
-            type_hint, optional = _get_optional(type_hint)
+            type_hint, optional = _get_optional(type_hint, parameter.default)
 
         dependency_names = [a for a in annotations if isinstance(a, str)]
         if len(dependency_names) > 1:
