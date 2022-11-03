@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from pathlib import PurePath
 
 from selva.web import controller, get, PathConverter
 
@@ -18,18 +19,22 @@ class MyModelPathParamConverter(PathConverter[MyModel]):
 
 @controller
 class MyController:
-    @get("/int/{param}")
+    @get("/int/:param")
     def handler_int(self, param: int):
         return str(param)
 
-    @get("float/{param}")
+    @get("/float/:param")
     def handler_float(self, param: float):
         return str(param)
 
-    @get("bool/{param}")
+    @get("/bool/:param")
     def handler_bool(self, param: bool):
         return str(param)
 
-    @get("/custom/{my_model}")
+    @get("/custom/:my_model")
     def handler_custom(self, my_model: MyModel):
         return str(my_model)
+
+    @get("/path/*path")
+    def handler_path(self, path: PurePath):
+        return path.as_posix()

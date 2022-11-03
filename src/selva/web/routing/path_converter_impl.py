@@ -1,3 +1,5 @@
+from pathlib import Path, PurePath
+
 from selva.web.errors import NotFoundError
 
 from .path_converter import PathConverter
@@ -46,3 +48,19 @@ class BoolPathConverter(PathConverter[bool]):
 
     def into_path(self, obj: bool) -> str:
         return str(obj)
+
+
+class PurePathPathConverter(PathConverter[PurePath]):
+    def from_path(self, value: str) -> PurePath:
+        return PurePath(value)
+
+    def into_path(self, obj: PurePath) -> str:
+        return obj.as_posix()
+
+
+class PathPathConverter(PathConverter[Path]):
+    def from_path(self, value: str) -> Path:
+        return Path(value)
+
+    def into_path(self, obj: Path) -> str:
+        return obj.as_posix()

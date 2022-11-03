@@ -6,8 +6,15 @@ from typing import Callable, NamedTuple
 
 from asgikit.requests import HttpMethod
 
-PATH_PARAM_SPEC_RE = re.compile(r"\{([a-zA-Z\w]+)\}")
-PATH_PARAM_PATTERN = r".+?"
+__all__ = ("Route", "RouteMatch")
+
+RE_PATH_PARAM_SPEC = re.compile(r"([:*])([a-zA-Z\w]+)")
+RE_MULTI_SLASH = re.compile(r"/{2,}")
+
+PATH_PARAM_PATTERN = {
+    ":": r".+?",
+    "*": r".*",
+}
 
 
 def build_path_regex(
@@ -17,25 +24,24 @@ def build_path_regex(
 
     :returns: tuple of mapping param name to type and compiled regex
     """
-    regex = path
-
-    path_params = PATH_PARAM_SPEC_RE.findall(path)
+    regex = RE_MULTI_SLASH.sub("/", path)
+    path_params = RE_PATH_PARAM_SPEC.findall(path)
 
     # verify that path does not have duplicate parameters
     counter = Counter(path_params)
-    for name, occurencies in counter.items():
-        if occurencies > 1:
-            raise ValueError(
-                f"path parameter '{name}' occurred more than once ({occurencies} times)"
-            )
+    repeated = [name for name, occurrencies in counter.items() if occurrencies > 1]
+    if repeated:
+        raise ValueError(
+            f"path parameters defined more than once: {', '.join(repeated)}"
+        )
 
     param_types = {}
-    for param in path_params:
+    for kind, param in path_params:
         type_hint = type_hints.get(param, str)
         param_types[param] = type_hint
 
-        param_regex = f"(?P<{param}>{PATH_PARAM_PATTERN})"
-        regex = regex.replace(f"{{{param}}}", param_regex)
+        param_regex = f"(?P<{param}>{PATH_PARAM_PATTERN[kind]})"
+        regex = regex.replace(f"{kind}{param}", param_regex)
 
     if not regex.startswith("/"):
         regex = "/" + regex

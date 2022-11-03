@@ -64,7 +64,7 @@ mypy = "^0.971"
 optional = true
 
 [tool.poetry.group.docs.dependencies]
-mkdocs-material = "^8.4.2"
+mkdocs-material = "^8.5.8"
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

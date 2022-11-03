@@ -33,7 +33,7 @@ Handler methods can be defined with path parameters, which will be bound to the
 handler's arguments with the same name:
 
 ```python
-@get("/{path_param}")
+@get("/:path_param")
 def handler(path_param):
     ...
 ```
