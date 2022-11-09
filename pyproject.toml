@@ -34,6 +34,7 @@ packages = [
 [tool.poetry.dependencies]
 python = "^3.10"
 asgikit = "^0.2.2"
+asgiref = "^3.5.2"
 
 [tool.poetry.group.dev]
 optional = true

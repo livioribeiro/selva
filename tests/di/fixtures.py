@@ -1,6 +1,6 @@
 import pytest
 
-from selva.di import Container
+from selva.di.container import Container
 
 
 @pytest.fixture

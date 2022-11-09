@@ -1,6 +1,7 @@
 from typing import Optional
 
-from selva.di import Container
+from selva.di.container import Container
+from selva.di.inject import Inject
 
 from .fixtures import ioc
 
@@ -10,22 +11,11 @@ class DependentService:
 
 
 class ServiceWithOptionalDep:
-    def __init__(self, dependent: Optional[DependentService]):
-        self.dependent = dependent
-
-
-class ServiceWithOptionalDepNone:
-    def __init__(self, dependent: DependentService = None):
-        self.dependent = dependent
+    dependent: Optional[DependentService] = Inject()
 
 
 class ServiceWithOptionalDepOrNone:
-    def __init__(self, dependent: DependentService | None):
-        self.dependent = dependent
-
-
-class LazyDependency:
-    pass
+    dependent: DependentService | None = Inject()
 
 
 async def test_optional_dependency(ioc: Container):
@@ -37,18 +27,6 @@ async def test_optional_dependency(ioc: Container):
 
     ioc.register(DependentService)
     service = await ioc.get(ServiceWithOptionalDep)
-    assert isinstance(service.dependent, DependentService)
-
-
-async def test_optional_dependency_with_none_as_default(ioc: Container):
-    ioc.register(ServiceWithOptionalDepNone)
-    service = await ioc.get(ServiceWithOptionalDepNone)
-    assert service.dependent is None
-
-    ioc.store.clear()
-
-    ioc.register(DependentService)
-    service = await ioc.get(ServiceWithOptionalDepNone)
     assert isinstance(service.dependent, DependentService)
 
 

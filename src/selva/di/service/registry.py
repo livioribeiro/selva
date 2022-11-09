@@ -2,23 +2,23 @@ import typing
 import warnings
 from collections import defaultdict
 
-from ..errors import ServiceAlreadyRegisteredError, ServiceNotFoundError
-from .model import ServiceDefinition
+from selva.di.errors import ServiceAlreadyRegisteredError, ServiceNotFoundError
+from selva.di.service.model import ServiceSpec
 
 __all__ = ("ServiceRecord", "ServiceRegistry")
 
 
 class ServiceRecord:
     def __init__(self):
-        self.providers: dict[str | None, ServiceDefinition] = {}
+        self.providers: dict[str | None, ServiceSpec] = {}
 
-    def add(self, service: ServiceDefinition, name: str = None):
+    def add(self, service: ServiceSpec, name: str = None):
         if name in self.providers:
             raise ServiceAlreadyRegisteredError(service.provides, name)
 
         self.providers[name] = service
 
-    def get(self, name: str = None) -> ServiceDefinition | None:
+    def get(self, name: str = None) -> ServiceSpec | None:
         if service := self.providers.get(name):
             return service
 
@@ -52,7 +52,7 @@ class ServiceRegistry:
     def __init__(self):
         self.services: dict[type, ServiceRecord] = defaultdict(ServiceRecord)
 
-    def get(self, key: type, name: str = None) -> ServiceDefinition | None:
+    def get(self, key: type, name: str = None) -> ServiceSpec | None:
         if (key, name) not in self:
             return None
         return self[key, name]
@@ -65,7 +65,7 @@ class ServiceRegistry:
 
         raise ServiceNotFoundError(inner_key, name=name)
 
-    def __setitem__(self, key: type | tuple[type, str], value: ServiceDefinition):
+    def __setitem__(self, key: type | tuple[type, str], value: ServiceSpec):
         inner_key, name = _get_key_with_name(key)
         self.services[inner_key].add(value, name)
 

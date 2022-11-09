@@ -7,7 +7,12 @@ from asgikit.websockets import WebSocket
 import selva.logging
 from selva.web.errors import NotFoundError
 
-from .decorators import ACTION_ATTRIBUTE, CONTROLLER_ATTRIBUTE, PATH_ATTRIBUTE
+from .decorators import (
+    ACTION_ATTRIBUTE,
+    CONTROLLER_ATTRIBUTE,
+    ActionInfo,
+    ControllerInfo,
+)
 from .route import Route, RouteMatch
 
 logger = selva.logging.get_logger()
@@ -24,13 +29,17 @@ class Router:
         self.routes: OrderedDict[str, Route] = OrderedDict()
 
     def route(self, controller: type):
-        if not hasattr(controller, CONTROLLER_ATTRIBUTE):
+        controller_info: ControllerInfo = getattr(
+            controller, CONTROLLER_ATTRIBUTE, None
+        )
+        if not controller_info:
+            # TODO: create exception
             raise ValueError(
                 f"{controller.__module__}.{controller.__qualname__}"
                 " is not annotated with @controller"
             )
 
-        path_prefix = getattr(controller, PATH_ATTRIBUTE)
+        path_prefix = controller_info.path
 
         logger.debug(
             "controller registered",
@@ -39,12 +48,13 @@ class Router:
         )
 
         for name, action in inspect.getmembers(controller, inspect.isfunction):
-            action_type = getattr(action, ACTION_ATTRIBUTE, None)
-            if not action_type:
+            action_info: ActionInfo = getattr(action, ACTION_ATTRIBUTE, None)
+            if not action_info:
                 continue
 
-            method = action_type.value
-            path = getattr(action, PATH_ATTRIBUTE)
+            action_type = action_info.type
+            method: HttpMethod = action_type.value  # type: ignore
+            path = action_info.path
             path = _path_with_prefix(path, path_prefix)
             route_name = f"{controller.__module__}.{controller.__qualname__}:{name}"
 
@@ -54,12 +64,14 @@ class Router:
                 action_type.is_websocket
                 and HttpRequest in route.request_params.values()
             ):
+                # TODO: create exception
                 raise TypeError("websocket route cannot receive HttpRequest")
 
             if (
                 not action_type.is_websocket
                 and WebSocket in route.request_params.values()
             ):
+                # TODO: create exception
                 raise TypeError("http route cannot receive WebSocket")
 
             for current_route in self.routes.values():
@@ -74,6 +86,7 @@ class Router:
                     current_route.method == route.method
                     and current_route.regex == route.regex
                 ):
+                    # TODO: create exception
                     raise ValueError(
                         f"path for {route.name} clashes with {current_route.name}"
                     )

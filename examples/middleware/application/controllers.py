@@ -1,5 +1,6 @@
 from http import HTTPStatus
 
+from selva.di import Inject
 from selva.web import HttpResponse, RequestContext, controller, get
 
 from .auth import User
@@ -8,8 +9,7 @@ from .services import Greeter
 
 @controller
 class Controller:
-    def __init__(self, greeter: Greeter):
-        self.greeter = greeter
+    greeter: Greeter = Inject()
 
     @get
     async def index(self, context: RequestContext):

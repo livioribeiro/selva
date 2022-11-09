@@ -1,4 +1,5 @@
-from selva.di import Container, service
+from selva.di.container import Container
+from selva.di.decorators import service
 
 from .fixtures import ioc
 

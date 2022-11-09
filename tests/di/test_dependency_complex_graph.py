@@ -1,4 +1,6 @@
-from selva.di import Container, service, initializer
+from selva.di.container import Container
+from selva.di.decorators import service
+from selva.di.inject import Inject
 
 from .fixtures import ioc
 
@@ -10,54 +12,38 @@ class Service1:
 
 @service
 class Service2:
-    def __init__(self, dep1: Service1):
-        self.dep1 = dep1
+    dep1: Service1 = Inject()
 
 
 @service
 class Service3:
-    def __init__(self, dep1: Service1, dep2: Service2):
-        self.dep1 = dep1
-        self.dep2 = dep2
+    dep1: Service1 = Inject()
+    dep2: Service2 = Inject()
 
 
 @service
 class Service4:
-    def __init__(self, dep1: Service1, dep2: Service2, dep3: Service3):
-        self.dep1 = dep1
-        self.dep2 = dep2
-        self.dep3 = dep3
+    dep1: Service1 = Inject()
+    dep2: Service2 = Inject()
+    dep3: Service3 = Inject()
 
 
 @service
 class Service5:
-    def __init__(
-        self,
-        dep1: Service1,
-        dep2: Service2,
-        dep3: Service3,
-        dep4: Service4,
-        dep6: "Service6",
-    ):
-        self.dep1 = dep1
-        self.dep2 = dep2
-        self.dep3 = dep3
-        self.dep4 = dep4
-        self.dep6 = dep6
+    dep1: Service1 = Inject()
+    dep2: Service2 = Inject()
+    dep3: Service3 = Inject()
+    dep4: Service4 = Inject()
+    dep6: "Service6" = Inject()
 
 
 @service
 class Service6:
-    def __init__(self, dep1: Service1, dep2: Service2, dep3: Service3, dep4: Service4):
-        self.dep1 = dep1
-        self.dep2 = dep2
-        self.dep3 = dep3
-        self.dep4 = dep4
-        self.dep5 = None
-
-    @initializer
-    def initialize(self, dep5: Service5):
-        self.dep5 = dep5
+    dep1: Service1 = Inject()
+    dep2: Service2 = Inject()
+    dep3: Service3 = Inject()
+    dep4: Service4 = Inject()
+    dep5: Service5 = Inject()
 
 
 async def test_complex_graph(ioc: Container):

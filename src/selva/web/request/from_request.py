@@ -1,19 +1,14 @@
 from collections.abc import Awaitable
-from typing import Generic, TypeVar
-
-from selva.di import service
+from typing import Protocol, TypeVar, runtime_checkable
 
 from .context import RequestContext
 
 __all__ = ("FromRequest",)
 
-T = TypeVar("T")
+T = TypeVar("T", bound=type)
 
 
-class FromRequest(Generic[T]):
-    def __init_subclass__(cls, **kwargs):
-        super().__init_subclass__(**kwargs)
-        service(provides=cls.__orig_bases__[0])(cls)
-
+@runtime_checkable
+class FromRequest(Protocol[T]):
     def from_request(self, context: RequestContext) -> T | Awaitable[T]:
         raise NotImplementedError()

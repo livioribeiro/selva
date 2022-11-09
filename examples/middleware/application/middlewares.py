@@ -2,10 +2,12 @@ import base64
 from datetime import datetime
 from http import HTTPStatus
 
+from selva.di import service
 from selva.web import HttpResponse, RequestContext
 from selva.web.middleware import Middleware
 
 
+@service
 class TimingMiddleware(Middleware):
     async def execute(self, chain, context: RequestContext):
         request_start = datetime.now()
@@ -18,6 +20,7 @@ class TimingMiddleware(Middleware):
         return response
 
 
+@service
 class LoggingMiddleware(Middleware):
     async def execute(self, chain, context: RequestContext):
         response = await chain(context)
@@ -33,6 +36,7 @@ class LoggingMiddleware(Middleware):
         return response
 
 
+@service
 class AuthMiddleware(Middleware):
     async def execute(self, chain, context: RequestContext):
         if context.path == "/protected":

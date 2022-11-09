@@ -2,8 +2,9 @@ from typing import Generic, TypeVar
 
 import pytest
 
-from selva.di import Container
+from selva.di.container import Container
 from selva.di.errors import TypeVarInGenericServiceError
+from selva.di.inject import Inject
 
 from .fixtures import ioc
 
@@ -23,12 +24,13 @@ def service_factory() -> GenericService[int]:
 
 
 class ServiceDepends:
-    def __init__(self, service: GenericService[int]):
-        self.service = service
+    service: GenericService[int] = Inject()
 
 
 def service_factory_depends(service: GenericService[int]) -> ServiceDepends:
-    return ServiceDepends(service)
+    instance = ServiceDepends()
+    setattr(instance, "service", service)
+    return instance
 
 
 async def test_get_generic_service_with_class(ioc: Container):

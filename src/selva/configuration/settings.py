@@ -72,6 +72,7 @@ def get_settings_for_env(env: str = None) -> dict[str, Any]:
         settings_module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(settings_module)
     except FileNotFoundError:
+        # TODO: change to INFO level message
         warnings.warn(f"settings module not found: {settings_module_path}")
         return {}
     except Exception as err:

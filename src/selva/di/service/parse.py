@@ -1,23 +1,25 @@
 import inspect
 import typing
 import warnings
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from types import NoneType, UnionType
-from typing import Annotated, Any, Optional, TypeVar, Union
+from typing import Any, Optional, TypeVar, Union
 
-from selva.di.decorators import DI_FINALIZER_ATTRIBUTE, DI_INITIALIZER_ATTRIBUTE
 from selva.di.errors import (
     FactoryMissingReturnTypeError,
     InvalidServiceTypeError,
-    MultipleNameAnnotationsError,
     NonInjectableTypeError,
     TypeVarInGenericServiceError,
 )
-from selva.di.service.model import InjectableType, ServiceDefinition, ServiceDependency
+from selva.di.inject import Inject
+from selva.di.service.model import InjectableType, ServiceDependency, ServiceSpec
+
+DI_INITIALIZER = "initialize"
+DI_FINALIZER = "finalize"
 
 
-def _get_optional(type_hint: type, default: Any) -> tuple[type, bool]:
-    is_optional = default is not inspect.Parameter.empty
+def _check_optional(type_hint: type, default: Any) -> tuple[type, bool]:
+    is_optional = default is None
 
     if typing.get_origin(type_hint) is UnionType:
         type_args = list(typing.get_args(type_hint))
@@ -36,83 +38,55 @@ def _get_optional(type_hint: type, default: Any) -> tuple[type, bool]:
     return type_hint, is_optional
 
 
-def _get_annotations(type_hint: type) -> tuple[type, list[Any]]:
-    if typing.get_origin(type_hint) is Annotated:
-        type_hint, *annotations = typing.get_args(type_hint)
-        return type_hint, annotations
-    return type_hint, []
-
-
-def get_dependencies(service: InjectableType) -> list[tuple[str, ServiceDependency]]:
+def _get_service_signature(service: InjectableType) -> Iterable[str, type, Any]:
     if inspect.isclass(service):
-        types = typing.get_type_hints(service.__init__, include_extras=True)
-        signature = inspect.signature(service.__init__)
-    elif inspect.isfunction(service) or inspect.ismethod(service):
-        types = typing.get_type_hints(service, include_extras=True)
-        signature = inspect.signature(service)
-    elif call := getattr(service, "__call__", None):
-        types = typing.get_type_hints(call, include_extras=True)
-        signature = inspect.signature(service)
+        for name, hint in typing.get_type_hints(service).items():
+            value = getattr(service, name, None)
+            if isinstance(value, Inject):
+                yield name, hint, value
+    elif inspect.isfunction(service):
+        for name, param in inspect.signature(service).parameters.items():
+            hint = param.annotation
+            value = param.default
+            yield name, hint, value
     else:
         raise InvalidServiceTypeError(service)
 
-    types.pop("return", None)
 
-    result = []
+def get_dependencies(
+    service: InjectableType,
+) -> Iterable[tuple[str, ServiceDependency]]:
+    for name, hint, value in _get_service_signature(service):
+        if isinstance(value, Inject):
+            service_name = value.name
+            value = inspect.Parameter.empty
+        else:
+            service_name = None
 
-    for name, type_hint in types.items():
-        parameter = signature.parameters[name]
+        hint, is_optional = _check_optional(hint, value)
 
-        type_hint, optional = _get_optional(type_hint, parameter.default)
-        type_hint, annotations = _get_annotations(type_hint)
-
-        # in case Optional is wrapped in Annotated
-        if not optional:
-            type_hint, optional = _get_optional(type_hint, parameter.default)
-
-        dependency_names = [a for a in annotations if isinstance(a, str)]
-        if len(dependency_names) > 1:
-            raise MultipleNameAnnotationsError(dependency_names, name, service)
-        dependency_name = dependency_names[0] if len(dependency_names) == 1 else None
-
-        service_dependency = ServiceDependency(
-            type_hint, optional=optional, name=dependency_name
-        )
-        result.append((name, service_dependency))
-
-    return result
+        dependency = ServiceDependency(hint, name=service_name, optional=is_optional)
+        yield name, dependency
 
 
 def _parse_definition_class(
     service: type, provides: type | None
-) -> tuple[type, list[Callable], list[Callable]]:
-    initializers = []
-    finalizers = []
-
-    if provides:
-        origin = typing.get_origin(provides)
-        if origin:
-            if any(isinstance(a, TypeVar) for a in typing.get_args(provides)):
-                raise TypeVarInGenericServiceError(provides)
+) -> tuple[type, Callable, Callable]:
+    if provides and typing.get_origin(provides):
+        if any(isinstance(a, TypeVar) for a in typing.get_args(provides)):
+            raise TypeVarInGenericServiceError(provides)
 
     provided_service = provides or service
 
-    # get initializers and finalizers for service class
-    for _, function in inspect.getmembers(service, inspect.isfunction):
-        if getattr(function, DI_INITIALIZER_ATTRIBUTE, None):
-            initializers.append(function)
-        if getattr(function, DI_FINALIZER_ATTRIBUTE, None):
-            finalizers.append(function)
+    initializer = getattr(service, DI_INITIALIZER, None)
+    finalizer = getattr(service, DI_FINALIZER, None)
 
-    return provided_service, initializers, finalizers
+    return provided_service, initializer, finalizer
 
 
-def _parse_definition_factory(
-    service: Callable, provides: type | None
-) -> tuple[type, Callable | None]:
-    finalizer = None
-
+def _parse_definition_factory(service: Callable, provides: type | None) -> type:
     if provides:
+        # TODO: change to selva.logging
         message = "option 'provides' on a factory function has no effect"
         warnings.warn(message)
 
@@ -122,33 +96,39 @@ def _parse_definition_factory(
 
     provided_service = service_type
 
-    # get finalizer for service factory
-    if func := getattr(service, DI_FINALIZER_ATTRIBUTE, None):
-        finalizer = func
-
-    return provided_service, finalizer
+    return provided_service
 
 
-def parse_definition(
-    service: InjectableType, provides: type = None
-) -> ServiceDefinition:
-    if inspect.isclass(service):
-        provided_service, initializers, finalizers = _parse_definition_class(
-            service, provides
+def parse_service_spec(
+    injectable: InjectableType,
+    provides: type = None,
+    name: str = None,
+) -> ServiceSpec:
+    if inspect.isclass(injectable):
+        provided_service, initializer, finalizer = _parse_definition_class(
+            injectable, provides
         )
-    elif inspect.isfunction(service):
-        provided_service, finalizer = _parse_definition_factory(service, provides)
-        initializers = []
-        finalizers = [finalizer] if finalizer else []
+
+        service = injectable
+        factory = None
+    elif inspect.isfunction(injectable):
+        provided_service = _parse_definition_factory(injectable, provides)
+        initializer = None
+        finalizer = None
+
+        service = provided_service
+        factory = injectable
     else:
-        raise NonInjectableTypeError(service)
+        raise NonInjectableTypeError(injectable)
 
-    dependencies = get_dependencies(service)
+    dependencies = list(get_dependencies(injectable))
 
-    return ServiceDefinition(
+    return ServiceSpec(
+        service=service,
         provides=provided_service,
-        factory=service,
+        factory=factory,
+        name=name,
         dependencies=dependencies,
-        initializers=initializers,
-        finalizers=finalizers,
+        initializer=initializer,
+        finalizer=finalizer,
     )

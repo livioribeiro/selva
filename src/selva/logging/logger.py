@@ -35,7 +35,7 @@ class Logger:
         msg: str,
         *,
         exc_info: BaseException | tuple[BaseException, TracebackType] | bool = None,
-        **kwargs
+        **kwargs,
     ):
         stdlog_kwargs = kwargs.pop("stdlogs_kwargs", {})
         stdlog_kwargs |= dict(exc_info=exc_info or True)

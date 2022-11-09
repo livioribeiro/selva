@@ -1,4 +1,4 @@
-from selva.di import service
+from selva.di import service, Inject
 from selva.web import (
     FileResponse,
     RequestContext,
@@ -41,9 +41,8 @@ class WebSocketService:
 
 @controller
 class WebSocketController:
-    def __init__(self, handler: WebSocketService, settings: Settings):
-        self.handler = handler
-        self.settings = settings
+    handler: WebSocketService = Inject()
+    settings: Settings = Inject()
 
     @get
     def index(self):

@@ -1,7 +1,7 @@
 import json
 import os
 from collections.abc import Callable, Mapping, Sequence
-from typing import TypeVar, Any, Optional
+from typing import Any, Optional, TypeVar
 
 T = TypeVar("T")
 

@@ -1,6 +1,8 @@
 import inspect
+from collections.abc import Callable
 from enum import Enum
-from typing import Callable
+from functools import singledispatch
+from typing import NamedTuple
 
 from asgikit.requests import HttpMethod
 
@@ -8,7 +10,10 @@ from selva.di import service
 
 CONTROLLER_ATTRIBUTE = "__selva_web_controller__"
 ACTION_ATTRIBUTE = "__selva_web_action__"
-PATH_ATTRIBUTE = "__selva_web_path__"
+
+
+class ControllerInfo(NamedTuple):
+    path: str
 
 
 class ActionType(Enum):
@@ -20,38 +25,47 @@ class ActionType(Enum):
     WEBSOCKET = None
 
     @property
-    def is_websocket(self):
+    def is_websocket(self) -> bool:
         return self is ActionType.WEBSOCKET
 
 
-def controller(path_or_cls: str | type):
-    if isinstance(path_or_cls, str):
-        path = path_or_cls.strip("/")
-        cls = None
-    elif inspect.isclass(path_or_cls):
-        path = ""
-        cls = path_or_cls
-    else:
-        raise ValueError(f"@controller must be applied to class, '{path_or_cls}' given")
-
-    def inner(arg: type):
-        if not inspect.isclass(arg):
-            raise ValueError(f"@controller must be applied to class, '{arg}' given")
-
-        setattr(arg, CONTROLLER_ATTRIBUTE, True)
-        setattr(arg, PATH_ATTRIBUTE, path)
-
-        return service(arg)
-
-    return inner(cls) if cls else inner
+class ActionInfo(NamedTuple):
+    type: ActionType
+    path: str
 
 
-def route(action=None, *, method: HttpMethod | None, path: str | None):
+@singledispatch
+def controller(path):
+    # TODO: create exception
+    raise ValueError(f"@controller must be applied to class, '{path}' given")
+
+
+@controller.register
+def _(path: str):
+    path = path.strip("/")
+
+    def inner(cls: type):
+        if not inspect.isclass(cls):
+            # TODO: create exception
+            raise ValueError(f"@controller must be applied to class, '{cls}' given")
+
+        setattr(cls, CONTROLLER_ATTRIBUTE, ControllerInfo(path))
+        return service(cls)
+
+    return inner
+
+
+@controller.register
+def _(cls: type):
+    setattr(cls, CONTROLLER_ATTRIBUTE, ControllerInfo(""))
+    return service(cls)
+
+
+def route(action=None, /, *, method: HttpMethod | None, path: str | None):
     path = path.strip("/") if path else ""
 
     def inner(arg: Callable):
-        setattr(arg, ACTION_ATTRIBUTE, ActionType(method))
-        setattr(arg, PATH_ATTRIBUTE, path)
+        setattr(arg, ACTION_ATTRIBUTE, ActionInfo(ActionType(method), path))
         return arg
 
     return inner(action) if action else inner

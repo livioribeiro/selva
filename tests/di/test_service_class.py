@@ -2,8 +2,9 @@ from dataclasses import dataclass
 
 import pytest
 
-from selva.di import Container
+from selva.di.container import Container
 from selva.di.errors import ServiceAlreadyRegisteredError
+from selva.di.inject import Inject
 
 from .fixtures import ioc
 
@@ -13,8 +14,7 @@ class Service1:
 
 
 class Service2:
-    def __init__(self, service1: Service1):
-        self.service1 = service1
+    service1: Service1 = Inject()
 
 
 class Service3:
@@ -27,11 +27,6 @@ class Interface:
 
 class Implementation(Interface):
     pass
-
-
-@dataclass
-class ServiceDataClass:
-    service1: Service1
 
 
 def test_has_service(ioc: Container):
@@ -73,12 +68,3 @@ async def test_register_a_service_twice_should_fail(ioc: Container):
     ioc.register(Implementation, provides=Interface)
     with pytest.raises(ServiceAlreadyRegisteredError):
         ioc.register(Implementation2, provides=Interface)
-
-
-async def test_service_dataclass(ioc: Container):
-    ioc.register(Service1)
-    ioc.register(ServiceDataClass)
-
-    service = await ioc.get(ServiceDataClass)
-
-    assert isinstance(service.service1, Service1)

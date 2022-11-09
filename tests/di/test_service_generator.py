@@ -13,8 +13,8 @@ class Service1:
     pass
 
 
-async def service1_factory() -> Service1:
-    return Service1()
+def service1_factory() -> Service1:
+    yield Service1()
 
 
 class Service2:
@@ -22,8 +22,8 @@ class Service2:
         self.service1 = service1
 
 
-async def service2_factory(service1: Service1) -> Service2:
-    return Service2(service1)
+def service2_factory(service1: Service1) -> Service2:
+    yield Service2(service1)
 
 
 class Interface:
@@ -34,8 +34,8 @@ class Implementation(Interface):
     pass
 
 
-async def interface_factory() -> Interface:
-    return Implementation()
+def interface_factory() -> Interface:
+    yield Implementation()
 
 
 def test_has_service(ioc: Container):

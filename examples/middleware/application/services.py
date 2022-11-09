@@ -1,7 +1,7 @@
 import os
 from typing import NamedTuple
 
-from selva.di import service
+from selva.di import service, Inject
 
 DEFAULT_NAME = "World"
 
@@ -18,8 +18,11 @@ def settings_factory() -> Settings:
 
 @service
 class Greeter:
-    def __init__(self, settings: Settings):
-        self.default_name = settings.default_name
+    settings: Settings = Inject()
+
+    @property
+    def default_name(self):
+        return self.settings.default_name
 
     def greet(self, name: str = None):
         greeted_name = name or self.default_name

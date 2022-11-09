@@ -2,29 +2,25 @@ import os
 
 from databases import Database
 
-from selva.di import finalizer, initializer, service
+from selva.di import service, Inject
 from selva.configuration import Settings
 
 
-def database_finalizer(database: Database):
+@service
+def database_factory(settings: Settings) -> Database:
+    database = Database(settings.DATABASE_URL)
+    print("Sqlite database created")
+
+    yield database
+
     os.unlink(database.url.database)
     print("Sqlite database destroyed")
 
 
 @service
-@finalizer(database_finalizer)
-def database_factory(settings: Settings) -> Database:
-    database = Database(settings.DATABASE_URL)
-    print("Sqlite database created")
-    return database
-
-
-@service
 class Repository:
-    def __init__(self, database: Database):
-        self.database = database
+    database: Database = Inject()
 
-    @initializer
     async def initialize(self):
         await self.database.connect()
         print("Sqlite database connection opened")
@@ -34,7 +30,6 @@ class Repository:
         )
         await self.database.execute("insert into counter values (0)")
 
-    @finalizer
     async def finalize(self):
         await self.database.disconnect()
         print("Sqlite database connection closed")

@@ -45,7 +45,7 @@ The [routing section](../routing) provides more information about path parameter
 Controllers themselves are services, and therefore can have services injected.
 
 ```python
-from selva.di import service
+from selva.di import service, Inject
 from selva.web import controller
 
 
@@ -56,8 +56,7 @@ class MyService:
 
 @controller
 class MyController:
-    def __init__(self, my_service: MyService):
-        self.service = my_service
+    my_service: MyService = Inject
 ```
 
 ## Request Information
@@ -133,6 +132,7 @@ over the base types of `Type` until an implementation is found or an error will
 be returned if there is none.
 
 ```python
+from selva.di import service
 from selva.web import RequestContext, FromRequest, controller, get
 
 
@@ -141,7 +141,8 @@ class Param:
         self.request_path = path
 
 
-class ParamFromRequest(FromRequest[Param]):
+@service(provides=FromRequest[Param])
+class ParamFromRequest:
     def from_request(self, context: RequestContext) -> Param:
         return Param(context.path)
 
@@ -158,10 +159,13 @@ And if the error is a subclass of `selva.web.errors.HttpError`, for example
 `UnathorizedError`, a response will be returned according to the error.
 
 ```python
+from selva.di import service
+from selva.web import RequestContext, FromRequest
 from selva.web.errors import UnauthorizedError
 
 
-class ParamFromRequest(FromRequest[Param]):
+@service(provides=FromRequest[Param])
+class ParamFromRequest:
     def from_request(self, context: RequestContext) -> Param:
         if "authorization" not in context.headers:
             raise UnauthorizedError()
@@ -189,6 +193,7 @@ implementation. As with `FromRequest[Type]`, Selva will iterate over the base
 types of `Type` until an implementation is found or an error will be returned.
 
 ```python
+from selva.di import service
 from selva.web import HttpResponse, IntoResponse, controller, get
 
 
@@ -197,7 +202,8 @@ class Result:
         self.data = data
 
 
-class ResultIntoResponse(IntoResponse[Result]):
+@service(provides=IntoResponse[Result])
+class ResultIntoResponse:
     def into_response(self, value: Result) -> HttpResponse:
         return HttpResponse.json({"result": value.data})
 

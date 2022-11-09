@@ -1,10 +1,12 @@
-from selva.di import Container
+from typing import Any
+
+from selva.di.container import Container
 
 from .fixtures import ioc
 
 
 class TestInterceptor:
-    async def intercept(self, instance, service_type):
+    async def intercept(self, instance: Any, _service_type: type):
         setattr(instance, "intercepted", True)
 
 

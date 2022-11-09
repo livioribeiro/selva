@@ -1,8 +1,8 @@
 from collections.abc import Callable
-from types import FunctionType, MethodType
+from types import FunctionType
 from typing import NamedTuple
 
-InjectableType = type | FunctionType | MethodType
+InjectableType = type | FunctionType
 
 
 class ServiceInfo(NamedTuple):
@@ -16,9 +16,11 @@ class ServiceDependency(NamedTuple):
     optional: bool = False
 
 
-class ServiceDefinition(NamedTuple):
+class ServiceSpec(NamedTuple):
+    service: type
     provides: type
-    factory: InjectableType
+    factory: FunctionType
+    name: str | None
     dependencies: list[tuple[str, ServiceDependency]]
-    initializers: list[Callable]
-    finalizers: list[Callable]
+    initializer: Callable = None
+    finalizer: Callable = None

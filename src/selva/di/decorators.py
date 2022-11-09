@@ -1,43 +1,42 @@
-import functools
 import inspect
 from collections.abc import Callable
+from typing import TypeVar
 
-from .service.model import InjectableType, ServiceInfo
+from selva.di.inject import Inject
+from selva.di.service.model import InjectableType, ServiceInfo
+
+__all__ = ("service", "DI_SERVICE_ATTRIBUTE")
 
 DI_SERVICE_ATTRIBUTE = "__selva_di_service__"
-DI_INITIALIZER_ATTRIBUTE = "__selva_di_initializer__"
-DI_FINALIZER_ATTRIBUTE = "__selva_di_finalizer__"
+
+T = TypeVar("T", bound=InjectableType)
+
+
+def _is_inject(value) -> bool:
+    return isinstance(value, Inject) or value is Inject
 
 
 def service(
-    injectable: InjectableType = None, *, provides: type = None, name: str = None
-):
-    def inner(arg: InjectableType):
+    injectable: T = None, /, *, provides: type = None, name: str = None
+) -> T | Callable[[T], T]:
+    def inner(arg: InjectableType) -> T:
         setattr(arg, DI_SERVICE_ATTRIBUTE, ServiceInfo(provides, name))
+
+        if inspect.isclass(arg):
+            annotations = set(inspect.get_annotations(arg).keys())
+
+            missing = []
+            for prop, _ in inspect.getmembers(arg, _is_inject):
+                if prop not in annotations:
+                    missing.append(prop)
+
+            if missing:
+                # TODO: create exception
+                raise TypeError(
+                    f"Missing type annotation for dependencies of service '{arg.__qualname__}': "
+                    ', '.join(missing)
+                )
+
         return arg
 
     return inner(injectable) if injectable else inner
-
-
-def initializer(func: Callable):
-    if not inspect.isfunction(func):
-        raise TypeError("@initializer should be applied to a function or method")
-
-    setattr(func, DI_INITIALIZER_ATTRIBUTE, True)
-    return func
-
-
-def finalizer(func: Callable):
-    if not inspect.isfunction(func):
-        raise TypeError("@finalizer should be applied to a function or method")
-
-    if "self" in inspect.signature(func).parameters:
-        setattr(func, DI_FINALIZER_ATTRIBUTE, True)
-        return func
-
-    @functools.wraps(func)
-    def inner(target: Callable):
-        setattr(target, DI_FINALIZER_ATTRIBUTE, func)
-        return target
-
-    return inner

@@ -1,4 +1,4 @@
-from selva.di import Container
+from selva.di.container import Container
 
 from .fixtures import ioc
 

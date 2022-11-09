@@ -12,7 +12,7 @@ class User:
 
 
 @service(provides=FromRequest[User])
-class UserFromRequest(FromRequest[User]):
+class UserFromRequest:
     def from_request(self, context: RequestContext) -> User:
         if user := context.attributes.get("user"):
             return User(user)

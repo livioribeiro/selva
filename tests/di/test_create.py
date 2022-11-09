@@ -1,4 +1,5 @@
-from selva.di import Container
+from selva.di.container import Container
+from selva.di.inject import Inject
 
 from .fixtures import ioc
 
@@ -12,17 +13,17 @@ def service1_factory() -> Service1:
 
 
 class Service2:
-    def __init__(self, service1: Service1):
-        self.service1 = service1
+    service1: Service1 = Inject()
 
 
 def service2_factory(service1: Service1) -> Service2:
-    return Service2(service1)
+    service = Service2()
+    setattr(service, "service1", service1)
+    return service
 
 
 class Creatable:
-    def __init__(self, service2: Service2):
-        self.service2 = service2
+    service2: Service2 = Inject()
 
 
 async def test_create_object_with_class(ioc: Container):

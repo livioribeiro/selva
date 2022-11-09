@@ -1,35 +1,41 @@
 from http import HTTPStatus
 
+from selva.di.decorators import service
 from selva.web import HttpResponse
+from selva.web.response.into_response import IntoResponse
 
-from .into_response import IntoResponse
 
-
-class IntIntoResponse(IntoResponse[int]):
+@service(provides=IntoResponse[int])
+class IntIntoResponse:
     def into_response(self, value: int) -> HttpResponse:
         return HttpResponse(status=value)
 
 
-class HTTPStatusIntoResponse(IntoResponse[HTTPStatus]):
+@service(provides=IntoResponse[HTTPStatus])
+class HTTPStatusIntoResponse:
     def into_response(self, value: HTTPStatus) -> HttpResponse:
         return HttpResponse(status=value)
 
 
-class StrIntoResponse(IntoResponse[str]):
+@service(provides=IntoResponse[str])
+class StrIntoResponse:
     def into_response(self, value: str) -> HttpResponse:
         return HttpResponse.text(value)
 
 
-class ListIntoResponse(IntoResponse[list]):
+@service(provides=IntoResponse[list])
+class ListIntoResponse:
     def into_response(self, value: list) -> HttpResponse:
         return HttpResponse.json(value)
 
 
-class DictIntoResponse(IntoResponse[dict]):
+@service(provides=IntoResponse[dict])
+class DictIntoResponse:
     def into_response(self, value: dict) -> HttpResponse:
         return HttpResponse.json(value)
 
 
-class SetIntoResponse(IntoResponse[set]):
+@service(provides=IntoResponse[set])
+class SetIntoResponse:
     def into_response(self, value: set) -> HttpResponse:
         return HttpResponse.json(value)

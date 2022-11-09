@@ -1,4 +1,5 @@
-from selva.di import Container, initializer, finalizer
+from selva.di.container import Container
+from selva.di.inject import Inject
 
 from .fixtures import ioc
 
@@ -8,21 +9,17 @@ class Dependency:
 
 
 class ServiceInitialize:
-    def __init__(self):
-        self.dependency = None
+    initialized = False
 
-    @initializer
-    def initialize(self, dependency: Dependency):
-        self.dependency = dependency
+    def initialize(self):
+        self.initialized = True
 
 
 class ServiceAsyncInitialize:
-    def __init__(self):
-        self.dependency = None
+    initialized = False
 
-    @initializer
-    async def initialize(self, dependency: Dependency):
-        self.dependency = dependency
+    async def initialize(self):
+        self.initialized = True
 
 
 class Service:
@@ -30,64 +27,48 @@ class Service:
 
 
 class ServiceFinalize:
-    @finalizer
     def finalize(self):
         print("finalize")
 
 
 class ServiceAsyncFinalize:
-    @finalizer
     async def finalize(self):
         print("async finalize", flush=True)
 
 
-def run_finalizer(obj: Service):
+def factory_finalize() -> Service:
+    yield Service()
     print("factory finalize", flush=True)
 
 
-async def run_async_finalizer(obj: Service):
+async def factory_async_finalize() -> Service:
+    yield Service()
     print("factory async finalize", flush=True)
 
 
-@finalizer(run_finalizer)
-def factory_finalize() -> Service:
-    return Service()
-
-
-@finalizer(run_async_finalizer)
-def factory_async_finalize() -> Service:
-    return Service()
-
-
 class FinalizerOrder1:
-    @initializer
     def initialize(self):
         print("initialize 1", flush=True)
 
-    @finalizer
     def finalize(self):
         print("finalize 1", flush=True)
 
 
 class FinalizerOrder2:
-    def __init__(self, dep: FinalizerOrder1):
-        pass
+    dep: FinalizerOrder1 = Inject()
 
-    @initializer
     def initialize(self):
         print("initialize 2", flush=True)
 
-    @finalizer
     def finalize(self):
         print("finalize 2", flush=True)
 
 
 async def test_call_initialize(ioc: Container):
-    ioc.register(Dependency)
     ioc.register(ServiceInitialize)
 
     service = await ioc.get(ServiceInitialize)
-    assert isinstance(service.dependency, Dependency)
+    assert service.initialized
 
 
 async def test_call_async_initialize(ioc: Container):
@@ -95,7 +76,7 @@ async def test_call_async_initialize(ioc: Container):
     ioc.register(ServiceAsyncInitialize)
 
     service = await ioc.get(ServiceAsyncInitialize)
-    assert isinstance(service.dependency, Dependency)
+    assert service.initialized
 
 
 async def test_call_finalize(ioc: Container, capsys):

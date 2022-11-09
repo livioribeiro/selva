@@ -61,13 +61,14 @@ Controller classes hold handler methods that will respond to HTTP or WebSocket
 requests. They can receive services through dependency injection.
 
 === "application/controller.py"
+
     ```python
     from selva.web import controller, get
     
     
     @controller # (1)
     class GreetingController:
-        @get("hello/{name}") # (2)
+        @get("hello/:name") # (2)
         def hello(self, name: str) -> dict:
             return {"greeting": f"Hello, {name}!"}
     ```
@@ -75,10 +76,10 @@ requests. They can receive services through dependency injection.
     1.  `@controller` marks a class as a controller. It can optionally receive
         a path (e.g. `@controller("path")`) that will be prepended to the handlers' path.
 
-    2.  `@get("hello/{name}")` defines the method as a handler on the given path.
+    2.  `@get("hello/:name")` defines the method as a handler on the given path.
         If no path is given, the path from the controller will be used.
 
-        `{name}` defines a path parameter that will be bound to the `name`
+        `:name` defines a path parameter that will be bound to the `name`
         parameter on the handler
 
 And now we test if our controller is working:
@@ -98,6 +99,7 @@ Our service will have a method that receives a name and returns a greeting. It
 will be injected into the controller we created previously.
 
 === "/application/service.py"
+
     ```python
     from selva.di import service
     
@@ -112,17 +114,18 @@ will be injected into the controller we created previously.
         can be injected in other classes
 
 === "application/controller.py"
+
     ```python
+    from selva.di import Inject
     from selva.web import controller, get
     from .service import Greeter
     
     
     @controller
     class GreetingController:
-        def __init__(self, greeter: Greeter):
-            self.greeter = greeter # (1)
+        gretter: Gretter = Inject() # (1)
     
-        @get("/hello/{name}")
+        @get("/hello/:name")
         def hello_name(self, name: str) -> dict:
             greeting = self.greeter.greet(name)
             return {"greeting": greeting}
@@ -147,10 +150,11 @@ pip install databases[aiosqlite]
 with `@service`, so in this case we need to create a factory function for it:
 
 === "application/repository.py"
+
     ```python
     from datetime import datetime
     from databases import Database
-    from selva.di import service, initializer, finalizer
+    from selva.di import service, Inject
     
     @service # (1)
     async def database_factory() -> Database:
@@ -167,17 +171,13 @@ with `@service`, so in this case we need to create a factory function for it:
     
     @service
     class GreetingRepository:
-        def __init__(self, database: Database):
-            self.database = database
+        database: Database = Inject() # (2)
     
-        @initializer # (2)
-        async def initialize(self):
+        async def initialize(self): # (3)
             await self.database.connect()
     
-        @finalizer # (3)
-        async def finalize(self):
+        async def finalize(self): # (4)
             await self.database.disconnect()
-    
     
         async def save_greeting(self, greeting: str, date: datetime):
             query = """
@@ -191,15 +191,18 @@ with `@service`, so in this case we need to create a factory function for it:
     1.  A function decorated with `@service` can used to create a service when
         you need to provide types you do not own
 
-    2.  `@initializer` marks a method to be invoked after the service is
+    2.  Inject the `Database` service in the `GreetingRepository`
+
+    3.  A method called `initialize` will be invoked after the service is
         constructed in order to run any initialization logic
 
-    3.  `@finalizer` marks a method to be invoked before the service is
+    4.  A method called `finalize` will be invoked before the service is
         destroyed in order to run any cleanup logic
 
 === "application/controller.py"
     ```python
     from datetime import datetime
+    from selva.di import Inject
     from selva.web import controller, get
     from .repository import GreetingRepository
     from .service import Greeter
@@ -207,11 +210,10 @@ with `@service`, so in this case we need to create a factory function for it:
     
     @controller
     class GreetingController:
-        def __init__(self, greeter: Greeter, repository: GreetingRepository):
-            self.greeter = greeter
-            self.repository = repository
+        greeter: Greeter = Inject()
+        repository: GreetingRepository = Inject()
     
-        @get("hello/{name}")
+        @get("hello/:name")
         async def hello_name(self, name: str) -> dict:
             greeting = self.greeter.greet(name)
             await self.repository.save_greeting(greeting, datetime.now())
@@ -226,8 +228,10 @@ user has to wait until the greeting is saved before receiving it.
 To solve this problem and improve the user experience, we can use *delayed tasks*:
 
 === "application/controller.py"
+
     ```python
     from datetime import datetime
+    from selva.di import Inject
     from selva.web import RequestContext, controller, get
     from .repository import GreetingRepository
     from .service import Greeter
@@ -235,11 +239,10 @@ To solve this problem and improve the user experience, we can use *delayed tasks
     
     @controller
     class GreetingController:
-        def __init__(self, greeter: Greeter, repository: GreetingRepository):
-            self.greeter = greeter
-            self.repository = repository
+        greeter: Greeter = Inject()
+        repository: GreetingRepository = Inject()
     
-        @get("hello/{name}")
+        @get("hello/:name")
         async def hello_name(self, name: str, context: RequestContext) -> dict:
             greeting = self.greeter.greet(name)
             context.add_delayed_task( # (1)
@@ -260,6 +263,7 @@ To see the greetings saved to the database, we just need to add a route to get
 the logs and return them:
 
 === "application/repository.py"
+
     ```python
     @service
     class GreetingRepository:

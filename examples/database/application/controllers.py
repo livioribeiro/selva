@@ -1,5 +1,6 @@
 from http import HTTPStatus
 
+from selva.di import Inject
 from selva.web import JsonResponse, controller, get
 
 from .services import Repository
@@ -7,8 +8,7 @@ from .services import Repository
 
 @controller
 class Controller:
-    def __init__(self, repository: Repository):
-        self.repository = repository
+    repository: Repository = Inject()
 
     @get
     async def count(self):

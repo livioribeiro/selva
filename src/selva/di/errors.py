@@ -58,24 +58,9 @@ class ServiceAlreadyRegisteredError(DependencyInjectionError):
         super().__init__(message)
 
 
-class CalledNonCallableError(DependencyInjectionError):
-    def __init__(self, called: Any):
-        super().__init__(f"{_type_name(called)} is not callable")
-
-
 class TypeVarInGenericServiceError(DependencyInjectionError):
     def __init__(self, provided: type):
         super().__init__(f"{_type_name(provided)} has generic types")
-
-
-class MultipleNameAnnotationsError(DependencyInjectionError):
-    def __init__(self, names: list[str], parameter: str, service: InjectableType):
-        super().__init__(
-            f"multiple 'Name' annotations"
-            f" for parameter '{parameter}"
-            f" on service '{_type_name(service)}':"
-            f" {', '.join(names)}"
-        )
 
 
 class InvalidServiceTypeError(DependencyInjectionError):

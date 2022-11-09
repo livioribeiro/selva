@@ -1,4 +1,4 @@
-from selva.di import Container
+from selva.di.container import Container
 
 from .fixtures import ioc
 
@@ -61,12 +61,3 @@ async def test_scan_generic_class(ioc: Container):
 
     service = await ioc.get(module.Interface[int])
     assert isinstance(service, module.Implementation)
-
-
-async def test_scan_dataclass(ioc: Container):
-    from .services.scan_package import service_dataclass as module
-
-    ioc.scan(module)
-
-    service = await ioc.get(module.ServiceDataclass)
-    assert isinstance(service.dependency, module.Dependency)

@@ -12,7 +12,7 @@ from asgikit.responses import HttpResponse
 import selva.logging
 import selva.logging.configuration
 from selva.configuration.settings import Settings
-from selva.di import Container
+from selva.di.container import Container
 from selva.di.decorators import DI_SERVICE_ATTRIBUTE
 from selva.utils.base_types import get_base_types
 from selva.utils.maybe_async import maybe_async
