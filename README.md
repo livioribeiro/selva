@@ -30,7 +30,7 @@ app = Selva(Controller)
 Add a service
 
 ```python
-from selva.di import service
+from selva.di import service, Inject
 from selva.web import Selva, controller, get
 
 
@@ -42,8 +42,7 @@ class Greeter:
 
 @controller
 class Controller:
-    def __init__(self, greeter: Greeter):
-        self.greeter = greeter
+    greeter: Greeter = Inject()
 
     @get
     def hello(self):
@@ -56,7 +55,7 @@ app = Selva(Controller, Greeter)
 Get parameters from path
 
 ```python
-from selva.di import service
+from selva.di import service, Inject
 from selva.web import Selva, controller, get
 
 
@@ -68,10 +67,9 @@ class Greeter:
 
 @controller
 class Controller:
-    def __init__(self, greeter: Greeter):
-        self.greeter = greeter
+    greeter: Greeter = Inject()
 
-    @get("hello/{name}")
+    @get("hello/:name")
     def hello(self, name: str):
         greeting = self.greeter.greet(name)
         # A json response will be created from the returned dict
@@ -84,7 +82,7 @@ app = Selva(Controller, Greeter)
 Configurations with [Pydantic](https://pydantic-docs.helpmanual.io/usage/settings/)
 
 ```python
-from selva.di import service
+from selva.di import service, Inject
 from selva.web import Selva, RequestContext, controller, get
 from pydantic import BaseSettings
 
@@ -100,8 +98,11 @@ def settings_factory() -> Settings:
 
 @service
 class Greeter:
-    def __init__(self, settings: Settings):
-        self.default_name = settings.DEFAULT_NAME
+    settings: Settings = Inject()
+
+    @property
+    def default_name(self):
+        return self.settings.DEFAULT_NAME
 
     def greet(self, name: str | None) -> str:
         name = name or self.default_name
@@ -110,10 +111,9 @@ class Greeter:
 
 @controller
 class Controller:
-    def __init__(self, greeter: Greeter):
-        self.greeter = greeter
+    greeter: Greeter = Inject()
 
-    @get("hello/{name}")
+    @get("hello/:name")
     def hello(self, name: str):
         greeting = self.greeter.greet(name)
         return {"greeting": greeting}
@@ -131,7 +131,7 @@ app = Selva(Controller, Greeter, settings_factory)
 Manage services lifecycle (e.g [Databases](https://www.encode.io/databases/))
 
 ```python
-from selva.di import service, initializer, finalizer
+from selva.di import service, Inject
 from selva.web import Selva, RequestContext, controller, get
 from pydantic import BaseSettings, PostgresDsn
 from databases import Database
@@ -148,9 +148,13 @@ def settings_factory() -> Settings:
 
 
 @service
+def database_factory(settings: Settings) -> Database:
+    return Database(settings.DATABASE_URL)
+
+
+@service
 class Repository:
-    def __init__(self, settings: Settings):
-        self.database = Database(settings.DATABASE_URL)
+    database: Database = Inject()
 
     async def get_greeting(self, name: str) -> str:
         result = await self.database.fetch_one(
@@ -160,12 +164,10 @@ class Repository:
 
         return result.text
 
-    @initializer
     async def initialize(self):
         await self.database.connect()
         print("Database connection opened")
 
-    @finalizer
     async def finalize(self):
         await self.database.disconnect()
         print("Database connection closed")
@@ -173,9 +175,12 @@ class Repository:
 
 @service
 class Greeter:
-    def __init__(self, repository: Repository, settings: Settings):
-        self.repository = repository
-        self.default_name = settings.DEFAULT_NAME
+    repository: Repository = Inject()
+    settings: Settings = Inject()
+
+    @property
+    def default_name(self):
+        return self.settings.DEFAULT_NAME
 
     async def greet(self, name: str | None) -> str:
         name = name or self.default_name
@@ -184,10 +189,9 @@ class Greeter:
 
 @controller
 class Controller:
-    def __init__(self, greeter: Greeter):
-        self.greeter = greeter
+    greeter: Greeter = Inject()
 
-    @get("hello/{name}")
+    @get("hello/:name")
     def hello(self, name: str):
         greeting = self.greeter.greet(name)
         return {"greeting": greeting}
@@ -230,15 +234,26 @@ def settings_factory() -> Settings:
 ```
 
 ```python
-### application/repository.py
-from selva.di import service, initializer, finalizer
+### application/database.py
+from selva.di import service
 from databases import Database
+
 from .settings import Settings
+
+
+@service
+def database_factory(settings: Settings) -> Database:
+    return Database(settings.DATABASE_URL)
+```
+
+```python
+### application/repository.py
+from selva.di import service, Inject
+from databases import Database
 
 @service
 class Repository:
-    def __init__(self, settings: Settings):
-        self.database = Database(settings.DATABASE_URL)
+    database: Database = Inject()
 
     async def get_greeting(self, name: str) -> str:
         result = await self.database.fetch_one(
@@ -248,12 +263,10 @@ class Repository:
 
         return result.text
 
-    @initializer
     async def initialize(self):
         await self.database.connect()
         print("Database connection opened")
 
-    @finalizer
     async def finalize(self):
         await self.database.disconnect()
         print("Database connection closed")
@@ -261,16 +274,19 @@ class Repository:
 
 ```python
 ### application/services.py
-from selva.di import service
+from selva.di import service, Inject
 from .settings import Settings
 from .repository import Repository
 
 
 @service
 class Greeter:
-    def __init__(self, repository: Repository, settings: Settings):
-        self.repository = repository
-        self.default_name = settings.DEFAULT_NAME
+    repository: Repository = Inject()
+    settings: Settings = Inject()
+
+    @property
+    def default_name(self):
+        return self.settings.DEFAULT_NAME
 
     async def greet(self, name: str | None) -> str:
         name = name or self.default_name
@@ -279,15 +295,15 @@ class Greeter:
 
 ```python
 ### application/controllers.py
+from selva.di import Inject
 from selva.web import RequestContext, controller, get
 from .services import Greeter
 
 @controller
 class Controller:
-    def __init__(self, greeter: Greeter):
-        self.greeter = greeter
+    greeter: Greeter = Inject()
 
-    @get("hello/{name}")
+    @get("hello/:name")
     def hello(self, name: str):
         greeting = self.greeter.greet(name)
         return {"greeting": greeting}
