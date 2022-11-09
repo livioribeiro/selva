@@ -13,29 +13,29 @@ class HttpError(Exception):
         self.status = status
 
 
-class ClientError(HttpError):
+class HttpClientError(HttpError):
     pass
 
 
-class NotFoundError(ClientError):
+class HttpNotFoundError(HttpClientError):
     def __init__(self):
         super().__init__(HTTPStatus.NOT_FOUND)
 
 
-class UnauthorizedError(ClientError):
+class HttpUnauthorizedError(HttpClientError):
     def __init__(self):
         super().__init__(HTTPStatus.UNAUTHORIZED)
 
 
-class ForbidenError(ClientError):
+class HttpForbidenError(HttpClientError):
     def __init__(self):
         super().__init__(HTTPStatus.FORBIDDEN)
 
 
-class ServerError(HttpError):
+class HttpServerError(HttpError):
     pass
 
 
-class InternalServerError(ServerError):
+class HttpInternalServerError(HttpServerError):
     def __init__(self):
         super().__init__(HTTPStatus.INTERNAL_SERVER_ERROR)

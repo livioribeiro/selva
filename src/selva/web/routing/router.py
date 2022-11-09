@@ -5,7 +5,7 @@ from asgikit.requests import HttpMethod, HttpRequest
 from asgikit.websockets import WebSocket
 
 import selva.logging
-from selva.web.errors import NotFoundError
+from selva.web.errors import HttpNotFoundError
 
 from .decorators import (
     ACTION_ATTRIBUTE,
@@ -112,4 +112,4 @@ class Router:
         if route := self.routes.get(name):
             return route.reverse(**kwargs)
 
-        raise NotFoundError()
+        raise HttpNotFoundError()

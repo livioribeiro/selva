@@ -12,10 +12,10 @@ Install `selva` and `uvicorn`:
 pip install selva uvicorn
 ```
 
-Create file `main.py`:
+Create file `application.py`:
 
 ```python
-from selva.web import Selva, controller, get
+from selva.web import controller, get
 
 
 @controller
@@ -23,15 +23,12 @@ class Controller:
     @get
     def hello(self):
         return "Hello, World"
-
-
-app = Selva(Controller)
 ```
 
-Run application with `uvicorn`:
+Run application with `uvicorn`. Selva will automatically load `application.py`:
 
 ```shell
-uvicorn main:app
+uvicorn selva:app
 ```
 
 ```

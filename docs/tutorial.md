@@ -26,18 +26,9 @@ project/
 ├── configuration/
 │   └── application.toml
 ├── resources/
-└── main.py
 ```
 
-The `main.py` is just the entrypoint of the application.
-
-```python
-from selva.web import Selva
-
-app = Selva()
-```
-
-And... that's it! Any module or package named `application` will automatically
+And... that's it! A module or package named `application` will automatically
 be imported and scanned for controllers and services.
 
 ## Running the application
@@ -46,7 +37,7 @@ We will use `uvicorn` to run the application and automatically reload when we
 make changes to the code:
 
 ```shell
-$ uvicorn main:app --reload --lifespan on
+$ uvicorn selva:app --reload
 INFO:     Will watch for changes in these directories: ['/home/user/projects/selva-tutorial']
 INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
 INFO:     Started reloader process [23568] using WatchFiles
@@ -200,6 +191,7 @@ with `@service`, so in this case we need to create a factory function for it:
         destroyed in order to run any cleanup logic
 
 === "application/controller.py"
+
     ```python
     from datetime import datetime
     from selva.di import Inject
@@ -278,6 +270,7 @@ the logs and return them:
     ```
 
 === "application/controllers.py"
+
     ```python
     @controller
     class GreetingController:

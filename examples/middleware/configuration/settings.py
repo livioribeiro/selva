@@ -1,4 +1,4 @@
-from application.middlewares import TimingMiddleware, LoggingMiddleware, AuthMiddleware
+from application.middlewares import AuthMiddleware, LoggingMiddleware, TimingMiddleware
 
 MIDDLEWARE = [
     TimingMiddleware,
@@ -6,8 +6,6 @@ MIDDLEWARE = [
     AuthMiddleware,
 ]
 
-LOGGING_LOGGERS = {
-    "selva": "DEBUG"
-}
+LOGGING_LOGGERS = {"selva": "DEBUG"}
 
 LOGGING_FORMATTER = "dev"

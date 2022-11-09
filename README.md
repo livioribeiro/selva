@@ -11,10 +11,28 @@ pip install selva
 
 ## Usage
 
-Create an application and controller
+Install `uvicorn` to run application:
+
+```shell
+pip install uvicorn[standard]
+```
+
+Create a module called `application.py`:
+
+```shell
+touch application.py
+```
+
+Run application with `uvicorn` (Selva will automatically load `application.py`):
+
+```shell
+uviron selva:app --reload
+```
+
+Create a controller:
 
 ```python
-from selva.web import Selva, controller, get
+from selva.web import controller, get
 
 
 @controller
@@ -22,16 +40,13 @@ class Controller:
     @get
     def hello(self):
         return "Hello, World!"
-
-
-app = Selva(Controller)
 ```
 
 Add a service
 
 ```python
 from selva.di import service, Inject
-from selva.web import Selva, controller, get
+from selva.web import controller, get
 
 
 @service
@@ -47,16 +62,13 @@ class Controller:
     @get
     def hello(self):
         return self.greeter.greet("World")
-
-
-app = Selva(Controller, Greeter)
 ```
 
 Get parameters from path
 
 ```python
 from selva.di import service, Inject
-from selva.web import Selva, controller, get
+from selva.web import controller, get
 
 
 @service
@@ -74,16 +86,13 @@ class Controller:
         greeting = self.greeter.greet(name)
         # A json response will be created from the returned dict
         return {"greeting": greeting}
-
-
-app = Selva(Controller, Greeter)
 ```
 
 Configurations with [Pydantic](https://pydantic-docs.helpmanual.io/usage/settings/)
 
 ```python
 from selva.di import service, Inject
-from selva.web import Selva, RequestContext, controller, get
+from selva.web import RequestContext, controller, get
 from pydantic import BaseSettings
 
 
@@ -123,16 +132,13 @@ class Controller:
         name = context.query.get("name")
         greeting = self.greeter.greet(name)
         return {"greeting": greeting}
-
-
-app = Selva(Controller, Greeter, settings_factory)
 ```
 
 Manage services lifecycle (e.g [Databases](https://www.encode.io/databases/))
 
 ```python
 from selva.di import service, Inject
-from selva.web import Selva, RequestContext, controller, get
+from selva.web import RequestContext, controller, get
 from pydantic import BaseSettings, PostgresDsn
 from databases import Database
 
@@ -201,9 +207,6 @@ class Controller:
         name = context.query.get("name")
         greeting = self.greeter.greet(name)
         return {"greeting": greeting}
-
-
-app = Selva(Controller, Greeter, Repository, settings_factory)
 ```
 
 Define controllers and services in a separate module
@@ -214,7 +217,6 @@ Define controllers and services in a separate module
 │   ├───repository.py
 │   ├───services.py
 │   └───settings.py
-└───main.py
 ```
 
 ```python
@@ -315,19 +317,11 @@ class Controller:
         return {"greeting": greeting}
 ```
 
-```python
-### main.py
-from selva.web import Selva
-
-# module named "application" is automatically registered
-app = Selva()
-```
-
 Websockets
 
 ```python
 from pathlib import Path
-from selva.web import Selva, FileResponse, RequestContext, controller, get, websocket
+from selva.web import FileResponse, RequestContext, controller, get, websocket
 from selva.web.errors import WebSocketDisconnectError
 
 
@@ -354,9 +348,6 @@ class WebSocketController:
             except WebSocketDisconnectError:
                 print("[close] Client disconnected")
                 break
-
-
-app = Selva(WebSocketController)
 ```
 
 ```html

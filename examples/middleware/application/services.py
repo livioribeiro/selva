@@ -1,7 +1,7 @@
 import os
 from typing import NamedTuple
 
-from selva.di import service, Inject
+from selva.di import Inject, service
 
 DEFAULT_NAME = "World"
 

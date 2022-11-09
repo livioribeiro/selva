@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from pathlib import PurePath
 
 from selva.di import service
-from selva.web import controller, get, PathConverter
+from selva.web import PathConverter, controller, get
 
 
 @dataclass

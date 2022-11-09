@@ -1,4 +1,5 @@
 import inspect
+from dataclasses import make_dataclass, field
 from collections.abc import Callable
 from typing import TypeVar
 

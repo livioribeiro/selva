@@ -1,4 +1,8 @@
-from selva.di import service, Inject
+from pathlib import Path
+
+from selva.configuration import Settings
+from selva.di import Inject, service
+from selva.logging import get_logger
 from selva.web import (
     FileResponse,
     RequestContext,
@@ -7,8 +11,9 @@ from selva.web import (
     get,
     websocket,
 )
-from selva.configuration import Settings
 from selva.web.errors import WebSocketDisconnectError, WebSocketStateError
+
+logger = get_logger()
 
 
 @service
@@ -21,10 +26,10 @@ class WebSocketService:
         while True:
             try:
                 message = await client.receive()
-                print(f"[message] {message}")
+                logger.info("client message", content=message, client=client.client)
                 await self.broadcast(message)
             except WebSocketDisconnectError:
-                print("[close] Client disconnected")
+                logger.info("client disconnected", client=client.client)
                 self.clients.remove(client)
                 break
 
@@ -36,23 +41,24 @@ class WebSocketService:
             try:
                 await client.send_text(message)
             except WebSocketStateError:
-                print("Client disconnected")
+                logger.info("client disconnected", client=client.client)
 
 
 @controller
 class WebSocketController:
     handler: WebSocketService = Inject()
     settings: Settings = Inject()
+    index_html = (Path() / "resources" / "static" / "index.html").absolute()
 
     @get
     def index(self):
-        return FileResponse(self.settings.get_resource_path("static", "index.html"))
+        return FileResponse(self.index_html)
 
     @websocket("/chat")
     async def chat(self, context: RequestContext):
         client = context.websocket
 
         await client.accept()
-        print("[open] Client connected")
+        logger.info("client connected", client=client.client)
 
         await self.handler.handle_client(client)

@@ -1,15 +1,12 @@
-from selva.web import Selva, controller, get
 from selva.configuration import Settings
+from selva.di import Inject
+from selva.web import controller, get
 
 
 @controller
 class Controller:
-    def __init__(self, settings: Settings):
-        self.settings = settings
+    settings: Settings = Inject()
 
     @get
     def index(self) -> str:
         return self.settings.MESSAGE
-
-
-app = Selva(Controller)

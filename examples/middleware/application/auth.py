@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 from selva.di import service
 from selva.web import RequestContext
-from selva.web.errors import UnauthorizedError
+from selva.web.errors import HttpUnauthorizedError
 from selva.web.request import FromRequest
 
 
@@ -17,4 +17,4 @@ class UserFromRequest:
         if user := context.attributes.get("user"):
             return User(user)
 
-        raise UnauthorizedError()
+        raise HttpUnauthorizedError()

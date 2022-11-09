@@ -17,7 +17,7 @@ from selva.di.decorators import DI_SERVICE_ATTRIBUTE
 from selva.utils.base_types import get_base_types
 from selva.utils.maybe_async import maybe_async
 from selva.utils.package_scan import scan_packages
-from selva.web.errors import HttpError
+from selva.web.errors import HttpError, HttpNotFoundError
 from selva.web.request import RequestContext, from_request_impl
 from selva.web.request.from_request import FromRequest
 from selva.web.response import into_response_impl
@@ -64,10 +64,7 @@ class Selva:
     Other modules and classes can be registered using the "register" method
     """
 
-    def __init__(
-        self,
-        *components: type | Callable | ModuleType | str,
-    ):
+    def __init__(self):
         self.di = Container()
         self.router = Router()
         self.handler = self._process_request
@@ -81,7 +78,7 @@ class Selva:
         self.di.scan(path_converter_impl, from_request_impl, into_response_impl)
         self.di.scan(self.settings.COMPONENTS)
 
-        components = self.settings.COMPONENTS + list(components)
+        components = self.settings.COMPONENTS
         self._register_components(components)
 
     async def __call__(self, scope, receive, send):
@@ -155,8 +152,15 @@ class Selva:
                 break
 
     async def _handle_request(self, context: RequestContext):
-        if response := await self.handler(context):
-            await response(context.request)
+        try:
+            await self.handler(context)
+        except HttpError as err:
+            await HttpResponse(status=err.status)(context.request)
+            return
+        except Exception as err:
+            logger.exception("Error processing request", exc_info=err)
+            await HttpResponse(status=HTTPStatus.INTERNAL_SERVER_ERROR)(context.request)
+            return
 
         # process delayed tasks
         for result in await asyncio.gather(
@@ -165,38 +169,33 @@ class Selva:
             if isinstance(result, Exception):
                 logger.exception("Error processing delayed task", exc_info=result)
 
-    async def _process_request(self, context: RequestContext) -> HttpResponse:
+    async def _process_request(self, context: RequestContext):
         method = context.method if context.is_http else None
         path = context.path
 
         match = self.router.match(method, path)
 
         if not match:
-            return HttpResponse.not_found()
+            raise HttpNotFoundError()
 
         controller = match.route.controller
         action = match.route.action
         path_params = match.params
 
-        try:
-            path_params = await self._params_from_path(
-                path_params, match.route.path_params
-            )
-            request_params = await self._params_from_request(
-                context, match.route.request_params
-            )
+        path_params = await self._params_from_path(
+            path_params, match.route.path_params
+        )
+        request_params = await self._params_from_request(
+            context, match.route.request_params
+        )
 
-            all_params = path_params | request_params
-            instance = await self.di.get(controller)
-            response = await maybe_async(action, instance, **all_params)
+        all_params = path_params | request_params
+        instance = await self.di.get(controller)
+        response = await maybe_async(action, instance, **all_params)
 
-            if context.is_http:
-                return await self._into_response(response)
-        except HttpError as err:
-            return HttpResponse(status=err.status)
-        except Exception as err:
-            logger.exception("Error processing delayed task", exc_info=err)
-            return HttpResponse(status=HTTPStatus.INTERNAL_SERVER_ERROR)
+        if context.is_http:
+            response = await self._into_response(response)
+            await response(context.request)
 
     async def _params_from_path(
         self,

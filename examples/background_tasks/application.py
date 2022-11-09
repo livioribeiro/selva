@@ -1,6 +1,6 @@
 import asyncio
 
-from selva.web import controller, get, RequestContext
+from selva.web import RequestContext, controller, get
 
 
 @controller
