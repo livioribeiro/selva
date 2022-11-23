@@ -4,9 +4,8 @@ from enum import Enum
 from functools import singledispatch
 from typing import NamedTuple
 
-from asgikit.requests import HttpMethod
-
 from selva.di import service
+from selva.web.requests import HTTPMethod
 
 CONTROLLER_ATTRIBUTE = "__selva_web_controller__"
 ACTION_ATTRIBUTE = "__selva_web_action__"
@@ -17,11 +16,13 @@ class ControllerInfo(NamedTuple):
 
 
 class ActionType(Enum):
-    GET = HttpMethod.GET
-    POST = HttpMethod.POST
-    PUT = HttpMethod.PUT
-    PATCH = HttpMethod.PATCH
-    DELETE = HttpMethod.DELETE
+    GET = HTTPMethod.GET
+    HEAD = HTTPMethod.HEAD
+    POST = HTTPMethod.POST
+    PUT = HTTPMethod.PUT
+    PATCH = HTTPMethod.PATCH
+    DELETE = HTTPMethod.DELETE
+    OPTIONS = HTTPMethod.OPTIONS
     WEBSOCKET = None
 
     @property
@@ -61,7 +62,7 @@ def _(cls: type):
     return service(cls)
 
 
-def route(action=None, /, *, method: HttpMethod | None, path: str | None):
+def route(action=None, /, *, method: HTTPMethod | None, path: str | None):
     path = path.strip("/") if path else ""
 
     def inner(arg: Callable):
@@ -71,7 +72,7 @@ def route(action=None, /, *, method: HttpMethod | None, path: str | None):
     return inner(action) if action else inner
 
 
-def _route(method: HttpMethod | None, path_or_action: str | Callable):
+def _route(method: HTTPMethod | None, path_or_action: str | Callable):
     if isinstance(path_or_action, str):
         path = path_or_action.strip("/")
         action = None
@@ -83,23 +84,23 @@ def _route(method: HttpMethod | None, path_or_action: str | Callable):
 
 
 def get(path_or_action: str | type):
-    return _route(HttpMethod.GET, path_or_action)
+    return _route(HTTPMethod.GET, path_or_action)
 
 
 def post(path_or_action: str | type):
-    return _route(HttpMethod.POST, path_or_action)
+    return _route(HTTPMethod.POST, path_or_action)
 
 
 def put(path_or_action: str | type):
-    return _route(HttpMethod.PUT, path_or_action)
+    return _route(HTTPMethod.PUT, path_or_action)
 
 
 def patch(path_or_action: str | type):
-    return _route(HttpMethod.PATCH, path_or_action)
+    return _route(HTTPMethod.PATCH, path_or_action)
 
 
 def delete(path_or_action: str | type):
-    return _route(HttpMethod.DELETE, path_or_action)
+    return _route(HTTPMethod.DELETE, path_or_action)
 
 
 def websocket(path_or_action: str | type):

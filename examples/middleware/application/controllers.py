@@ -1,7 +1,9 @@
 from http import HTTPStatus
 
 from selva.di import Inject
-from selva.web import HttpResponse, RequestContext, controller, get
+from selva.web import controller, get
+from selva.web.requests import Request
+from selva.web.responses import Response
 
 from .auth import User
 from .services import Greeter
@@ -12,7 +14,7 @@ class Controller:
     greeter: Greeter = Inject()
 
     @get
-    async def index(self, context: RequestContext):
+    async def index(self, context: Request):
         name = context.query.get("name")
         return {"message": self.greeter.greet(name)}
 
@@ -22,7 +24,7 @@ class Controller:
 
     @get("/logout")
     def logout(self):
-        return HttpResponse(
-            status=HTTPStatus.UNAUTHORIZED,
+        return Response(
+            status_code=HTTPStatus.UNAUTHORIZED,
             headers={"WWW-Authenticate": 'Basic realm="localhost:8000"'},
         )

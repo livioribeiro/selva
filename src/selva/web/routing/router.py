@@ -1,11 +1,12 @@
 import inspect
 from collections import OrderedDict
 
-from asgikit.requests import HttpMethod, HttpRequest
-from asgikit.websockets import WebSocket
+from starlette.requests import Request
+from starlette.websockets import WebSocket
 
 import selva.logging
-from selva.web.errors import HttpNotFoundError
+from selva.web.errors import HTTPNotFoundError
+from selva.web.requests import HTTPMethod
 
 from .decorators import (
     ACTION_ATTRIBUTE,
@@ -53,17 +54,14 @@ class Router:
                 continue
 
             action_type = action_info.type
-            method: HttpMethod = action_type.value  # type: ignore
+            method: HTTPMethod = action_type.value  # type: ignore
             path = action_info.path
             path = _path_with_prefix(path, path_prefix)
             route_name = f"{controller.__module__}.{controller.__qualname__}:{name}"
 
             route = Route(method, path, controller, action, route_name)
 
-            if (
-                action_type.is_websocket
-                and HttpRequest in route.request_params.values()
-            ):
+            if action_type.is_websocket and Request in route.request_params.values():
                 # TODO: create exception
                 raise TypeError("websocket route cannot receive HttpRequest")
 
@@ -101,7 +99,7 @@ class Router:
                 action=route.action.__name__,
             )
 
-    def match(self, method: HttpMethod | None, path: str) -> RouteMatch | None:
+    def match(self, method: HTTPMethod | None, path: str) -> RouteMatch | None:
         for route in self.routes.values():
             if (match := route.match(method, path)) is not None:
                 return RouteMatch(route, method, path, match)
@@ -112,4 +110,4 @@ class Router:
         if route := self.routes.get(name):
             return route.reverse(**kwargs)
 
-        raise HttpNotFoundError()
+        raise HTTPNotFoundError()

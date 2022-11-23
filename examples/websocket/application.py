@@ -1,17 +1,18 @@
 from pathlib import Path
 
+from starlette.responses import FileResponse
+from starlette.exceptions import WebSocketException
+
 from selva.configuration import Settings
 from selva.di import Inject, service
 from selva.logging import get_logger
 from selva.web import (
-    FileResponse,
     RequestContext,
     WebSocket,
     controller,
     get,
     websocket,
 )
-from selva.web.errors import WebSocketDisconnectError, WebSocketStateError
 
 logger = get_logger()
 
@@ -25,10 +26,10 @@ class WebSocketService:
         self.clients.add(client)
         while True:
             try:
-                message = await client.receive()
+                message = await client.receive_text()
                 logger.info("client message", content=message, client=client.client)
                 await self.broadcast(message)
-            except WebSocketDisconnectError:
+            except WebSocketException:
                 logger.info("client disconnected", client=client.client)
                 self.clients.remove(client)
                 break
@@ -40,7 +41,7 @@ class WebSocketService:
         for client in self.clients:
             try:
                 await client.send_text(message)
-            except WebSocketStateError:
+            except WebSocketException:
                 logger.info("client disconnected", client=client.client)
 
 

@@ -1,8 +1,8 @@
 from pathlib import PurePath
 
 from selva.di.decorators import service
-from selva.web.errors import HttpNotFoundError
-from selva.web.routing.path_converter import PathConverter
+from selva.web.converter.path_converter import PathConverter
+from selva.web.errors import HTTPNotFoundError
 
 
 @service(provides=PathConverter[str])
@@ -20,7 +20,7 @@ class IntPathConverter:
         try:
             return int(value)
         except ValueError:
-            raise HttpNotFoundError()
+            raise HTTPNotFoundError()
 
     def into_path(self, obj: int) -> str:
         return str(obj)
@@ -32,7 +32,7 @@ class FloatPathConverter:
         try:
             return float(value)
         except ValueError:
-            raise HttpNotFoundError()
+            raise HTTPNotFoundError()
 
     def into_path(self, obj: float) -> str:
         return str(obj)
@@ -48,7 +48,7 @@ class BoolPathConverter:
         if value in self.POSSIBLE_VALUE:
             return value in self.TRUE_VALUES
 
-        raise HttpNotFoundError()
+        raise HTTPNotFoundError()
 
     def into_path(self, obj: bool) -> str:
         return str(obj)

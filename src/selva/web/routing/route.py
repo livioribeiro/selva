@@ -4,7 +4,7 @@ from collections import Counter
 from re import Pattern
 from typing import Callable, NamedTuple
 
-from asgikit.requests import HttpMethod
+from selva.web.requests import HTTPMethod
 
 __all__ = ("Route", "RouteMatch")
 
@@ -58,7 +58,7 @@ def build_path_regex(
 class Route:
     def __init__(
         self,
-        method: HttpMethod | None,
+        method: HTTPMethod | None,
         path: str,
         controller: type,
         action: Callable,
@@ -80,7 +80,7 @@ class Route:
             if name not in self.path_params
         }
 
-    def match(self, method: HttpMethod | None, path: str) -> dict[str, str] | None:
+    def match(self, method: HTTPMethod | None, path: str) -> dict[str, str] | None:
         if method is self.method and (match := self.regex.match(path)):
             return match.groupdict()
 
@@ -99,6 +99,6 @@ class Route:
 
 class RouteMatch(NamedTuple):
     route: Route
-    method: HttpMethod | None
+    method: HTTPMethod | None
     path: str
     params: dict[str, str]

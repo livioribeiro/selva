@@ -3,13 +3,18 @@ from datetime import datetime
 from http import HTTPStatus
 
 from selva.di import service
-from selva.web import HttpResponse, RequestContext
+from selva.web.contexts import RequestContext
 from selva.web.middleware import Middleware
+
+from selva.web.responses import Response
 
 
 @service
 class TimingMiddleware(Middleware):
-    async def execute(self, chain, context: RequestContext):
+    async def __call__(self, context: RequestContext, chain):
+        if context.is_websocket:
+            return await chain(context)
+
         request_start = datetime.now()
         response = await chain(context)
         request_end = datetime.now()
@@ -22,12 +27,16 @@ class TimingMiddleware(Middleware):
 
 @service
 class LoggingMiddleware(Middleware):
-    async def execute(self, chain, context: RequestContext):
+    async def __call__(self, context: RequestContext, chain):
+        if context.is_websocket:
+            await chain(context)
+
         response = await chain(context)
 
         client = f"{context.client[0]}:{context.client[1]}"
-        request_line = f"{context.method} {context.path} HTTP/{context.http_version}"
-        status = f"{response.status.value} {response.status.phrase}"
+        request_line = f"{context.method} {context.path} HTTP/{context['http_version']}"
+        status = HTTPStatus(response.status_code)
+        status = f"{status.value} {status.phrase}"
 
         print(f'{client} "{request_line}" {status}')
 
@@ -36,12 +45,12 @@ class LoggingMiddleware(Middleware):
 
 @service
 class AuthMiddleware(Middleware):
-    async def execute(self, chain, context: RequestContext):
+    async def __call__(self, context: RequestContext, chain):
         if context.path == "/protected":
             authn = context.headers.get("authorization")
             if not authn:
-                return HttpResponse(
-                    status=HTTPStatus.UNAUTHORIZED,
+                return Response(
+                    status_code=HTTPStatus.UNAUTHORIZED,
                     headers={
                         "WWW-Authenticate": 'Basic realm="localhost:8000/protected"'
                     },

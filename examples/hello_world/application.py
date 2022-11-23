@@ -25,5 +25,5 @@ class Controller:
 
     @post
     async def post(self, context: RequestContext):
-        body = await context.json()
+        body = await context.request.json()
         return {"result": body}

@@ -1,7 +1,7 @@
 from collections.abc import Awaitable
 from typing import Protocol, TypeVar, runtime_checkable
 
-from .context import RequestContext
+from selva.web.contexts import RequestContext
 
 __all__ = ("FromRequest",)
 
