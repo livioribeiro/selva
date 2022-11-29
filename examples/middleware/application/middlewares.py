@@ -4,14 +4,13 @@ from http import HTTPStatus
 
 from selva.di import service
 from selva.web.contexts import RequestContext
-from selva.web.middleware import Middleware
-
+from selva.web.middleware import CallChain
 from selva.web.responses import Response
 
 
 @service
-class TimingMiddleware(Middleware):
-    async def __call__(self, context: RequestContext, chain):
+class TimingMiddleware:
+    async def __call__(self, context: RequestContext, chain: CallChain):
         if context.is_websocket:
             return await chain(context)
 
@@ -26,8 +25,8 @@ class TimingMiddleware(Middleware):
 
 
 @service
-class LoggingMiddleware(Middleware):
-    async def __call__(self, context: RequestContext, chain):
+class LoggingMiddleware:
+    async def __call__(self, context: RequestContext, chain: CallChain):
         if context.is_websocket:
             await chain(context)
 
@@ -44,8 +43,8 @@ class LoggingMiddleware(Middleware):
 
 
 @service
-class AuthMiddleware(Middleware):
-    async def __call__(self, context: RequestContext, chain):
+class AuthMiddleware:
+    async def __call__(self, context: RequestContext, chain: CallChain):
         if context.path == "/protected":
             authn = context.headers.get("authorization")
             if not authn:

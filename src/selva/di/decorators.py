@@ -24,6 +24,7 @@ def service(
     For classes, a constructor will be generated to help create instances
     outside the dependency injection context
     """
+
     def inner(arg: InjectableType) -> T:
         setattr(arg, DI_SERVICE_ATTRIBUTE, ServiceInfo(provides, name))
 
@@ -35,7 +36,7 @@ def service(
                 # TODO: create exception
                 raise TypeError(
                     f"Missing type annotation for dependencies of service '{arg.__qualname__}': "
-                    ', '.join(missing)
+                    ", ".join(missing)
                 )
 
             def init(self, *args, **kwargs):

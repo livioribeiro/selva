@@ -1,11 +1,13 @@
-import functools
 from collections.abc import Awaitable, Callable, Iterable
 from typing import Protocol, runtime_checkable
 
-from starlette.types import ASGIApp
-
 from selva.web.contexts import RequestContext
 from selva.web.responses import Response
+
+__all__ = ("CallChain", "Middleware", "MiddlewareChain")
+
+
+CallChain = Callable[[RequestContext], Awaitable[Response]]
 
 
 @runtime_checkable
@@ -24,7 +26,7 @@ class MiddlewareChain:
     def __init__(
         self,
         chain: Iterable[Middleware],
-        handler: Callable[[RequestContext], Awaitable[Response]],
+        handler: CallChain,
     ):
         self.chain = chain
         self.handler = handler

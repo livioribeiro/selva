@@ -1,18 +1,12 @@
 from pathlib import Path
 
-from starlette.responses import FileResponse
 from starlette.exceptions import WebSocketException
+from starlette.responses import FileResponse
 
 from selva.configuration import Settings
 from selva.di import Inject, service
 from selva.logging import get_logger
-from selva.web import (
-    RequestContext,
-    WebSocket,
-    controller,
-    get,
-    websocket,
-)
+from selva.web import RequestContext, WebSocket, controller, get, websocket
 
 logger = get_logger()
 

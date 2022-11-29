@@ -1,3 +1,4 @@
+import functools
 import inspect
 from collections.abc import Awaitable, Callable
 from typing import Any, ParamSpec
@@ -23,6 +24,7 @@ async def maybe_async(
 
     blocking = getattr(call, "_blocking_", False)
     if blocking:
-        return await anyio.to_thread.run_sync(target, *args, **kwargs)
+        target = functools.partial(target, *args, **kwargs)
+        return await anyio.to_thread.run_sync(target)
 
     return call(*args, **kwargs)
