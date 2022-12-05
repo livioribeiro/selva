@@ -1,6 +1,6 @@
 from http import HTTPStatus
 
-from starlette.exceptions import HTTPException
+from starlette.exceptions import HTTPException, WebSocketException
 
 
 class HTTPClientError(HTTPException):

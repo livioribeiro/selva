@@ -1,7 +1,5 @@
-from collections.abc import Callable
 from typing import Mapping, ParamSpec, TypeGuard
 
-from starlette.background import BackgroundTask, BackgroundTasks
 from starlette.datastructures import URL, Address, Headers, QueryParams
 from starlette.types import Receive, Scope, Send
 
@@ -17,14 +15,13 @@ P = ParamSpec("P")
 
 
 class RequestContext:
-    __slots__ = ("scope", "_asgi", "request", "websocket", "_delayed_tasks")
+    __slots__ = ("scope", "_asgi", "request", "websocket")
 
     def __init__(self, scope: Scope, receive: Receive, send: Send):
         assert scope["type"] in ("http", "websocket")
 
         self.request: Request | None = None
         self.websocket: WebSocket | None = None
-        self._delayed_tasks = BackgroundTasks()
 
         self.scope = scope
         self._asgi = scope, receive, send
@@ -90,8 +87,3 @@ class RequestContext:
     @property
     def client(self) -> Address | None:
         return self._http_connection.client
-
-    def add_delayed_task(
-        self, func: Callable[P, None], *args: P.args, **kwargs: P.kwargs
-    ):
-        self._delayed_tasks.add_task(func, *args, **kwargs)

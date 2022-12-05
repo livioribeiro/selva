@@ -1,10 +1,9 @@
 from http import HTTPStatus
 from os import PathLike
 
-from starlette.responses import FileResponse, JSONResponse, PlainTextResponse, Response
-
 from selva.di.decorators import service
 from selva.web.converter.into_response import IntoResponse
+from selva.web.responses import FileResponse, JSONResponse, PlainTextResponse, Response
 
 
 @service(provides=IntoResponse[int])

@@ -160,18 +160,18 @@ class Selva:
         middleware = MiddlewareChain(self.middleware_chain, self._process_request)
 
         try:
-            if response := await middleware(context):
-                # http request, not websocket
-                await response(*context._asgi)
-                # run background tasks
-                await context._delayed_tasks()
-        except (HTTPException, WebSocketException) as err:
-            await Response(status_code=err.status_code)(*context._asgi)
-            return
+            response = await middleware(context)
+            if context.is_http:
+                await response(scope, receive, send)
+        except HTTPException as err:
+            await Response(status_code=err.status_code)(scope, receive, send)
+        except WebSocketException as err:
+            return await Response(status_code=err.code)(scope, receive, send)
         except Exception as err:
             logger.exception("Error processing request", exc_info=err)
-            await Response(status_code=HTTPStatus.INTERNAL_SERVER_ERROR)(*context._asgi)
-            return
+            await Response(status_code=HTTPStatus.INTERNAL_SERVER_ERROR)(
+                scope, receive, send
+            )
 
     async def _process_request(self, context: RequestContext) -> Response:
         method = context.method
