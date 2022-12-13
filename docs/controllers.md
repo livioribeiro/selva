@@ -64,18 +64,32 @@ class MyController:
 Handler methods can receive a parameter annotated with type `RequestContext`
 that provides access to request information (path, method, headers, query
 string, request body). The underlying http request or websocket from
-[asgikit](https://pypi.org/project/asgikit/) can be accessed via  the properties
+[starlette](https://www.starlette.io/) can be accessed via  the properties
 `RequestContext.request` or `RequestContext.websocket`, respectively.
+
+`RequestContext` provides the following methods:
+
+```python
+def is_http() -> bool
+def is_websocket() -> bool
+def method() -> HTTPMethod | None
+def url() -> URL
+def base_url() -> URL
+def path() -> str
+def headers() -> Headers
+def query() -> QueryParams
+def cookies() -> Mapping[str, str]
+def client() -> Address | None
+```
 
 !!! attention
 
     For http requests, `RequestContext.websocket` will be `None`, and for
     websocket requests, `RequestContext.request` will be `None`
 
-`RequestContext` uses `__getattr__` to proxy methods from the underlying `HttpRequest` or `WebSocket`
-
 ```python
-from selva.web import HttpMethod, RequestContext, controller, get, websocket
+from selva.web import RequestContext, controller, get, websocket
+from selva.web.requests import HTTPMethod
 
 
 @controller
@@ -84,7 +98,8 @@ class MyController:
     def handler(self, context: RequestContext):
         assert context.request is not None
         assert context.websocket is None
-        assert context.method == HttpMethod.GET
+
+        assert context.method == HTTPMethod.GET
         assert context.path == "/"
         return context.path
 
@@ -92,10 +107,12 @@ class MyController:
     async def ws_handler(self, context: RequestContext):
         assert context.request is None
         assert context.websocket is not None
-        await context.accept()
+        
+        ws = context.websocket
+        await ws.accept()
         while True:
-            data = await context.receive()
-            await context.send_text(data)
+            data = await ws.receive()
+            await ws.send_text(data)
 ```
 
 ## Request body
@@ -105,22 +122,28 @@ There are several methods to access the request body:
 ```python
 async def stream() -> AsyncIterable[bytes]
 async def body() -> bytes
-async def text() -> str
 async def json() -> dict | list
 async def form() -> dict
 ```
 
 ## Websockets
 
-For websocket, `RequestContext` will have following methods:
+For websocket, there are the following methods:
 
 ```python
-async def accept()
-async def receive() -> str | bytes
+async def accept(subprotocol: str = None, headers: Iterable[tuple[bytes, bytes]] = None)
+async def receive() -> Message
+async def send(message: Message) -> Awaitable
+async def receive_text() -> str
+async def receive_bytes() -> bytes
+async def receive_json(mode: str = "text") -> Any
+async def iter_text() -> str
+async def iter_bytes() -> AsyncIterator[bytes]
+async def iter_json() -> AsyncIterator[Any]
 async def send_text(data: str)
 async def send_bytes(data: bytes)
-async def send_json(data: dict)
-async def close(code: int = None)
+async def send_json(data: Any, mode: str = "text")
+async def close(code: int = 1000, reason: str = None)
 ```
 
 ## Request Parameters
@@ -133,7 +156,8 @@ be returned if there is none.
 
 ```python
 from selva.di import service
-from selva.web import RequestContext, FromRequest, controller, get
+from selva.web import RequestContext, controller, get
+from selva.web.converter import FromRequest
 
 
 class Param:
@@ -160,41 +184,45 @@ And if the error is a subclass of `selva.web.errors.HttpError`, for example
 
 ```python
 from selva.di import service
-from selva.web import RequestContext, FromRequest
-from selva.web.errors import HttpUnauthorizedError
+from selva.web import RequestContext
+from selva.web.converter import FromRequest
+from selva.web.errors import HTTPUnauthorizedError
 
 
 @service(provides=FromRequest[Param])
 class ParamFromRequest:
     def from_request(self, context: RequestContext) -> Param:
         if "authorization" not in context.headers:
-            raise HttpUnauthorizedError()
+            raise HTTPUnauthorizedError()
         return Param(context.path)
 ```
 
 ## Responses
 
-Handler methods can return an instance of `selva.web.HttpResponse`, which
+Handler methods can return an instance of `selva.web.responses.Response`, which
 provides shortcut methods for several response types.
 
 ```python
-from selva.web import HttpResponse, controller, get
+from selva.web import controller, get
+from selva.web.responses import PlainTextResponse
 
 
 @controller
 class Controller:
     @get
-    def handler(self) -> HttpResponse:
-        return HttpResponse.text("Ok")
+    def handler(self) -> PlainTextResponse:
+        return PlainTextResponse("Ok")
 ```
 
-Handler methods can also return objects that have a corresponding `selva.web.IntoResponse[Type]`
+Handler methods can also return objects that have a corresponding `selva.web.converter.IntoResponse[Type]`
 implementation. As with `FromRequest[Type]`, Selva will iterate over the base
 types of `Type` until an implementation is found or an error will be returned.
 
 ```python
 from selva.di import service
-from selva.web import HttpResponse, IntoResponse, controller, get
+from selva.web import controller, get
+from selva.web.converter import IntoResponse
+from selva.web.responses import JSONResponse
 
 
 class Result:
@@ -204,8 +232,8 @@ class Result:
 
 @service(provides=IntoResponse[Result])
 class ResultIntoResponse:
-    def into_response(self, value: Result) -> HttpResponse:
-        return HttpResponse.json({"result": value.data})
+    def into_response(self, value: Result) -> JSONResponse:
+        return JSONResponse({"result": value.data})
 
 
 @controller
@@ -223,3 +251,4 @@ There are already implementations of `IntoResponse` for the following:
 - `list` (json response)
 - `dict` (json response)
 - `set` (json response)
+- `os.PathLike` (file response)

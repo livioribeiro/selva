@@ -24,19 +24,23 @@ def service(
     For classes, a constructor will be generated to help create instances
     outside the dependency injection context
     """
-    def inner(arg: InjectableType) -> T:
-        setattr(arg, DI_SERVICE_ATTRIBUTE, ServiceInfo(provides, name))
 
-        if inspect.isclass(arg):
-            annotations = set(inspect.get_annotations(arg).keys())
-            dependencies = [d for d, _ in inspect.getmembers(arg, _is_inject)]
+    def inner(injectable: InjectableType) -> T:
+        setattr(injectable, DI_SERVICE_ATTRIBUTE, ServiceInfo(provides, name))
+
+        if inspect.isclass(injectable):
+            annotations = set(inspect.get_annotations(injectable).keys())
+            dependencies = [d for d, _ in inspect.getmembers(injectable, _is_inject)]
 
             if missing := [d for d in dependencies if d not in annotations]:
                 # TODO: create exception
                 raise TypeError(
-                    f"Missing type annotation for dependencies of service '{arg.__qualname__}': "
-                    ', '.join(missing)
+                    f"Missing type annotation for dependencies of service '{injectable.__qualname__}': "
+                    ", ".join(missing)
                 )
+
+            # save a reference to the original constructor
+            original_init = getattr(injectable, "__init__", None)
 
             def init(self, *args, **kwargs):
                 """Generated init method for service
@@ -45,6 +49,10 @@ def service(
                 Dependencies without an argument to set their value will be None.
                 Remaining arguments will be ignored.
                 """
+
+                # call original constructor
+                if original_init:
+                    original_init(self)
 
                 positional_params = [d for d in dependencies if d not in kwargs.keys()]
 
@@ -61,8 +69,8 @@ def service(
                 for k, v in values.items():
                     setattr(self, k, v)
 
-            setattr(arg, "__init__", init)
+            setattr(injectable, "__init__", init)
 
-        return arg
+        return injectable
 
     return inner(injectable) if injectable else inner

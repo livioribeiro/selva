@@ -3,15 +3,9 @@ from pathlib import Path
 from selva.configuration import Settings
 from selva.di import Inject, service
 from selva.logging import get_logger
-from selva.web import (
-    FileResponse,
-    RequestContext,
-    WebSocket,
-    controller,
-    get,
-    websocket,
-)
-from selva.web.errors import WebSocketDisconnectError, WebSocketStateError
+from selva.web.errors import WebSocketException
+from selva.web.responses import FileResponse
+from selva.web import RequestContext, WebSocket, controller, get, websocket
 
 logger = get_logger()
 
@@ -19,29 +13,31 @@ logger = get_logger()
 @service
 class WebSocketService:
     def __init__(self):
-        self.clients: set[WebSocket] = set()
+        self.clients: dict[str, WebSocket] = {}
 
-    async def handle_client(self, client: WebSocket):
-        self.clients.add(client)
+    async def handle_websocket(self, ws: WebSocket):
+        client = str(ws.client)
+        self.clients[client] = ws
+
         while True:
             try:
-                message = await client.receive()
-                logger.info("client message", content=message, client=client.client)
+                message = await ws.receive_text()
+                logger.info("client message", content=message, client=ws.client)
                 await self.broadcast(message)
-            except WebSocketDisconnectError:
-                logger.info("client disconnected", client=client.client)
-                self.clients.remove(client)
+            except WebSocketException:
+                logger.info("client disconnected", client=ws.client)
+                del self.clients[client]
                 break
 
     async def broadcast(self, message: str):
         if message.lower() == "ping":
             message = "Pong"
 
-        for client in self.clients:
+        for ws in self.clients.values():
             try:
-                await client.send_text(message)
-            except WebSocketStateError:
-                logger.info("client disconnected", client=client.client)
+                await ws.send_text(message)
+            except WebSocketException:
+                logger.info("client disconnected", client=ws.client)
 
 
 @controller
@@ -56,9 +52,9 @@ class WebSocketController:
 
     @websocket("/chat")
     async def chat(self, context: RequestContext):
-        client = context.websocket
+        ws = context.websocket
 
-        await client.accept()
-        logger.info("client connected", client=client.client)
+        await ws.accept()
+        logger.info("client connected", client=ws.client)
 
-        await self.handler.handle_client(client)
+        await self.handler.handle_websocket(ws)

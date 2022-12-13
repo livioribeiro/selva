@@ -4,8 +4,8 @@ from types import FunctionType, ModuleType
 from typing import Any, Type, TypeVar
 
 import selva.logging
-from selva.utils.maybe_async import maybe_async
-from selva.utils.package_scan import scan_packages
+from selva._utils.maybe_async import maybe_async
+from selva._utils.package_scan import scan_packages
 
 from .decorators import DI_SERVICE_ATTRIBUTE
 from .errors import (

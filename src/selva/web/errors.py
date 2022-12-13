@@ -1,41 +1,31 @@
 from http import HTTPStatus
 
-from asgikit.errors.websocket import WebSocketDisconnectError, WebSocketStateError
+from starlette.exceptions import HTTPException, WebSocketException
 
 
-class HttpError(Exception):
-    def __init__(self, status: int | HTTPStatus):
-        super().__init__()
-        if status < 400:
-            raise ValueError(
-                f"HttpError status should be client or server error, {status} given"
-            )
-        self.status = status
-
-
-class HttpClientError(HttpError):
+class HTTPClientError(HTTPException):
     pass
 
 
-class HttpNotFoundError(HttpClientError):
+class HTTPNotFoundError(HTTPClientError):
     def __init__(self):
         super().__init__(HTTPStatus.NOT_FOUND)
 
 
-class HttpUnauthorizedError(HttpClientError):
+class HTTPUnauthorizedError(HTTPClientError):
     def __init__(self):
         super().__init__(HTTPStatus.UNAUTHORIZED)
 
 
-class HttpForbidenError(HttpClientError):
+class HTTPForbidenError(HTTPClientError):
     def __init__(self):
         super().__init__(HTTPStatus.FORBIDDEN)
 
 
-class HttpServerError(HttpError):
+class HTTPServerError(HTTPException):
     pass
 
 
-class HttpInternalServerError(HttpServerError):
+class HTTPInternalServerError(HTTPServerError):
     def __init__(self):
         super().__init__(HTTPStatus.INTERNAL_SERVER_ERROR)

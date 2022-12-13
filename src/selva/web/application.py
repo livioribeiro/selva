@@ -1,5 +1,3 @@
-import asyncio
-import functools
 import importlib
 import inspect
 from collections.abc import Callable, Iterable
@@ -7,24 +5,30 @@ from http import HTTPStatus
 from types import FunctionType, ModuleType
 from typing import Any
 
-from asgikit.responses import HttpResponse
+from starlette.exceptions import HTTPException, WebSocketException
+from starlette.responses import Response
+from starlette.types import Receive, Scope, Send
 
 import selva.logging
 import selva.logging.configuration
+from selva._utils.base_types import get_base_types
+from selva._utils.maybe_async import maybe_async
+from selva._utils.package_scan import scan_packages
 from selva.configuration.settings import Settings
 from selva.di.container import Container
 from selva.di.decorators import DI_SERVICE_ATTRIBUTE
-from selva.utils.base_types import get_base_types
-from selva.utils.maybe_async import maybe_async
-from selva.utils.package_scan import scan_packages
-from selva.web.errors import HttpError, HttpNotFoundError
-from selva.web.request import RequestContext, from_request_impl
-from selva.web.request.from_request import FromRequest
-from selva.web.response import into_response_impl
-from selva.web.response.into_response import IntoResponse
-from selva.web.routing import path_converter_impl
+from selva.web.contexts import RequestContext
+from selva.web.converter import (
+    from_request_impl,
+    into_response_impl,
+    path_converter_impl,
+)
+from selva.web.converter.from_request import FromRequest
+from selva.web.converter.into_response import IntoResponse
+from selva.web.converter.path_converter import PathConverter
+from selva.web.errors import HTTPNotFoundError
+from selva.web.middleware import MiddlewareChain
 from selva.web.routing.decorators import CONTROLLER_ATTRIBUTE
-from selva.web.routing.path_converter import PathConverter
 from selva.web.routing.router import Router
 
 logger = selva.logging.get_logger()
@@ -46,7 +50,7 @@ def _is_registerable(arg) -> bool:
     return any(i(arg) for i in [_is_controller, _is_service])
 
 
-def _get_registerables(*args: type | Callable | ModuleType | str) -> Iterable[type]:
+def _filter_registerables(*args: type | Callable | ModuleType | str) -> Iterable[type]:
     for item in args:
         if _is_module(item):
             for subitem in scan_packages([item], _is_registerable):
@@ -84,7 +88,7 @@ class Selva:
     async def __call__(self, scope, receive, send):
         match scope["type"]:
             case "http" | "websocket":
-                await self._handle_request(RequestContext(scope, receive, send))
+                await self._handle_request(scope, receive, send)
             case "lifespan":
                 await self._handle_lifespan(scope, receive, send)
             case _:
@@ -122,9 +126,9 @@ class Selva:
                 self.router.route(impl)
 
     async def _initialize_middleware(self):
-        middleware_chain = self.settings.MIDDLEWARE
-        for mid in [await self.di.get(cls) for cls in middleware_chain]:
-            self.handler = functools.partial(mid.execute, self.handler)
+        self.middleware_chain = [
+            await self.di.get(cls) for cls in self.settings.MIDDLEWARE
+        ]
 
     async def _initialize(self):
         await self._initialize_middleware()
@@ -151,40 +155,38 @@ class Selva:
                     )
                 break
 
-    async def _handle_request(self, context: RequestContext):
+    async def _handle_request(self, scope: Scope, receive: Receive, send: Send):
+        context = RequestContext(scope, receive, send)
+        middleware = MiddlewareChain(self.middleware_chain, self._process_request)
+
         try:
-            await self.handler(context)
-        except HttpError as err:
-            await HttpResponse(status=err.status)(context.request)
-            return
+            response = await middleware(context)
+            if context.is_http:
+                await response(scope, receive, send)
+        except HTTPException as err:
+            await Response(status_code=err.status_code)(scope, receive, send)
+        except WebSocketException as err:
+            return await Response(status_code=err.code)(scope, receive, send)
         except Exception as err:
             logger.exception("Error processing request", exc_info=err)
-            await HttpResponse(status=HTTPStatus.INTERNAL_SERVER_ERROR)(context.request)
-            return
+            await Response(status_code=HTTPStatus.INTERNAL_SERVER_ERROR)(
+                scope, receive, send
+            )
 
-        # process delayed tasks
-        for result in await asyncio.gather(
-            *context.delayed_tasks, return_exceptions=True
-        ):
-            if isinstance(result, Exception):
-                logger.exception("Error processing delayed task", exc_info=result)
-
-    async def _process_request(self, context: RequestContext):
-        method = context.method if context.is_http else None
+    async def _process_request(self, context: RequestContext) -> Response:
+        method = context.method
         path = context.path
 
         match = self.router.match(method, path)
 
         if not match:
-            raise HttpNotFoundError()
+            raise HTTPNotFoundError()
 
         controller = match.route.controller
         action = match.route.action
         path_params = match.params
 
-        path_params = await self._params_from_path(
-            path_params, match.route.path_params
-        )
+        path_params = await self._params_from_path(path_params, match.route.path_params)
         request_params = await self._params_from_request(
             context, match.route.request_params
         )
@@ -194,8 +196,7 @@ class Selva:
         response = await maybe_async(action, instance, **all_params)
 
         if context.is_http:
-            response = await self._into_response(response)
-            await response(context.request)
+            return await self._into_response(response)
 
     async def _params_from_path(
         self,
@@ -241,8 +242,8 @@ class Selva:
 
         return request_params
 
-    async def _into_response(self, value: Any | None) -> HttpResponse | None:
-        if isinstance(value, HttpResponse):
+    async def _into_response(self, value: Any | None) -> Response | None:
+        if isinstance(value, Response):
             return value
 
         for base in get_base_types(type(value)):

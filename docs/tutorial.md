@@ -212,12 +212,12 @@ with `@service`, so in this case we need to create a factory function for it:
             return {"greeting": greeting}
     ```
 
-## Using delayed taks
+## Using backgound taks
 
 The greetings are being save to the database, but now we have a problem: the
 user has to wait until the greeting is saved before receiving it.
 
-To solve this problem and improve the user experience, we can use *delayed tasks*:
+To solve this problem and improve the user experience, we can use *background tasks*:
 
 === "application/controller.py"
 
@@ -225,6 +225,7 @@ To solve this problem and improve the user experience, we can use *delayed tasks
     from datetime import datetime
     from selva.di import Inject
     from selva.web import RequestContext, controller, get
+    from selva.web.responses import JSONResponse, BackgroundTask
     from .repository import GreetingRepository
     from .service import Greeter
     
@@ -235,14 +236,19 @@ To solve this problem and improve the user experience, we can use *delayed tasks
         repository: GreetingRepository = Inject()
     
         @get("hello/:name")
-        async def hello_name(self, name: str, context: RequestContext) -> dict:
+        async def hello_name(self, name: str, context: RequestContext) -> JSONResponse:
             greeting = self.greeter.greet(name)
-            context.add_delayed_task( # (1)
+
+            background = BackgroundTask(
                 self.repository.save_greeting,
                 greeting,
                 datetime.now(),
             )
-            return {"greeting": greeting}
+
+            return JSONResponse(
+                {"greeting": greeting},
+                background=background,
+            )
     ```
 
     1.  We called the method `add_delayed_task` from `RequestContext` to schedule
