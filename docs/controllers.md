@@ -56,7 +56,7 @@ class MyService:
 
 @controller
 class MyController:
-    my_service: MyService = Inject
+    my_service: MyService = Inject()
 ```
 
 ## Request Information
