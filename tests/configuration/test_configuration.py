@@ -1,3 +1,4 @@
+import logging
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -188,21 +189,27 @@ def test_setttings_class_env(monkeypatch, env):
     assert settings.ENVIRONMENT == env
 
 
-def test_no_settings_file_should_raise_warning(monkeypatch):
+def test_no_settings_file_should_log_info(monkeypatch, caplog):
     monkeypatch.setenv("SELVA_SETTINGS_MODULE", "does_not_exist.py")
 
     settings_path = Path.cwd() / "does_not_exist.py"
-    with pytest.warns(match=f"settings module not found: {settings_path}"):
+
+    with caplog.at_level(logging.INFO, logger="selva"):
         get_settings()
 
+    assert f"settings module not found: {settings_path}" in caplog.text
 
-def test_no_env_settings_file_should_raise_warning(monkeypatch):
+
+def test_no_env_settings_file_should_log_info(monkeypatch, caplog):
     monkeypatch.chdir(Path(__file__).parent / "envs")
     monkeypatch.setenv("SELVA_ENV", "does_not_exist")
 
     settings_path = Path.cwd() / "configuration" / "settings_does_not_exist.py"
-    with pytest.warns(match=f"settings module not found: {settings_path}"):
+
+    with caplog.at_level(logging.INFO, logger="selva"):
         get_settings()
+
+    assert f"settings module not found: {settings_path}" in caplog.text
 
 
 def test_invalid_settings_module_should_raise_error(monkeypatch):

@@ -3,13 +3,10 @@ from typing import Mapping, ParamSpec, TypeGuard
 from starlette.datastructures import URL, Address, Headers, QueryParams
 from starlette.types import Receive, Scope, Send
 
-from selva.logging import get_logger
 from selva.web.requests import HTTPMethod, Request
 from selva.web.websockets import WebSocket
 
 __all__ = ("RequestContext",)
-
-logger = get_logger()
 
 P = ParamSpec("P")
 

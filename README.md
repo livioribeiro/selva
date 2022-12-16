@@ -37,5 +37,5 @@ class Controller:
 Run application with `uvicorn` (Selva will automatically load `application.py`):
 
 ```shell
-uvicorn selva:app --reload
+uvicorn selva.run:app --reload
 ```

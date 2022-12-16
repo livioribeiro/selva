@@ -1,5 +1,3 @@
-import typing
-
 from selva.di.decorators import service
 from selva.web.contexts import RequestContext
 from selva.web.converter.from_request import FromRequest

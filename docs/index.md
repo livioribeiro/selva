@@ -28,7 +28,7 @@ class Controller:
 Run application with `uvicorn`. Selva will automatically load `application.py`:
 
 ```shell
-uvicorn selva:app
+uvicorn selva.run:app
 ```
 
 ```

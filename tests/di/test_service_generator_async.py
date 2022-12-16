@@ -78,9 +78,9 @@ def test_factory_function_without_return_type_should_fail(ioc: Container):
         ioc.register(service_factory)
 
 
-def test_provides_option_should_raise_warning(ioc: Container):
-    with pytest.warns(UserWarning):
-        ioc.register(interface_factory, provides=Interface)
+def test_provides_option_should_log_warning(ioc: Container, caplog):
+    ioc.register(interface_factory, provides=Interface)
+    assert "option 'provides' on a factory function has no effect" in caplog.text
 
 
 async def test_sync_factory(ioc: Container):

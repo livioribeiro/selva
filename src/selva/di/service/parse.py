@@ -1,6 +1,6 @@
 import inspect
+import logging
 import typing
-import warnings
 from collections.abc import Callable, Iterable
 from types import NoneType, UnionType
 from typing import Any, Optional, TypeVar, Union
@@ -16,6 +16,8 @@ from selva.di.service.model import InjectableType, ServiceDependency, ServiceSpe
 
 DI_INITIALIZER = "initialize"
 DI_FINALIZER = "finalize"
+
+logger = logging.getLogger(__name__)
 
 
 def _check_optional(type_hint: type, default: Any) -> tuple[type, bool]:
@@ -86,9 +88,7 @@ def _parse_definition_class(
 
 def _parse_definition_factory(service: Callable, provides: type | None) -> type:
     if provides:
-        # TODO: change to selva.logging
-        message = "option 'provides' on a factory function has no effect"
-        warnings.warn(message)
+        logging.warning("option 'provides' on a factory function has no effect")
 
     service_type = typing.get_type_hints(service).get("return")
     if service_type is None:

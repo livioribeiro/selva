@@ -3,9 +3,9 @@ from pathlib import Path
 from selva.configuration import Settings
 from selva.di import Inject, service
 from selva.logging import get_logger
+from selva.web import RequestContext, WebSocket, controller, get, websocket
 from selva.web.errors import WebSocketException
 from selva.web.responses import FileResponse
-from selva.web import RequestContext, WebSocket, controller, get, websocket
 
 logger = get_logger()
 
