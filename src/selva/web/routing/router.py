@@ -1,10 +1,10 @@
 import inspect
+import logging
 from collections import OrderedDict
 
 from starlette.requests import Request
 from starlette.websockets import WebSocket
 
-import selva.logging
 from selva.web.errors import HTTPNotFoundError
 from selva.web.requests import HTTPMethod
 
@@ -16,7 +16,7 @@ from .decorators import (
 )
 from .route import Route, RouteMatch
 
-logger = selva.logging.get_logger()
+logger = logging.getLogger(__name__)
 
 
 def _path_with_prefix(path: str, prefix: str):
@@ -43,9 +43,9 @@ class Router:
         path_prefix = controller_info.path
 
         logger.debug(
-            "controller registered",
-            path=path_prefix or "/",
-            cls=controller,
+            "controller registered at %s: %s",
+            path_prefix or "/",
+            controller.__qualname__,
         )
 
         for name, action in inspect.getmembers(controller, inspect.isfunction):
@@ -91,12 +91,14 @@ class Router:
 
             self.routes[route_name] = route
             logger.debug(
-                "action registered",
-                name=route.name,
-                method=route.method,
-                path=route.path,
-                controller=controller,
-                action=route.action.__name__,
+                "action '%(name)s' registered at %(method)s %(path)s in %(controller)s:%(action)s",
+                {
+                    "name": route.name,
+                    "method": route.method,
+                    "path": route.path,
+                    "controller": controller.__qualname__,
+                    "action": route.action.__name__,
+                },
             )
 
     def match(self, method: HTTPMethod | None, path: str) -> RouteMatch | None:

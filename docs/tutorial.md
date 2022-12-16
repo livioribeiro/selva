@@ -37,7 +37,7 @@ We will use `uvicorn` to run the application and automatically reload when we
 make changes to the code:
 
 ```shell
-$ uvicorn selva:app --reload
+$ uvicorn selva.run:app --reload
 INFO:     Will watch for changes in these directories: ['/home/user/projects/selva-tutorial']
 INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
 INFO:     Started reloader process [23568] using WatchFiles

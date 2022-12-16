@@ -1,9 +1,9 @@
 import inspect
+import logging
 from collections.abc import Awaitable, Iterable
 from types import FunctionType, ModuleType
 from typing import Any, Type, TypeVar
 
-import selva.logging
 from selva._utils.maybe_async import maybe_async
 from selva._utils.package_scan import scan_packages
 
@@ -21,7 +21,7 @@ from .service.registry import ServiceRegistry
 TService = TypeVar("TService")
 
 
-logger = selva.logging.get_logger()
+logger = logging.getLogger(__name__)
 
 
 class Container:
@@ -58,15 +58,17 @@ class Container:
         self.registry[provided_service, name] = service_spec
 
         logger.debug(
-            "service registered",
-            service=provided_service,
-            provider=service,
-            name=name,
+            "service registered with name '%s': %s (provided by %s)",
+            name,
+            provided_service,
+            service.__qualname__,
         )
 
     def define(self, service_type: type, instance: Any, *, name: str = None):
         self.store[service_type, name] = instance
-        logger.debug("service defined", service=service_type, name=name)
+        logger.debug(
+            "service defined with name %s: %s", name, service_type.__qualname__
+        )
 
     def interceptor(self, interceptor: Type[Interceptor]):
         self.register(
@@ -76,7 +78,7 @@ class Container:
         )
         self.interceptors.append(interceptor)
 
-        logger.debug("interceptor registered", interceptor=interceptor)
+        logger.debug("interceptor registered: %s", interceptor.__qualname__)
 
     def scan(self, *packages: str | ModuleType):
         def predicate(item: Any):

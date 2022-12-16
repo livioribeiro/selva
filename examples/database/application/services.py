@@ -1,3 +1,4 @@
+import logging
 import os
 
 from databases import Database
@@ -5,16 +6,18 @@ from databases import Database
 from selva.configuration import Settings
 from selva.di import Inject, service
 
+logger = logging.getLogger(__name__)
+
 
 @service
 def database_factory(settings: Settings) -> Database:
     database = Database(settings.DATABASE_URL)
-    print("Sqlite database created")
+    logger.info("Sqlite database created")
 
     yield database
 
     os.unlink(database.url.database)
-    print("Sqlite database destroyed")
+    logger.info("Sqlite database destroyed")
 
 
 @service
@@ -23,7 +26,7 @@ class Repository:
 
     async def initialize(self):
         await self.database.connect()
-        print("Sqlite database connection opened")
+        logger.info("Sqlite database connection opened")
 
         await self.database.execute(
             "create table if not exists counter(value int not null)"
@@ -32,7 +35,7 @@ class Repository:
 
     async def finalize(self):
         await self.database.disconnect()
-        print("Sqlite database connection closed")
+        logger.info("Sqlite database connection closed")
 
     async def test(self):
         await self.database.execute("select 1")

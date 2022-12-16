@@ -1,6 +1,6 @@
 import importlib
 import inspect
-from collections.abc import Callable, Iterable
+import logging
 from http import HTTPStatus
 from types import FunctionType, ModuleType
 from typing import Any
@@ -9,11 +9,9 @@ from starlette.exceptions import HTTPException, WebSocketException
 from starlette.responses import Response
 from starlette.types import Receive, Scope, Send
 
-import selva.logging
-import selva.logging.configuration
 from selva._utils.base_types import get_base_types
 from selva._utils.maybe_async import maybe_async
-from selva._utils.package_scan import scan_packages
+from selva.configuration.logging import setup_logging
 from selva.configuration.settings import Settings
 from selva.di.container import Container
 from selva.di.decorators import DI_SERVICE_ATTRIBUTE
@@ -31,7 +29,7 @@ from selva.web.middleware import MiddlewareChain
 from selva.web.routing.decorators import CONTROLLER_ATTRIBUTE
 from selva.web.routing.router import Router
 
-logger = selva.logging.get_logger()
+logger = logging.getLogger(__name__)
 
 
 def _is_controller(arg) -> bool:
@@ -44,21 +42,6 @@ def _is_service(arg) -> bool:
 
 def _is_module(arg) -> bool:
     return inspect.ismodule(arg) or isinstance(arg, str)
-
-
-def _is_registerable(arg) -> bool:
-    return any(i(arg) for i in [_is_controller, _is_service])
-
-
-def _filter_registerables(*args: type | Callable | ModuleType | str) -> Iterable[type]:
-    for item in args:
-        if _is_module(item):
-            for subitem in scan_packages([item], _is_registerable):
-                yield subitem
-        elif _is_service(item):
-            yield item
-        else:
-            raise ValueError(f"{item} is not a controller, service or application")
 
 
 class Selva:
@@ -74,7 +57,7 @@ class Selva:
         self.handler = self._process_request
 
         self.settings = Settings()
-        selva.logging.configuration.configure_logging(self.settings)
+        setup_logging(self.settings)
 
         self.di.define(Settings, self.settings)
         self.di.define(Router, self.router)
