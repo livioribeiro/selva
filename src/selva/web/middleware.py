@@ -1,41 +1,28 @@
-from collections.abc import Awaitable, Callable, Iterable
-from typing import Protocol, runtime_checkable
+from abc import ABC
+from collections.abc import Awaitable, Callable
 
 from selva.web.contexts import RequestContext
 from selva.web.responses import Response
 
-__all__ = ("CallChain", "Middleware", "MiddlewareChain")
+__all__ = ("Middleware",)
 
 
-CallChain = Callable[[RequestContext], Awaitable[Response]]
+class Middleware(ABC):
+    def __init__(self):
+        # if 'self.set_app' is not called, raise an error
+        async def raise_middleware_error(_: RequestContext):
+            cls = self.__class__
+            class_name = f"{cls.__module__}.{cls.__qualname__}"
+            raise RuntimeError(
+                f"method 'set_app' was not called on middleware: {class_name}"
+            )
 
-
-@runtime_checkable
-class Middleware(Protocol):
-    async def __call__(
-        self,
-        context: RequestContext,
-        chain: Callable[[RequestContext], Awaitable[Response]],
-    ) -> Response | None:
-        raise NotImplementedError()
-
-
-class MiddlewareChain:
-    __slots__ = ("chain", "handler", "iter")
-
-    def __init__(
-        self,
-        chain: Iterable[Middleware],
-        handler: CallChain,
-    ):
-        self.chain = chain
-        self.handler = handler
-        self.iter = iter(chain)
+        self.app: Callable[
+            [RequestContext], Awaitable[Response]
+        ] = raise_middleware_error
 
     async def __call__(self, context: RequestContext) -> Response:
-        try:
-            middleware = next(self.iter)
-            return await middleware(context, self)
-        except StopIteration:
-            response = await self.handler(context)
-            return response
+        raise NotImplementedError()
+
+    def set_app(self, app: Callable[[RequestContext], Awaitable[Response]]):
+        self.app = app

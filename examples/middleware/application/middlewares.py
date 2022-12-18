@@ -2,20 +2,18 @@ import base64
 from datetime import datetime
 from http import HTTPStatus
 
-from selva.di import service
 from selva.web.contexts import RequestContext
-from selva.web.middleware import CallChain
+from selva.web.middleware import Middleware
 from selva.web.responses import Response
 
 
-@service
-class TimingMiddleware:
-    async def __call__(self, context: RequestContext, chain: CallChain):
+class TimingMiddleware(Middleware):
+    async def __call__(self, context: RequestContext):
         if context.is_websocket:
-            return await chain(context)
+            return await self.app(context)
 
         request_start = datetime.now()
-        response = await chain(context)
+        response = await self.app(context)
         request_end = datetime.now()
 
         delta = request_end - request_start
@@ -24,13 +22,12 @@ class TimingMiddleware:
         return response
 
 
-@service
-class LoggingMiddleware:
-    async def __call__(self, context: RequestContext, chain: CallChain):
+class LoggingMiddleware(Middleware):
+    async def __call__(self, context: RequestContext):
         if context.is_websocket:
-            await chain(context)
+            await self.app(context)
 
-        response = await chain(context)
+        response = await self.app(context)
 
         client = f"{context.client[0]}:{context.client[1]}"
         request_line = f"{context.method} {context.path} HTTP/{context['http_version']}"
@@ -42,9 +39,8 @@ class LoggingMiddleware:
         return response
 
 
-@service
-class AuthMiddleware:
-    async def __call__(self, context: RequestContext, chain: CallChain):
+class AuthMiddleware(Middleware):
+    async def __call__(self, context: RequestContext):
         if context.path == "/protected":
             authn = context.headers.get("authorization")
             if not authn:
@@ -60,4 +56,4 @@ class AuthMiddleware:
             print(f"User '{user}' with password '{password}'")
             context["user"] = user
 
-        return await chain(context)
+        return await self.app(context)
