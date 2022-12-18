@@ -25,7 +25,7 @@ from selva.web.converter.from_request import FromRequest
 from selva.web.converter.into_response import IntoResponse
 from selva.web.converter.path_converter import PathConverter
 from selva.web.errors import HTTPNotFoundError
-from selva.web.middleware import MiddlewareChain
+from selva.web.middleware import Middleware
 from selva.web.routing.decorators import CONTROLLER_ATTRIBUTE
 from selva.web.routing.router import Router
 
@@ -109,9 +109,25 @@ class Selva:
                 self.router.route(impl)
 
     async def _initialize_middleware(self):
-        self.middleware_chain = [
-            await self.di.get(cls) for cls in self.settings.MIDDLEWARE
-        ]
+        middleware = self.settings.MIDDLEWARE
+        if len(middleware) == 0:
+            return
+
+        if middleware_errors := [
+            m for m in middleware if not issubclass(m, Middleware)
+        ]:
+            mid_classes = [
+                f"{m.__module__}.{m.__qualname__}" for m in middleware_errors
+            ]
+            mid_class_name = f"{Middleware.__module__}.{Middleware.__qualname__}"
+            raise TypeError(
+                f"Middleware classes must inherit from '{mid_class_name}': {mid_classes}"
+            )
+
+        for cls in reversed(self.settings.MIDDLEWARE):
+            mid = await self.di.create(cls)
+            mid.set_app(self.handler)
+            self.handler = mid
 
     async def _initialize(self):
         await self._initialize_middleware()
@@ -140,10 +156,9 @@ class Selva:
 
     async def _handle_request(self, scope: Scope, receive: Receive, send: Send):
         context = RequestContext(scope, receive, send)
-        middleware = MiddlewareChain(self.middleware_chain, self._process_request)
 
         try:
-            response = await middleware(context)
+            response = await self.handler(context)
             if context.is_http:
                 await response(scope, receive, send)
         except HTTPException as err:

@@ -12,7 +12,7 @@ P = ParamSpec("P")
 
 
 class RequestContext:
-    __slots__ = ("scope", "_asgi", "request", "websocket")
+    __slots__ = ("scope", "asgi_context", "request", "websocket")
 
     def __init__(self, scope: Scope, receive: Receive, send: Send):
         assert scope["type"] in ("http", "websocket")
@@ -21,7 +21,7 @@ class RequestContext:
         self.websocket: WebSocket | None = None
 
         self.scope = scope
-        self._asgi = scope, receive, send
+        self.asgi_context = scope, receive, send
 
         if scope["type"] == "http":
             self.request = Request(scope, receive, send)
