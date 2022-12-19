@@ -15,6 +15,7 @@ class Service1:
 
 def service1_factory() -> Service1:
     yield Service1()
+    print("Service1")
 
 
 class Service2:
@@ -24,6 +25,7 @@ class Service2:
 
 def service2_factory(service1: Service1) -> Service2:
     yield Service2(service1)
+    print("Service2")
 
 
 class Interface:
@@ -36,6 +38,7 @@ class Implementation(Interface):
 
 def interface_factory() -> Interface:
     yield Implementation()
+    print("Interface Implementation")
 
 
 def test_has_service(ioc: Container):
@@ -43,14 +46,17 @@ def test_has_service(ioc: Container):
     assert ioc.has(Service1)
 
 
-async def test_service_with_provided_interface(ioc: Container):
+async def test_service_with_provided_interface(ioc: Container, capfd):
     ioc.register(interface_factory)
 
     service = await ioc.get(Interface)
     assert isinstance(service, Implementation)
 
+    await ioc.run_finalizers()
+    assert capfd.readouterr().out == "Interface Implementation\n"
 
-async def test_inject_singleton(ioc: Container):
+
+async def test_inject_singleton(ioc: Container, capfd):
     ioc.register(service1_factory)
     ioc.register(service2_factory)
 
@@ -62,12 +68,17 @@ async def test_inject_singleton(ioc: Container):
     assert other_service is service
     assert other_service.service1 is service.service1
 
+    await ioc.run_finalizers()
+    assert capfd.readouterr().out == "Service2\nService1\n"
 
-async def test_interface_implementation(ioc: Container):
+async def test_interface_implementation(ioc: Container, capfd):
     ioc.register(interface_factory)
 
     service = await ioc.get(Interface)
     assert isinstance(service, Implementation)
+
+    await ioc.run_finalizers()
+    assert capfd.readouterr().out == "Interface Implementation\n"
 
 
 def test_factory_function_without_return_type_should_fail(ioc: Container):
@@ -81,22 +92,3 @@ def test_factory_function_without_return_type_should_fail(ioc: Container):
 def test_provides_option_should_log_warning(ioc: Container, caplog):
     ioc.register(interface_factory, provides=Interface)
     assert "option 'provides' on a factory function has no effect" in caplog.text
-
-
-async def test_sync_factory(ioc: Container):
-    def sync_factory() -> Service1:
-        return Service1()
-
-    ioc.register(sync_factory)
-
-    service = await ioc.get(Service1)
-    assert isinstance(service, Service1)
-
-
-async def test_register_a_service_twice_should_fail(ioc: Container):
-    async def duplicate_factory() -> Service1:
-        pass
-
-    with pytest.raises(ServiceAlreadyRegisteredError):
-        ioc.register(service1_factory)
-        ioc.register(duplicate_factory)
