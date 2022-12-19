@@ -27,3 +27,4 @@ nav:
   - tutorial.md
   - controllers.md
   - routing.md
+  - middleware.md
