@@ -5,7 +5,7 @@ Documentation: https://livioribeiro.github.io/selva/
 Selva is a Python ASGI web framework built on top of [asgikit](https://github.com/livioribeiro/asgikit)
 and inspired by Spring Boot, AspNet Core and FastAPI.
 
-It features a Dependency Inversion system to help build robust and reliable applications.
+It features a Dependency Injection system to help build robust and reliable applications.
 
 ## Quick start
 
