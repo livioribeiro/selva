@@ -13,6 +13,7 @@ LOGGING = {
         "default": {
             "format": "{asctime} | {levelname:<8} | {name} - {message}",
             "style": "{",
+            "datefmt": "%Y-%m-%d %H:%M:%S",
         },
     },
     "handlers": {

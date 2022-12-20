@@ -8,6 +8,7 @@ from typing import Any
 from starlette.exceptions import HTTPException, WebSocketException
 from starlette.responses import Response
 from starlette.types import Receive, Scope, Send
+from starlette.websockets import WebSocketClose, WebSocketDisconnect, WebSocketState
 
 from selva._utils.base_types import get_base_types
 from selva._utils.maybe_async import maybe_async
@@ -158,20 +159,21 @@ class Selva:
         context = RequestContext(scope, receive, send)
 
         try:
-            response = await self.handler(context)
-            if context.is_http:
+            if response := await self.handler(context):
                 await response(scope, receive, send)
+        except (WebSocketException, WebSocketDisconnect) as err:
+            await WebSocketClose(code=err.code, reason=err.reason)(scope, receive, send)
         except HTTPException as err:
             await Response(status_code=err.status_code)(scope, receive, send)
-        except WebSocketException as err:
-            return await Response(status_code=err.code)(scope, receive, send)
         except Exception as err:
             logger.exception("Error processing request", exc_info=err)
             await Response(status_code=HTTPStatus.INTERNAL_SERVER_ERROR)(
                 scope, receive, send
             )
 
-    async def _process_request(self, context: RequestContext) -> Response:
+    async def _process_request(
+        self, context: RequestContext
+    ) -> Response | WebSocketClose:
         method = context.method
         path = context.path
 
@@ -193,8 +195,16 @@ class Selva:
         instance = await self.di.get(controller)
         response = await maybe_async(action, instance, **all_params)
 
-        if context.is_http:
-            return await self._into_response(response)
+        if context.is_websocket:
+            if (
+                not response
+                and context.websocket._inner.client_state != WebSocketState.DISCONNECTED
+            ):
+                response = WebSocketClose()
+        else:
+            response = await self._into_response(response)
+
+        return response
 
     async def _params_from_path(
         self,
