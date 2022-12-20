@@ -43,4 +43,5 @@ class Repository:
     async def count(self) -> int:
         await self.database.execute("update counter set value = value + 1")
         result = await self.database.fetch_val("select value from counter")
+        logger.info("Current count: %d", result)
         return result
