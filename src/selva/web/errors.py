@@ -17,7 +17,7 @@ class HTTPUnauthorizedError(HTTPClientError):
         super().__init__(HTTPStatus.UNAUTHORIZED)
 
 
-class HTTPForbidenError(HTTPClientError):
+class HTTPForbiddenError(HTTPClientError):
     def __init__(self):
         super().__init__(HTTPStatus.FORBIDDEN)
 
