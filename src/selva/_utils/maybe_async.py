@@ -22,9 +22,4 @@ async def maybe_async(
     if inspect.iscoroutinefunction(call):
         return await call(*args, **kwargs)
 
-    blocking = getattr(call, "_blocking_", False)
-    if blocking:
-        target = functools.partial(target, *args, **kwargs)
-        return await anyio.to_thread.run_sync(target)
-
-    return call(*args, **kwargs)
+    return await anyio.to_thread.run_sync(functools.partial(call, *args, **kwargs))
