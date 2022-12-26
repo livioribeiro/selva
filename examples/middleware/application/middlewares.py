@@ -1,10 +1,13 @@
 import base64
+import logging
 from datetime import datetime
 from http import HTTPStatus
 
 from selva.web.contexts import RequestContext
 from selva.web.middleware import Middleware
 from selva.web.responses import Response
+
+logger = logging.getLogger(__name__)
 
 
 class TimingMiddleware(Middleware):
@@ -17,7 +20,7 @@ class TimingMiddleware(Middleware):
         request_end = datetime.now()
 
         delta = request_end - request_start
-        print(f"Request time: {delta}")
+        logging.info("Request time: %s", delta)
 
         return response
 
@@ -34,7 +37,7 @@ class LoggingMiddleware(Middleware):
         status = HTTPStatus(response.status_code)
         status = f"{status.value} {status.phrase}"
 
-        print(f'{client} "{request_line}" {status}')
+        logging.info("%s '%s' %s", client, request_line, status)
 
         return response
 
@@ -53,7 +56,7 @@ class AuthMiddleware(Middleware):
 
             authn = authn.removeprefix("Basic")
             user, password = base64.urlsafe_b64decode(authn).decode().split(":")
-            print(f"User '{user}' with password '{password}'")
+            logging.info(f"User '%s' with password '%s'", user, password)
             context["user"] = user
 
         return await self.app(context)

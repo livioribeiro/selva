@@ -6,29 +6,31 @@ COMPONENTS = []
 
 MIDDLEWARE = []
 
-LOGGING = None
-
-LOGGING_FORMATTERS = {
-    "default": {
-        "format": "{asctime} {levelname:<8} {name}[{threadName}] {message}",
-        "style": "{",
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "default": {
+            "format": "{asctime} {levelname:<8} {name}[{threadName}] {message}",
+            "style": "{",
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "default",
+        },
+    },
+    "loggers": {
+        "application": {
+            "level": "WARNING",
+            "handlers": ["console"],
+        },
+        "selva": {
+            "level": "WARNING",
+            "handlers": ["console"],
+        },
     },
 }
 
-LOGGING_HANDLERS = {
-    "console": {
-        "class": "logging.StreamHandler",
-        "formatter": "default",
-    },
-}
-
-LOGGING_LOGGERS = {
-    "selva": {
-        "handlers": ["console"],
-        "level": "WARNING",
-    },
-    "application": {
-        "handlers": ["console"],
-        "level": "WARNING",
-    },
-}
+LOGGING_LEVEL = {}

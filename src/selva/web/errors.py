@@ -2,6 +2,7 @@ from http import HTTPStatus
 
 from starlette.exceptions import HTTPException, WebSocketException
 
+
 class HTTPBadRequestError(HTTPException):
     def __init__(
         self, reason: str | None = None, headers: dict[str, str] | None = None

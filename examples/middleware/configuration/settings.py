@@ -6,6 +6,7 @@ MIDDLEWARE = [
     AuthMiddleware,
 ]
 
-LOGGING_LOGGERS = {"selva": "INFO"}
-
-LOGGING_FORMATTER = "dev"
+LOGGING_LEVEL = {
+    "application": "DEBUG",
+    "selva": "INFO",
+}
