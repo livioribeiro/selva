@@ -1,4 +1,4 @@
-from abc import ABC
+from abc import ABC, abstractmethod
 from collections.abc import Awaitable, Callable
 
 from selva.web.contexts import RequestContext
@@ -10,7 +10,7 @@ __all__ = ("Middleware",)
 class Middleware(ABC):
     def __init__(self):
         # if 'self.set_app' is not called, raise an error
-        async def raise_middleware_error(_: RequestContext):
+        async def call(context: RequestContext):
             cls = self.__class__
             class_name = f"{cls.__module__}.{cls.__qualname__}"
             raise RuntimeError(
@@ -19,8 +19,9 @@ class Middleware(ABC):
 
         self.app: Callable[
             [RequestContext], Awaitable[Response]
-        ] = raise_middleware_error
+        ] = call
 
+    @abstractmethod
     async def __call__(self, context: RequestContext) -> Response:
         raise NotImplementedError()
 
