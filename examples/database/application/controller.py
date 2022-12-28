@@ -2,9 +2,9 @@ from http import HTTPStatus
 
 from selva.di import Inject
 from selva.web import controller, get
-from selva.web.responses import JSONResponse
+from selva.web.response import JSONResponse
 
-from .services import Repository
+from .service import Repository
 
 
 @controller

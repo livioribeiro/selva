@@ -1,4 +1,4 @@
-from selva._utils.maybe_async import maybe_async
+from selva._util.maybe_async import maybe_async
 
 
 async def test_call_sync_function():

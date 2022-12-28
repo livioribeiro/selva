@@ -1,9 +1,9 @@
 from selva.web.application import Selva
-from selva.web.contexts import RequestContext
+from selva.web.context import RequestContext
 from selva.web.converter.into_response import IntoResponse
 from selva.web.converter.path_converter import PathConverter
 from selva.web.middleware import Middleware
-from selva.web.routing.decorators import (
+from selva.web.routing.decorator import (
     controller,
     delete,
     get,
@@ -12,4 +12,4 @@ from selva.web.routing.decorators import (
     put,
     websocket,
 )
-from selva.web.websockets import WebSocket
+from selva.web.websocket import WebSocket

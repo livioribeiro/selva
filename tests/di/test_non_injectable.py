@@ -1,7 +1,7 @@
 import pytest
 
 from selva.di.container import Container
-from selva.di.errors import NonInjectableTypeError
+from selva.di.error import NonInjectableTypeError
 
 from .fixtures import ioc
 

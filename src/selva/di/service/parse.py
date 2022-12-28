@@ -5,7 +5,7 @@ from collections.abc import Callable, Iterable
 from types import NoneType, UnionType
 from typing import Any, Optional, TypeVar, Union
 
-from selva.di.errors import (
+from selva.di.error import (
     FactoryMissingReturnTypeError,
     InvalidServiceTypeError,
     NonInjectableTypeError,

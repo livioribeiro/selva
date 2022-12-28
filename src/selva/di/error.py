@@ -2,7 +2,7 @@ import inspect
 from collections.abc import Callable
 from typing import Any
 
-from .service.model import InjectableType
+from selva.di.service.model import InjectableType
 
 
 def _type_name(service):

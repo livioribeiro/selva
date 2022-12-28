@@ -7,6 +7,6 @@ MIDDLEWARE = [
 ]
 
 LOGGING_LEVEL = {
-    "application": "DEBUG",
+    "application": "INFO",
     "selva": "INFO",
 }

@@ -4,7 +4,7 @@ from collections import Counter
 from re import Pattern
 from typing import Callable, NamedTuple
 
-from selva.web.requests import HTTPMethod
+from selva.web.request import HTTPMethod
 
 __all__ = ("Route", "RouteMatch")
 

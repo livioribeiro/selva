@@ -4,19 +4,18 @@ from collections.abc import Awaitable, Iterable
 from types import FunctionType, ModuleType
 from typing import Any, Type, TypeVar
 
-from selva._utils.maybe_async import maybe_async
-from selva._utils.package_scan import scan_packages
-
-from .decorators import DI_SERVICE_ATTRIBUTE
-from .errors import (
+from selva._util.maybe_async import maybe_async
+from selva._util.package_scan import scan_packages
+from selva.di.decorator import DI_SERVICE_ATTRIBUTE
+from selva.di.error import (
     DependencyLoopError,
     ServiceNotFoundError,
     ServiceWithoutDecoratorError,
 )
-from .interceptor import Interceptor
-from .service.model import InjectableType, ServiceDependency, ServiceSpec
-from .service.parse import get_dependencies, parse_service_spec
-from .service.registry import ServiceRegistry
+from selva.di.interceptor import Interceptor
+from selva.di.service.model import InjectableType, ServiceDependency, ServiceSpec
+from selva.di.service.parse import get_dependencies, parse_service_spec
+from selva.di.service.registry import ServiceRegistry
 
 TService = TypeVar("TService")
 

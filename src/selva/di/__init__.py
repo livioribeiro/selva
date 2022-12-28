@@ -1,2 +1,2 @@
-from .decorators import service
-from .inject import Inject
+from selva.di.decorator import service
+from selva.di.inject import Inject

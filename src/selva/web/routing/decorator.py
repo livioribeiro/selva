@@ -5,7 +5,7 @@ from functools import singledispatch
 from typing import NamedTuple
 
 from selva.di import service
-from selva.web.requests import HTTPMethod
+from selva.web.request import HTTPMethod
 
 CONTROLLER_ATTRIBUTE = "__selva_web_controller__"
 ACTION_ATTRIBUTE = "__selva_web_action__"

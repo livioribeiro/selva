@@ -225,7 +225,7 @@ To solve this problem and improve the user experience, we can use *background ta
     from datetime import datetime
     from selva.di import Inject
     from selva.web import RequestContext, controller, get
-    from selva.web.responses import JSONResponse, BackgroundTask
+    from selva.web.response import JSONResponse, BackgroundTask
     from .repository import GreetingRepository
     from .service import Greeter
     

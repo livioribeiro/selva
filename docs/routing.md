@@ -84,7 +84,7 @@ class MyController:
 ```
 
 If the `PathConverter` implementation raise an error, the handler is not called.
-And if the error is a subclass of `selva.web.errors.HttpError`, for example
+And if the error is a subclass of `selva.web.error.HTTPError`, for example
 `UnathorizedError`, a response will be returned according to the error.
 
 The `PathConverter` can also be provided a method called `:::python into_path(self, obj) -> str`

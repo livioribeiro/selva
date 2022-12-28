@@ -4,7 +4,7 @@ from typing import Any, Awaitable
 from starlette.types import Message, Receive, Scope, Send
 from starlette.websockets import WebSocket as StarletteWebsocket
 
-from selva.web.requests import HTTPConnection
+from selva.web.request import HTTPConnection
 
 __all__ = ("WebSocket",)
 

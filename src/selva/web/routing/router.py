@@ -5,16 +5,15 @@ from collections import OrderedDict
 from starlette.requests import Request
 from starlette.websockets import WebSocket
 
-from selva.web.errors import HTTPNotFoundError
-from selva.web.requests import HTTPMethod
-
-from .decorators import (
+from selva.web.error import HTTPNotFoundError
+from selva.web.request import HTTPMethod
+from selva.web.routing.decorator import (
     ACTION_ATTRIBUTE,
     CONTROLLER_ATTRIBUTE,
     ActionInfo,
     ControllerInfo,
 )
-from .route import Route, RouteMatch
+from selva.web.routing.route import Route, RouteMatch
 
 logger = logging.getLogger(__name__)
 

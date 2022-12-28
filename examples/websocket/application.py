@@ -6,8 +6,8 @@ from starlette.websockets import WebSocketDisconnect
 from selva.configuration import Settings
 from selva.di import Inject, service
 from selva.web import RequestContext, WebSocket, controller, get, websocket
-from selva.web.errors import WebSocketException
-from selva.web.responses import FileResponse
+from selva.web.error import WebSocketException
+from selva.web.response import FileResponse
 
 logger = logging.getLogger(__name__)
 

@@ -1,1 +1,1 @@
-from .settings import Settings
+from selva.configuration.settings import Settings

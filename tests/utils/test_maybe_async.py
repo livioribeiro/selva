@@ -1,6 +1,6 @@
 import pytest
 
-from selva._utils.maybe_async import maybe_async
+from selva._util.maybe_async import maybe_async
 
 
 async def test_awaitable_object():

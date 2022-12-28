@@ -2,11 +2,11 @@ from http import HTTPStatus
 
 from selva.di import Inject
 from selva.web import controller, get
-from selva.web.requests import Request
-from selva.web.responses import Response
+from selva.web.request import Request
+from selva.web.response import Response
 
 from .auth import User
-from .services import Greeter
+from .service import Greeter
 
 
 @controller

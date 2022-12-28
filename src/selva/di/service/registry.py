@@ -2,7 +2,7 @@ import typing
 import warnings
 from collections import defaultdict
 
-from selva.di.errors import ServiceAlreadyRegisteredError, ServiceNotFoundError
+from selva.di.error import ServiceAlreadyRegisteredError, ServiceNotFoundError
 from selva.di.service.model import ServiceSpec
 
 __all__ = ("ServiceRecord", "ServiceRegistry")

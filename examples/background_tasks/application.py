@@ -1,7 +1,7 @@
 import asyncio
 
 from selva.web import RequestContext, controller, get
-from selva.web.responses import BackgroundTask, JSONResponse
+from selva.web.response import BackgroundTask, JSONResponse
 
 
 @controller

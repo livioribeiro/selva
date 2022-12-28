@@ -1,8 +1,8 @@
-from selva.di.decorators import service
-from selva.web.contexts import RequestContext
+from selva.di.decorator import service
+from selva.web.context import RequestContext
 from selva.web.converter.from_request import FromRequest
-from selva.web.requests import Request
-from selva.web.websockets import WebSocket
+from selva.web.request import Request
+from selva.web.websocket import WebSocket
 
 
 @service(provides=FromRequest[RequestContext])

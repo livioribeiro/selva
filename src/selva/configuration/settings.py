@@ -7,7 +7,7 @@ from pathlib import Path
 from types import ModuleType, SimpleNamespace
 from typing import Any
 
-from . import defaults
+from selva.configuration import defaults
 
 __all__ = ("Settings", "SettingsModuleError")
 

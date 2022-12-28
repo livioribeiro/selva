@@ -29,7 +29,7 @@ in the processing of the request:
     ```python
     from datetime import datetime
     
-    from selva.web.contexts import RequestContext
+    from selva.web.context import RequestContext
     from selva.web.middleware import Middleware
     
     
@@ -81,7 +81,7 @@ Middleware instances are created using the same machinery as services, and there
     from datetime import datetime
     
     from selva.di import Inject
-    from selva.web.contexts import RequestContext
+    from selva.web.context import RequestContext
     from selva.web.middleware import Middleware
     
     from application.service import TimingService

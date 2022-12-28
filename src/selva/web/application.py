@@ -10,13 +10,13 @@ from starlette.responses import Response
 from starlette.types import Receive, Scope, Send
 from starlette.websockets import WebSocketClose, WebSocketDisconnect, WebSocketState
 
-from selva._utils.base_types import get_base_types
-from selva._utils.maybe_async import maybe_async
+from selva._util.base_types import get_base_types
+from selva._util.maybe_async import maybe_async
 from selva.configuration.logging import setup_logging
 from selva.configuration.settings import Settings
 from selva.di.container import Container
-from selva.di.decorators import DI_SERVICE_ATTRIBUTE
-from selva.web.contexts import RequestContext
+from selva.di.decorator import DI_SERVICE_ATTRIBUTE
+from selva.web.context import RequestContext
 from selva.web.converter import (
     from_request_impl,
     into_response_impl,
@@ -25,9 +25,9 @@ from selva.web.converter import (
 from selva.web.converter.from_request import FromRequest
 from selva.web.converter.into_response import IntoResponse
 from selva.web.converter.path_converter import PathConverter
-from selva.web.errors import HTTPNotFoundError
+from selva.web.error import HTTPNotFoundError
 from selva.web.middleware import Middleware
-from selva.web.routing.decorators import CONTROLLER_ATTRIBUTE
+from selva.web.routing.decorator import CONTROLLER_ATTRIBUTE
 from selva.web.routing.router import Router
 
 logger = logging.getLogger(__name__)

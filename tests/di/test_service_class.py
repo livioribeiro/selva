@@ -3,7 +3,7 @@ from dataclasses import dataclass
 import pytest
 
 from selva.di.container import Container
-from selva.di.errors import ServiceAlreadyRegisteredError
+from selva.di.error import ServiceAlreadyRegisteredError
 from selva.di.inject import Inject
 
 from .fixtures import ioc

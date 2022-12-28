@@ -3,9 +3,9 @@ import logging
 from datetime import datetime
 from http import HTTPStatus
 
-from selva.web.contexts import RequestContext
+from selva.web.context import RequestContext
 from selva.web.middleware import Middleware
-from selva.web.responses import Response
+from selva.web.response import Response
 
 logger = logging.getLogger(__name__)
 

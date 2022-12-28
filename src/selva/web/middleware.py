@@ -1,8 +1,8 @@
 from abc import ABC, abstractmethod
 from collections.abc import Awaitable, Callable
 
-from selva.web.contexts import RequestContext
-from selva.web.responses import Response
+from selva.web.context import RequestContext
+from selva.web.response import Response
 
 __all__ = ("Middleware",)
 
@@ -17,9 +17,7 @@ class Middleware(ABC):
                 f"method 'set_app' was not called on middleware: {class_name}"
             )
 
-        self.app: Callable[
-            [RequestContext], Awaitable[Response]
-        ] = call
+        self.app: Callable[[RequestContext], Awaitable[Response]] = call
 
     @abstractmethod
     async def __call__(self, context: RequestContext) -> Response:

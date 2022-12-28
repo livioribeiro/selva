@@ -1,32 +1,38 @@
-from typing import Mapping, ParamSpec, TypeGuard
+from typing import Mapping, NamedTuple, TypeGuard
 
 from starlette.datastructures import URL, Address, Headers, QueryParams
 from starlette.types import Receive, Scope, Send
 
-from selva.web.requests import HTTPMethod, Request
-from selva.web.websockets import WebSocket
+from selva.web.request import HTTPMethod, Request
+from selva.web.websocket import WebSocket
 
 __all__ = ("RequestContext",)
 
-P = ParamSpec("P")
+
+class AsgiContext(NamedTuple):
+    scope: Scope
+    receive: Receive
+    send: Send
 
 
 class RequestContext:
-    __slots__ = ("scope", "asgi_context", "request", "websocket")
+    __slots__ = ("asgi_context", "request", "websocket")
 
     def __init__(self, scope: Scope, receive: Receive, send: Send):
         assert scope["type"] in ("http", "websocket")
 
+        self.asgi_context = AsgiContext(scope, receive, send)
         self.request: Request | None = None
         self.websocket: WebSocket | None = None
-
-        self.scope = scope
-        self.asgi_context = scope, receive, send
 
         if scope["type"] == "http":
             self.request = Request(scope, receive, send)
         else:
             self.websocket = WebSocket(scope, receive, send)
+
+    @property
+    def scope(self):
+        return self.asgi_context.scope
 
     def __getitem__(self, item):
         return self.scope[item]

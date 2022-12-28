@@ -2,7 +2,7 @@ from http import HTTPStatus
 
 import pytest
 
-from selva.web.errors import (
+from selva.web.error import (
     HTTPBadRequestError,
     HTTPForbiddenError,
     HTTPInternalServerError,

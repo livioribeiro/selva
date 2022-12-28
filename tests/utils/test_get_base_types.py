@@ -2,7 +2,7 @@ from typing import Generic, Protocol, TypeVar
 
 import pytest
 
-from selva._utils.base_types import get_base_types
+from selva._util.base_types import get_base_types
 
 T1 = TypeVar("T1")
 T2 = TypeVar("T2")

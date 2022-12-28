@@ -3,35 +3,43 @@ from http import HTTPStatus
 from starlette.exceptions import HTTPException, WebSocketException
 
 
-class HTTPBadRequestError(HTTPException):
+class HTTPError(HTTPException):
+    pass
+
+
+class WebSocketError(WebSocketException):
+    pass
+
+
+class HTTPBadRequestError(HTTPError):
     def __init__(
         self, reason: str | None = None, headers: dict[str, str] | None = None
     ):
         super().__init__(HTTPStatus.BAD_REQUEST, reason, headers)
 
 
-class HTTPNotFoundError(HTTPException):
+class HTTPNotFoundError(HTTPError):
     def __init__(
         self, reason: str | None = None, headers: dict[str, str] | None = None
     ):
         super().__init__(HTTPStatus.NOT_FOUND, reason, headers)
 
 
-class HTTPUnauthorizedError(HTTPException):
+class HTTPUnauthorizedError(HTTPError):
     def __init__(
         self, reason: str | None = None, headers: dict[str, str] | None = None
     ):
         super().__init__(HTTPStatus.UNAUTHORIZED, reason, headers)
 
 
-class HTTPForbiddenError(HTTPException):
+class HTTPForbiddenError(HTTPError):
     def __init__(
         self, reason: str | None = None, headers: dict[str, str] | None = None
     ):
         super().__init__(HTTPStatus.FORBIDDEN, reason, headers)
 
 
-class HTTPInternalServerError(HTTPException):
+class HTTPInternalServerError(HTTPError):
     def __init__(
         self, reason: str | None = None, headers: dict[str, str] | None = None
     ):

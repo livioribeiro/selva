@@ -89,7 +89,7 @@ def client() -> Address | None
 
 ```python
 from selva.web import RequestContext, controller, get, websocket
-from selva.web.requests import HTTPMethod
+from selva.web.request import HTTPMethod
 
 
 @controller
@@ -179,14 +179,14 @@ class MyController:
 ```
 
 If the `FromRequest` implementation raise an error, the handler is not called.
-And if the error is a subclass of `selva.web.errors.HttpError`, for example
+And if the error is a subclass of `selva.web.error.HTTPError`, for example
 `UnathorizedError`, a response will be returned according to the error.
 
 ```python
 from selva.di import service
 from selva.web import RequestContext
 from selva.web.converter import FromRequest
-from selva.web.errors import HTTPUnauthorizedError
+from selva.web.error import HTTPUnauthorizedError
 
 
 @service(provides=FromRequest[Param])
@@ -199,12 +199,12 @@ class ParamFromRequest:
 
 ## Responses
 
-Handler methods can return an instance of `selva.web.responses.Response`, which
+Handler methods can return an instance of `selva.web.response.Response`, which
 provides shortcut methods for several response types.
 
 ```python
 from selva.web import controller, get
-from selva.web.responses import PlainTextResponse
+from selva.web.response import PlainTextResponse
 
 
 @controller
@@ -222,7 +222,7 @@ types of `Type` until an implementation is found or an error will be returned.
 from selva.di import service
 from selva.web import controller, get
 from selva.web.converter import IntoResponse
-from selva.web.responses import JSONResponse
+from selva.web.response import JSONResponse
 
 
 class Result:

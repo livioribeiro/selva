@@ -1,8 +1,8 @@
 from pathlib import PurePath
 
-from selva.di.decorators import service
+from selva.di.decorator import service
 from selva.web.converter.path_converter import PathConverter
-from selva.web.errors import HTTPNotFoundError
+from selva.web.error import HTTPNotFoundError
 
 
 @service(provides=PathConverter[str])

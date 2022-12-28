@@ -1,9 +1,9 @@
 from dataclasses import dataclass
 
 from selva.di import service
-from selva.web.contexts import RequestContext
+from selva.web.context import RequestContext
 from selva.web.converter.from_request import FromRequest
-from selva.web.errors import HTTPUnauthorizedError
+from selva.web.error import HTTPUnauthorizedError
 
 
 @dataclass

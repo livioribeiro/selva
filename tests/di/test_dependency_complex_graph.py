@@ -1,5 +1,5 @@
 from selva.di.container import Container
-from selva.di.decorators import service
+from selva.di.decorator import service
 from selva.di.inject import Inject
 
 from .fixtures import ioc
