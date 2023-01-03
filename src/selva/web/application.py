@@ -13,7 +13,7 @@ from starlette.websockets import WebSocketClose, WebSocketDisconnect, WebSocketS
 from selva._util.base_types import get_base_types
 from selva._util.maybe_async import maybe_async
 from selva.configuration.logging import setup_logging
-from selva.configuration.settings import Settings
+from selva.configuration.settings import Settings, get_settings
 from selva.di.container import Container
 from selva.di.decorator import DI_SERVICE_ATTRIBUTE
 from selva.web.context import RequestContext
@@ -57,10 +57,11 @@ class Selva:
         self.router = Router()
         self.handler = self._process_request
 
-        self.settings = Settings()
+        self.settings = get_settings()
+        self.di.define(Settings, self.settings)
+
         setup_logging(self.settings)
 
-        self.di.define(Settings, self.settings)
         self.di.define(Router, self.router)
 
         self.di.scan(path_converter_impl, from_request_impl, into_response_impl)
