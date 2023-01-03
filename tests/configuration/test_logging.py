@@ -42,7 +42,7 @@ def test_change_existing_logging_level():
     assert result["loggers"]["selva"] == {"level": "INFO", "handlers": ["console"]}
 
 
-def test_wrong_type_for_logging_level_should_raise_error():
+def test_wrong_type_for_logging_level_should_fail():
     loglevel_config = {
         "testloglevel": [],
     }

@@ -76,26 +76,36 @@ def get_settings_for_env(env: str = None) -> dict[str, Any]:
     except FileNotFoundError:
         logger.info("settings module not found: %s", settings_module_path)
         return {}
+    except (KeyError, ValueError):
+        raise
     except Exception as err:
         raise SettingsModuleError(settings_module_path) from err
 
     return extract_valid_keys(settings_module)
 
 
-def get_settings() -> dict[str, Any]:
-    settings = get_default_settings()
+class Settings(SimpleNamespace):
+    def __init__(self, settings: dict[str, Any]):
+        super().__init__(**settings)
 
+    def __setattr__(self, key, value):
+        raise AttributeError("can't set attribute")
+
+    def __getitem__(self, item):
+        if (value := self.get(item)) is not None:
+            return value
+
+        raise KeyError(item)
+
+    def get(self, name: str, default=None) -> Any | None:
+        return getattr(self, name, default)
+
+
+def get_settings() -> Settings:
+    settings = get_default_settings()
     settings |= get_settings_for_env()
 
     if active_env := os.getenv(SELVA_ENV):
         settings |= get_settings_for_env(active_env)
 
-    return settings
-
-
-class Settings(SimpleNamespace):
-    def __init__(self):
-        super().__init__(**get_settings())
-
-    def get(self, name: str, default=None) -> Any | None:
-        return getattr(self, name, default)
+    return Settings(settings)

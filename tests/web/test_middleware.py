@@ -19,7 +19,7 @@ async def test_set_app():
     assert result == 1
 
 
-async def test_non_async_app_should_raise_error():
+async def test_non_async_app_should_fail():
     def app(ctx):
         return ctx
 
@@ -30,7 +30,7 @@ async def test_non_async_app_should_raise_error():
         await mid(None)
 
 
-async def test_set_app_not_called_should_raise_error():
+async def test_set_app_not_called_should_fail():
     mid = Mid()
     with pytest.raises(RuntimeError):
         await mid(None)

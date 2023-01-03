@@ -9,6 +9,11 @@ def test_get_str(monkeypatch):
     assert result == "str"
 
 
+def test_undefined_environment_variable_should_fail():
+    with pytest.raises(KeyError, match=f"Environment variable 'DOES_NOT_EXIST' is not defined"):
+        env.get_str("DOES_NOT_EXIST")
+
+
 def test_get_int(monkeypatch):
     monkeypatch.setenv("VALUE", "123")
     result = env.get_int("VALUE")

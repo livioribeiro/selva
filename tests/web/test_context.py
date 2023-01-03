@@ -4,7 +4,7 @@ from selva.web.context import RequestContext
 from selva.web.request import HTTPMethod
 
 
-def test_wrong_context_should_raise_error():
+def test_wrong_context_should_fail():
     scope = {"type": "wrong"}
 
     with pytest.raises(AssertionError):

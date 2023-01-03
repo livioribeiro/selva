@@ -82,7 +82,7 @@ def test_get_settings(monkeypatch):
     monkeypatch.chdir(Path(__file__).parent / "base")
 
     result = get_settings()
-    assert result == get_default_settings() | {
+    assert result.__dict__ == get_default_settings() | {
         "CONF_STR": "str",
         "CONF_INT": 1,
         "CONF_LIST": [1, 2, 3],
@@ -101,7 +101,7 @@ def test_configure_settings_module(monkeypatch):
     )
 
     result = get_settings()
-    assert result == get_default_settings() | {
+    assert result.__dict__ == get_default_settings() | {
         "CONF_STR": "str",
         "CONF_INT": 1,
         "CONF_LIST": [1, 2, 3],
@@ -122,7 +122,7 @@ def test_get_env_setttings(monkeypatch, env):
     monkeypatch.setenv("SELVA_ENV", env)
 
     result = get_settings()
-    assert result == get_default_settings() | {
+    assert result.__dict__ == get_default_settings() | {
         "NAME": "application",
         "ENVIRONMENT": env,
     }
@@ -140,7 +140,7 @@ def test_configure_env_setttings_module(monkeypatch, env):
     monkeypatch.setenv("SELVA_ENV", env)
 
     result = get_settings()
-    assert result == get_default_settings() | {
+    assert result.__dict__ == get_default_settings() | {
         "NAME": "application",
         "ENVIRONMENT": env,
     }
@@ -154,18 +154,19 @@ def test_override_settings(monkeypatch, env):
     default_settings = get_default_settings()
     monkeypatch.chdir(Path(__file__).parent / "override")
 
-    assert get_settings() == default_settings | {"VALUE": "base"}
+    result = get_settings()
+    assert result.__dict__ == default_settings | {"VALUE": "base"}
 
     monkeypatch.setenv("SELVA_ENV", env)
 
     result = get_settings()
-    assert result == default_settings | {"VALUE": env}
+    assert result.__dict__ == default_settings | {"VALUE": env}
 
 
 def test_settings_class(monkeypatch):
     monkeypatch.chdir(Path(__file__).parent / "base")
 
-    settings = Settings()
+    settings = get_settings()
     assert settings.CONF_STR == "str"
     assert settings.CONF_INT == 1
     assert settings.CONF_LIST == [1, 2, 3]
@@ -184,7 +185,7 @@ def test_setttings_class_env(monkeypatch, env):
     monkeypatch.chdir(Path(__file__).parent / "envs")
     monkeypatch.setenv("SELVA_ENV", env)
 
-    settings = Settings()
+    settings = get_settings()
     assert settings.NAME == "application"
     assert settings.ENVIRONMENT == env
 
@@ -212,7 +213,66 @@ def test_no_env_settings_file_should_log_info(monkeypatch, caplog):
     assert f"settings module not found: {settings_path}" in caplog.text
 
 
-def test_invalid_settings_module_should_raise_error(monkeypatch):
+def test_invalid_settings_module_should_fail(monkeypatch):
     monkeypatch.chdir(Path(__file__).parent / "invalid_settings")
     with pytest.raises(SettingsModuleError):
         get_settings()
+
+
+def test_non_existent_environment_variable_should_fail(monkeypatch):
+    monkeypatch.chdir(Path(__file__).parent / "invalid_environment" / "non_existent")
+    with pytest.raises(
+        KeyError, match=f"Environment variable 'DOES_NOT_EXIST' is not defined"
+    ):
+        get_settings_for_env()
+
+
+@pytest.mark.parametrize("value_type", ["int", "float", "bool", "dict", "json"])
+def test_invalid_value_should_fail(monkeypatch, value_type):
+    monkeypatch.chdir(Path(__file__).parent / "invalid_environment" / "invalid_value")
+    monkeypatch.setenv("INVALID", "abc")
+
+    message = (
+        "Environment variable 'INVALID'"
+        f" is not compatible with type '{value_type}': 'abc'"
+    )
+
+    with pytest.raises(ValueError, match=message):
+        get_settings_for_env(value_type)
+
+
+def test_settings_attribute_access():
+    settings = Settings({"A": 1})
+
+    assert settings.A == 1
+
+
+def test_settings_method_access():
+    settings = Settings({"A": 1})
+
+    assert settings.get("A") == 1
+
+
+def test_settings_method_access_default_value():
+    settings = Settings({})
+
+    assert settings.get("A") is None
+    assert settings.get("A", "B") == "B"
+
+
+def test_settings_item_access():
+    settings = Settings({"A": 1})
+
+    assert settings["A"] == 1
+
+
+def test_settings_set_attribute_should_fail():
+    settings = Settings({})
+    with pytest.raises(AttributeError, match="can't set attribute"):
+        settings.A = 1
+
+
+def test_settings_get_nonexistent_item_should_fail():
+    settings = Settings({})
+    with pytest.raises(KeyError, match="A"):
+        settings["A"]
