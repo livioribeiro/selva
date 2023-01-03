@@ -1,4 +1,4 @@
-from application.middlewares import AuthMiddleware, LoggingMiddleware, TimingMiddleware
+from application.middleware import AuthMiddleware, LoggingMiddleware, TimingMiddleware
 
 MIDDLEWARE = [
     TimingMiddleware,

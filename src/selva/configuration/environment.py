@@ -21,7 +21,9 @@ def get_str(key: str, default: Optional[str] = _UNSET) -> str:
 def _get_env_and_convert(
     key: str, default: Optional[T], converter: Callable[[str], T], type_name: str
 ) -> T:
-    value = get_str(key, default)
+    value = get_str(key, None)
+    if value is None:
+        return default
 
     try:
         return converter(value)

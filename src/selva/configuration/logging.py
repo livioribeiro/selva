@@ -40,7 +40,6 @@ def build_logging_config(
 
 
 def setup_logging(settings: Settings):
-    new_config = build_logging_config(settings.LOGGING, settings.LOGGING_LEVEL)
-    settings.LOGGING = new_config
-    logging.config.dictConfig(settings.LOGGING)
+    config = build_logging_config(settings.LOGGING, settings.LOGGING_LEVEL)
+    logging.config.dictConfig(config)
     logger.info("Logging config: %s", repr(settings.LOGGING))

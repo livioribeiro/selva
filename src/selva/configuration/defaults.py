@@ -1,6 +1,4 @@
-import os
-
-DEBUG = os.getenv("SELVA_DEBUG", "false").lower() in ("1", "true")
+from selva.configuration.environment import get_dict
 
 COMPONENTS = []
 
@@ -33,4 +31,4 @@ LOGGING = {
     },
 }
 
-LOGGING_LEVEL = {}
+LOGGING_LEVEL = get_dict("LOG_LEVEL", {})
