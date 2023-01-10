@@ -272,6 +272,24 @@ def test_settings_set_attribute_should_fail():
         settings.A = 1
 
 
+def test_settings_setattr_should_fail():
+    settings = Settings({})
+    with pytest.raises(AttributeError, match="can't set attribute"):
+        setattr(settings, "A", 1)
+
+
+def test_settings_del_attribute_should_fail():
+    settings = Settings({"A": 1})
+    with pytest.raises(AttributeError, match="can't del attribute"):
+        del settings.A
+
+
+def test_settings_delattr_should_fail():
+    settings = Settings({"A": 1})
+    with pytest.raises(AttributeError, match="can't del attribute"):
+        delattr(settings, "A")
+
+
 def test_settings_get_nonexistent_item_should_fail():
     settings = Settings({})
     with pytest.raises(KeyError, match="A"):

@@ -88,14 +88,17 @@ class Settings(SimpleNamespace):
     def __init__(self, settings: dict[str, Any]):
         super().__init__(**settings)
 
-    def __setattr__(self, key, value):
-        raise AttributeError("can't set attribute")
-
     def __getitem__(self, item):
         if (value := self.get(item)) is not None:
             return value
 
         raise KeyError(item)
+
+    def __setattr__(self, key, value):
+        raise AttributeError("can't set attribute")
+
+    def __delattr__(self, item):
+        raise AttributeError("can't del attribute")
 
     def get(self, name: str, default=None) -> Any | None:
         return getattr(self, name, default)
