@@ -6,43 +6,36 @@ from selva.web.converter.into_response import IntoResponse
 from selva.web.response import FileResponse, JSONResponse, PlainTextResponse, Response
 
 
-@service(provides=IntoResponse[int])
-class IntIntoResponse:
+class IntIntoResponse(IntoResponse[int]):
     def into_response(self, value: int) -> Response:
         return Response(status_code=value)
 
 
-@service(provides=IntoResponse[HTTPStatus])
-class HTTPStatusIntoResponse:
+class HTTPStatusIntoResponse(IntoResponse[HTTPStatus]):
     def into_response(self, value: HTTPStatus) -> Response:
         return Response(status_code=int(value))
 
 
-@service(provides=IntoResponse[str])
-class StrIntoResponse:
+class StrIntoResponse(IntoResponse[str]):
     def into_response(self, value: str) -> Response:
         return PlainTextResponse(value)
 
 
-@service(provides=IntoResponse[list])
-class ListIntoResponse:
+class ListIntoResponse(IntoResponse[list]):
     def into_response(self, value: list) -> Response:
         return JSONResponse(value)
 
 
-@service(provides=IntoResponse[dict])
-class DictIntoResponse:
+class DictIntoResponse(IntoResponse[dict]):
     def into_response(self, value: dict) -> Response:
         return JSONResponse(value)
 
 
-@service(provides=IntoResponse[set])
-class SetIntoResponse:
+class SetIntoResponse(IntoResponse[set]):
     def into_response(self, value: set) -> Response:
         return JSONResponse(value)
 
 
-@service(provides=IntoResponse[PathLike])
-class PathLikeIntoResponse:
+class PathLikeIntoResponse(IntoResponse[PathLike]):
     def into_response(self, value: PathLike):
         return FileResponse(value)

@@ -90,3 +90,7 @@ class RequestContext:
     @property
     def client(self) -> Address | None:
         return self._http_connection.client
+
+    @property
+    def path_parameters(self) -> Mapping[str, str]:
+        return self.scope.get("path_parameters", {})

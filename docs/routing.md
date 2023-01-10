@@ -62,7 +62,7 @@ Conversion can be customized by providing an implementing of `selva.web.PathConv
 ```python
 from dataclasses import dataclass
 from selva.di import service
-from selva.web import PathConverter, controller, get
+from selva.web import PathParamConverter, controller, get
 
 
 @dataclass
@@ -70,7 +70,7 @@ class MyModel:
     name: str
 
 
-@service(provides=PathConverter[MyModel])
+@service(provides=PathParamConverter[MyModel])
 class MyModelPathConverter:
     def from_path(self, value: str) -> MyModel:
         return MyModel(value)

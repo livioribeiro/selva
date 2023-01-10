@@ -1,12 +1,11 @@
 from pathlib import PurePath
 
 from selva.di.decorator import service
-from selva.web.converter.path_converter import PathConverter
+from selva.web.converter.path_converter import PathParamConverter
 from selva.web.error import HTTPNotFoundError
 
 
-@service(provides=PathConverter[str])
-class StrPathConverter:
+class StrPathParamConverter(PathParamConverter[str]):
     def from_path(self, value: str) -> str:
         return value
 
@@ -14,8 +13,7 @@ class StrPathConverter:
         return obj
 
 
-@service(provides=PathConverter[int])
-class IntPathConverter:
+class IntPathParamConverter(PathParamConverter[int]):
     def from_path(self, value: str) -> int | None:
         try:
             return int(value)
@@ -26,8 +24,7 @@ class IntPathConverter:
         return str(obj)
 
 
-@service(provides=PathConverter[float])
-class FloatPathConverter:
+class FloatPathParamConverter(PathParamConverter[float]):
     def from_path(self, value: str) -> float | None:
         try:
             return float(value)
@@ -38,8 +35,7 @@ class FloatPathConverter:
         return str(obj)
 
 
-@service(provides=PathConverter[bool])
-class BoolPathConverter:
+class BoolPathParamConverter(PathParamConverter[bool]):
     TRUE_VALUES = ["1", "true", "True", "TRUE"]
     FALSE_VALUES = ["0", "false", "False", "FALSE"]
     POSSIBLE_VALUE = TRUE_VALUES + FALSE_VALUES
@@ -54,8 +50,7 @@ class BoolPathConverter:
         return str(obj)
 
 
-@service(provides=PathConverter[PurePath])
-class PurePathPathConverter:
+class PurePathPathParamConverter(PathParamConverter[PurePath]):
     def from_path(self, value: str) -> PurePath:
         return PurePath(value)
 

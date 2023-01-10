@@ -1,6 +1,6 @@
 import inspect
 from collections.abc import Callable
-from typing import TypeVar
+from typing import TypeVar, dataclass_transform
 
 from selva.di.inject import Inject
 from selva.di.service.model import InjectableType, ServiceInfo
@@ -16,6 +16,7 @@ def _is_inject(value) -> bool:
     return isinstance(value, Inject) or value is Inject
 
 
+@dataclass_transform(init=True, repr=False, eq=False, field_specifiers=(Inject,))
 def service(
     injectable: T = None, /, *, provides: type = None, name: str = None
 ) -> T | Callable[[T], T]:
@@ -25,22 +26,23 @@ def service(
     outside the dependency injection context
     """
 
-    def inner(injectable: InjectableType) -> T:
-        setattr(injectable, DI_SERVICE_ATTRIBUTE, ServiceInfo(provides, name))
+    def inner(arg: InjectableType) -> T:
+        setattr(arg, DI_SERVICE_ATTRIBUTE, ServiceInfo(provides, name))
 
-        if inspect.isclass(injectable):
-            annotations = set(inspect.get_annotations(injectable).keys())
-            dependencies = [d for d, _ in inspect.getmembers(injectable, _is_inject)]
+        if inspect.isclass(arg):
+            annotations = set(inspect.get_annotations(arg).keys())
+            dependencies = [d for d, _ in inspect.getmembers(arg, _is_inject)]
 
             if missing := [d for d in dependencies if d not in annotations]:
                 # TODO: create exception
                 raise TypeError(
-                    f"Missing type annotation for dependencies of service '{injectable.__qualname__}': "
+                    f"Missing type annotation for dependencies of service '{arg.__qualname__}': "
                     ", ".join(missing)
                 )
 
             # save a reference to the original constructor
-            original_init = getattr(injectable, "__init__", None)
+            original_init = getattr(arg, "__init__", None)
+            # TODO: validate 'original_init' is a parameterless constructor
 
             def init(self, *args, **kwargs):
                 """Generated init method for service
@@ -69,7 +71,7 @@ def service(
                 for k, v in values.items():
                     setattr(self, k, v)
 
-            setattr(injectable, "__init__", init)
+            setattr(arg, "__init__", init)
 
         return injectable
 

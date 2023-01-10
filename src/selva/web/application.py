@@ -24,7 +24,7 @@ from selva.web.converter import (
 )
 from selva.web.converter.from_request import FromRequest
 from selva.web.converter.into_response import IntoResponse
-from selva.web.converter.path_converter import PathConverter
+from selva.web.converter.path_converter import PathParamConverter
 from selva.web.error import HTTPNotFoundError
 from selva.web.middleware import Middleware
 from selva.web.routing.decorator import CONTROLLER_ATTRIBUTE
@@ -70,7 +70,7 @@ class Selva:
         components = self.settings.COMPONENTS
         self._register_components(components)
 
-    async def __call__(self, scope, receive, send):
+    async def __call__(self, scope: Scope, receive: Receive, send: Send):
         match scope["type"]:
             case "http" | "websocket":
                 await self._handle_request(scope, receive, send)
@@ -217,14 +217,14 @@ class Selva:
         for name, item_type in params.items():
             for base_type in get_base_types(item_type):
                 if converter := await self.di.get(
-                    PathConverter[base_type], optional=True
+                    PathParamConverter[base_type], optional=True
                 ):
                     value = await maybe_async(converter.from_path, values[name])
                     path_params[name] = value
                     break
             else:
                 raise RuntimeError(
-                    f"no implementation of '{PathConverter.__name__}' found for type {item_type}"
+                    f"no implementation of '{PathParamConverter.__name__}' found for type {item_type}"
                 )
 
         return path_params
