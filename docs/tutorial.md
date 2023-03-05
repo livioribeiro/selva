@@ -212,7 +212,7 @@ with `@service`, so in this case we need to create a factory function for it:
             return {"greeting": greeting}
     ```
 
-## Using backgound taks
+## Using background tasks
 
 The greetings are being save to the database, but now we have a problem: the
 user has to wait until the greeting is saved before receiving it.
@@ -250,10 +250,6 @@ To solve this problem and improve the user experience, we can use *background ta
                 background=background,
             )
     ```
-
-    1.  We called the method `add_delayed_task` from `RequestContext` to schedule
-        a function to be called after the response is completed, thus avoiding
-        having to wait for the message to be saved before sending the response
 
 ## Retrieving the greeting logs
 
@@ -306,4 +302,47 @@ $ curl -s localhost:8000/logs | python -m json.tool
         "datetime": "2022-07-06 14:23:08"
     },
 ]
+```
+
+## Receiving post data
+
+We can also send the name in the body of the request, instead of the url, and
+use Pydantic to parse the request body:
+
+=== "application/models.py"
+
+    ```python
+    from pydantic import BaseModel
+    
+    
+    class GreetingRequest(BaseModel):
+        name: str
+    ```
+
+=== "application/controller.py"
+
+    ```python
+    from .model import GreetingRequest
+    
+    
+    @controller
+    class GreetingController:
+        greeter: Greeter = Inject()
+        repository: GreetingRepository = Inject()
+    
+        # ...
+    
+        @post("hello")
+        async def hello_post(self, greeting_request: GreetingRequest) -> dict:
+            name = greeting_request.name
+            greeting = self.greeter.greet(name)
+            await self.repository.save_greeting(greeting, datetime.now())
+            return {"greeting": greeting}
+    ```
+
+And to test it:
+
+```shell
+$ curl -H 'Content-Type: application/json' -d '{"name": "World"}' localhost:8000/hello
+{"greeting": "Hello, World!"}
 ```

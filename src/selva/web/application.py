@@ -87,8 +87,9 @@ class Selva:
 
             if app not in components or app.__name__ not in components:
                 components.append(app)
-        except ImportError:
-            pass
+        except ImportError as err:
+            if err.name != "application":
+                raise
 
         services = []
         packages = []
@@ -241,7 +242,7 @@ class Selva:
                 if converter := await self.di.get(
                     FromRequest[base_type], optional=True
                 ):
-                    value = await maybe_async(converter.from_request, context)
+                    value = await maybe_async(converter.from_request, context, item_type)
                     request_params[name] = value
                     break
             else:

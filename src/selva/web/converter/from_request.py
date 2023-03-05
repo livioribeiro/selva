@@ -1,5 +1,5 @@
 from collections.abc import Awaitable
-from typing import Protocol, TypeVar, runtime_checkable
+from typing import Protocol, Type, TypeVar, runtime_checkable
 
 from selva.web.context import RequestContext
 
@@ -10,5 +10,5 @@ T = TypeVar("T", bound=type)
 
 @runtime_checkable
 class FromRequest(Protocol[T]):
-    def from_request(self, context: RequestContext) -> T | Awaitable[T]:
+    def from_request(self, context: RequestContext, original: Type[T] | None) -> T | Awaitable[T]:
         raise NotImplementedError()

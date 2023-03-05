@@ -2,7 +2,7 @@
 
 Selva is a tool for creating ASGI applications that are easy to build and maintain.
 
-It comes with a dependency injection system built upon Python type annotations.
+It is based on Starlette and Pydantic and comes with a dependency injection system built upon Python type annotations.
 
 ## Quickstart
 

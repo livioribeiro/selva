@@ -1,6 +1,12 @@
 from selva.di import Inject, service
 from selva.web import RequestContext, controller, get, post
 
+from pydantic import BaseModel
+
+
+class MyModel(BaseModel):
+    name: str
+
 
 @service
 class Greeter:
@@ -24,6 +30,10 @@ class Controller:
         return {"greeting": greeting}
 
     @post
-    async def post(self, context: RequestContext):
+    async def post_data(self, context: RequestContext):
         body = await context.request.json()
         return {"result": body}
+
+    @post("pydantic")
+    def post_data_pydantic(self, data: MyModel) -> dict:
+        return {"name": data.name}

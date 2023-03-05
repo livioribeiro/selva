@@ -20,6 +20,10 @@ class HTTPMethod(str, Enum):
     DELETE = "DELETE"
     OPTIONS = "OPTIONS"
 
+    @property
+    def has_body(self):
+        return self in [HTTPMethod.POST, HTTPMethod.PATCH, HTTPMethod.PUT]
+
 
 class HTTPConnection:
     def __init__(self, scope: Scope):

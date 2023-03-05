@@ -197,6 +197,12 @@ class ParamFromRequest:
         return Param(context.path)
 ```
 
+### Pydantic
+
+Selva already implements `FromRequest[pydantic.BaseModel]` by reading the request
+body and parsing the input into the pydantic model, if the content type is json
+or form, otherwise raising an `HTTPError` with status code 415.
+
 ## Responses
 
 Handler methods can return an instance of `selva.web.response.Response`, which
