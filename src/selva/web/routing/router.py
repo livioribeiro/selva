@@ -90,7 +90,10 @@ class Router:
 
             self.routes[route_name] = route
             logger.debug(
-                "action '%(name)s' registered at %(method)s %(path)s in %(controller)s:%(action)s",
+                (
+                    "action '%(name)s' registered at "
+                    "%(method)s %(path)s in %(controller)s:%(action)s"
+                ),
                 {
                     "name": route.name,
                     "method": route.method,

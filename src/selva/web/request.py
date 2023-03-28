@@ -1,5 +1,5 @@
 from collections.abc import AsyncGenerator, Awaitable
-from enum import Enum
+from enum import StrEnum
 from functools import cache
 from typing import Any, Mapping
 
@@ -10,8 +10,10 @@ from starlette.types import Receive, Scope, Send
 
 __all__ = ("HTTPMethod", "HTTPConnection", "Request")
 
+_METHODS_WITH_BODY = {"POST", "PATCH", "PUT"}
 
-class HTTPMethod(str, Enum):
+
+class HTTPMethod(StrEnum):
     GET = "GET"
     HEAD = "HEAD"
     POST = "POST"
@@ -22,7 +24,7 @@ class HTTPMethod(str, Enum):
 
     @property
     def has_body(self):
-        return self in [HTTPMethod.POST, HTTPMethod.PATCH, HTTPMethod.PUT]
+        return self in _METHODS_WITH_BODY
 
 
 class HTTPConnection:

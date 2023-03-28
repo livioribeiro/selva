@@ -1,6 +1,7 @@
 import importlib
 import inspect
 import logging
+import typing
 from http import HTTPStatus
 from types import FunctionType, ModuleType
 from typing import Any
@@ -18,13 +19,19 @@ from selva.di.container import Container
 from selva.di.decorator import DI_SERVICE_ATTRIBUTE
 from selva.web.context import RequestContext
 from selva.web.converter import (
+    extractor_impl,
     from_request_impl,
     into_response_impl,
-    path_converter_impl,
+    param_converter_impl,
 )
+from selva.web.converter.error import (
+    MissingFromRequestImplError,
+    MissingStrConverterImplError,
+)
+from selva.web.converter.extractor import RequestParamExtractor
 from selva.web.converter.from_request import FromRequest
 from selva.web.converter.into_response import IntoResponse
-from selva.web.converter.path_converter import PathConverter
+from selva.web.converter.param_converter import RequestParamConverter
 from selva.web.error import HTTPNotFoundError
 from selva.web.middleware import Middleware
 from selva.web.routing.decorator import CONTROLLER_ATTRIBUTE
@@ -64,7 +71,9 @@ class Selva:
 
         self.di.define(Router, self.router)
 
-        self.di.scan(path_converter_impl, from_request_impl, into_response_impl)
+        self.di.scan(
+            extractor_impl, from_request_impl, into_response_impl, param_converter_impl
+        )
         self.di.scan(self.settings.COMPONENTS)
 
         components = self.settings.COMPONENTS
@@ -189,6 +198,7 @@ class Selva:
         path_params = match.params
 
         path_params = await self._params_from_path(path_params, match.route.path_params)
+
         request_params = await self._params_from_request(
             context, match.route.request_params
         )
@@ -213,44 +223,88 @@ class Selva:
         values: dict[str, str],
         params: dict[str, type],
     ) -> dict[str, Any]:
-        path_params = {}
+        result = {}
 
-        for name, item_type in params.items():
-            for base_type in get_base_types(item_type):
-                if converter := await self.di.get(
-                    PathConverter[base_type], optional=True
-                ):
-                    value = await maybe_async(converter.from_path, values[name])
-                    path_params[name] = value
-                    break
+        for name, param_type in params.items():
+            if param_type is str:
+                result[name] = values[name]
+                continue
+
+            if converter := await self._find_param_converter(
+                param_type, RequestParamConverter
+            ):
+                value = await maybe_async(converter.convert, values[name])
+                result[name] = value
             else:
-                raise RuntimeError(
-                    f"no implementation of '{PathConverter.__name__}' found for type {item_type}"
-                )
+                raise MissingStrConverterImplError(param_type)
 
-        return path_params
+        return result
 
     async def _params_from_request(
         self,
         context: RequestContext,
         params: dict[str, type],
     ) -> dict[str, Any]:
-        request_params = {}
+        result = {}
 
-        for name, item_type in params.items():
-            for base_type in get_base_types(item_type):
-                if converter := await self.di.get(
-                    FromRequest[base_type], optional=True
-                ):
-                    value = await maybe_async(converter.from_request, context, item_type)
-                    request_params[name] = value
-                    break
-            else:
-                raise RuntimeError(
-                    f"no implementation of '{FromRequest.__name__}' found for type {item_type}"
+        for name, (param_type, extractor_param) in params.items():
+            if extractor_param:
+                if inspect.isclass(extractor_param):
+                    extractor_type = extractor_param
+                else:
+                    extractor_type = type(extractor_param)
+
+                extractor = await self.di.get(
+                    RequestParamExtractor[extractor_type], optional=True
                 )
+                if not extractor:
+                    raise TypeError(
+                        f"no implementation of '{RequestParamExtractor.__name__}' found for type '{extractor_type}'"
+                    )
 
-        return request_params
+                param = extractor.extract(context, name, extractor_param)
+                if not param:
+                    continue
+
+                if converter := await self._find_param_converter(
+                    param_type, RequestParamConverter
+                ):
+                    value = await maybe_async(converter.convert, param)
+                    result[name] = value
+                else:
+                    raise TypeError(
+                        f"no implementation of '{RequestParamConverter.__name__}' found for type '{param_type}'"
+                    )
+            else:
+                if converter := await self._find_param_converter(
+                    param_type, FromRequest
+                ):
+                    value = await maybe_async(
+                        converter.from_request, context, param_type, name
+                    )
+                    result[name] = value
+                else:
+                    raise MissingFromRequestImplError(param_type)
+
+        return result
+
+    async def _find_param_converter(
+        self, param_type: type, converter_type: type
+    ) -> Any | None:
+        if typing.get_origin(param_type) is list:
+            (param_type,) = typing.get_args(param_type)
+            is_generic = True
+        else:
+            is_generic = False
+
+        for base_type in get_base_types(param_type):
+            search_type = list[base_type] if is_generic else base_type
+            if converter := await self.di.get(
+                converter_type[search_type], optional=True
+            ):
+                return converter
+
+        return None
 
     async def _into_response(self, value: Any | None) -> Response | None:
         if isinstance(value, Response):

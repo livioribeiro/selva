@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from pathlib import PurePath
 
 from selva.di import service
-from selva.web import PathConverter, controller, get
+from selva.web import StrConverter, controller, get
 
 
 @dataclass
@@ -10,7 +10,7 @@ class MyModel:
     name: str
 
 
-@service(provides=PathConverter[MyModel])
+@service(provides=StrConverter[MyModel])
 class MyModelPathParamConverter:
     def from_path(self, value: str) -> MyModel:
         return MyModel(value)

@@ -9,7 +9,7 @@ from typing import Any
 
 from selva.configuration import defaults
 
-__all__ = ("Settings", "SettingsModuleError")
+__all__ = ("Settings", "SettingsModuleError", "get_settings")
 
 SELVA_SETTINGS_MODULE = "SELVA_SETTINGS_MODULE"
 DEFAULT_SELVA_SETTINGS_MODULE = str(Path("configuration") / "settings.py")

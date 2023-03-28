@@ -1,5 +1,7 @@
+from typing import Annotated
+
 from selva.di import Inject, service
-from selva.web import RequestContext, controller, get, post
+from selva.web import RequestContext, controller, get, post, FromQuery, FromHeader, FromCookie
 
 from pydantic import BaseModel
 
@@ -19,10 +21,13 @@ class Controller:
     greeter: Greeter = Inject()
 
     @get
-    async def greet_query(self, context: RequestContext):
-        name = context.query.get("name", "World")
+    async def greet_query(
+        self,
+        name: Annotated[str, FromQuery("nome")] = "World",
+        number: FromQuery[int] = 1
+    ):
         greeting = self.greeter.greet(name)
-        return greeting
+        return {"greeting": greeting, "number": number}
 
     @get("/:name")
     async def greet_path(self, name: str):
@@ -37,3 +42,7 @@ class Controller:
     @post("pydantic")
     def post_data_pydantic(self, data: MyModel) -> dict:
         return {"name": data.name}
+
+    @post("pydantic/list")
+    def post_data_pydantic_list(self, data: list[MyModel]) -> dict:
+        return {"data": [d.dict() for d in data]}

@@ -1,8 +1,9 @@
 import re
 import typing
 from collections import Counter
+from collections.abc import Iterable
 from re import Pattern
-from typing import Callable, NamedTuple
+from typing import Annotated, Any, Callable, NamedTuple
 
 from selva.web.request import HTTPMethod
 
@@ -17,13 +18,17 @@ PATH_PARAM_PATTERN = {
 }
 
 
-def build_path_regex(
-    path: str, type_hints: dict[str, type]
-) -> tuple[dict[str, type], Pattern]:
+def build_path_regex_and_params(
+    action: Callable, path: str
+) -> tuple[Pattern, dict[str, type]]:
     """parse path and build regex for route matching
 
-    :returns: tuple of mapping param name to type and compiled regex
+    :returns: compiled regex and tuple of mapping param name to type
     """
+
+    type_hints = typing.get_type_hints(action)
+    type_hints.pop("return", None)
+
     regex = RE_MULTI_SLASH.sub("/", path)
     path_params = RE_PATH_PARAM_SPEC.findall(path)
 
@@ -52,7 +57,29 @@ def build_path_regex(
         regex += "/?"
 
     regex = f"^{regex}$"
-    return param_types, re.compile(regex)
+    return re.compile(regex), param_types
+
+
+def build_request_params(
+    action: Callable, path_params: Iterable[str]
+) -> dict[str, tuple[type, Any | None]]:
+    type_hints = typing.get_type_hints(action, include_extras=True)
+    type_hints.pop("return", None)
+
+    for path_param in path_params:
+        type_hints.pop(path_param, None)
+
+    result = {}
+
+    for name, type_hint in type_hints.items():
+        if typing.get_origin(type_hint) is Annotated:
+            # Annotated is garanteed to have at least 2 args
+            param_type, param_meta, *_ = typing.get_args(type_hint)
+            result[name] = (param_type, param_meta)
+        else:
+            result[name] = (type_hint, None)
+
+    return result
 
 
 class Route:
@@ -70,15 +97,8 @@ class Route:
         self.action = action
         self.name = name
 
-        type_hints = typing.get_type_hints(action)
-        type_hints.pop("return", None)
-
-        self.path_params, self.regex = build_path_regex(self.path, type_hints)
-        self.request_params = {
-            name: param_type
-            for name, param_type in type_hints.items()
-            if name not in self.path_params
-        }
+        self.regex, self.path_params = build_path_regex_and_params(action, path)
+        self.request_params = build_request_params(action, self.path_params.keys())
 
     def match(self, method: HTTPMethod | None, path: str) -> dict[str, str] | None:
         if method is self.method and (match := self.regex.match(path)):
