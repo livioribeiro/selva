@@ -40,19 +40,19 @@ class FloatRequestParamConverter:
 
 @service(provides=RequestParamConverter[bool])
 class BoolRequestParamConverter:
-    TRUE_VALUES = ["1", "true", "True", "TRUE"]
-    FALSE_VALUES = ["0", "false", "False", "FALSE"]
+    TRUE_VALUES = ["1", "true"]
+    FALSE_VALUES = ["0", "false"]
 
     def convert(self, value: str) -> bool | None:
-        if value in BoolRequestParamConverter.TRUE_VALUES:
+        if value.lower() in BoolRequestParamConverter.TRUE_VALUES:
             return True
-        if value in BoolRequestParamConverter.BOOLEAN_FALSE_VALUES:
+        if value.lower() in BoolRequestParamConverter.FALSE_VALUES:
             return False
 
         raise HTTPNotFoundError()
 
     def convert_back(self, obj: bool) -> str:
-        return str(obj)
+        return str(obj).lower()
 
 
 @service(provides=RequestParamConverter[PurePath])

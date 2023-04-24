@@ -54,6 +54,7 @@ class PydanticModelFromRequest:
                 "Pydantic model parameter on method that does not accept body"
             )
 
+        # TODO: make request body decoding extensible
         if "application/json" in context.headers["content-type"]:
             data = await context.request.json()
         elif "application/x-www-form-urlencoded" in context.headers["content-type"]:
