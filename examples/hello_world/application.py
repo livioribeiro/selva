@@ -8,6 +8,7 @@ from pydantic import BaseModel
 
 class MyModel(BaseModel):
     name: str
+    region: str | None
 
 
 @service
@@ -23,8 +24,8 @@ class Controller:
     @get
     async def greet_query(
         self,
-        name: Annotated[str, FromQuery("nome")] = "World",
-        number: FromQuery[int] = 1
+        name: Annotated[str, FromQuery("name")] = "World",
+        number: Annotated[int, FromQuery()] = 1
     ):
         greeting = self.greeter.greet(name)
         return {"greeting": greeting, "number": number}
@@ -41,7 +42,7 @@ class Controller:
 
     @post("pydantic")
     def post_data_pydantic(self, data: MyModel) -> dict:
-        return {"name": data.name}
+        return {"name": data.name, "region": data.region}
 
     @post("pydantic/list")
     def post_data_pydantic_list(self, data: list[MyModel]) -> dict:

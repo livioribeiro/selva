@@ -1,24 +1,11 @@
-from typing import Annotated
-
 from selva.di.decorator import service
 from selva.web.context import RequestContext
-from selva.web.converter.extractor import RequestParamExtractor
+from selva.web.converter.param_extractor import RequestParamExtractor
 
 
 class FromRequestParam:
-    def __init__(self, name: str | None):
+    def __init__(self, name: str = None):
         self.name = name
-
-    def __class_getitem__(cls, item):
-        match item:
-            case (p_type, p_name) if (
-                isinstance(p_type, type) and isinstance(p_name, str)
-            ):
-                return Annotated[p_type, cls(p_name)]
-            case p_type if isinstance(p_type, type):
-                return Annotated[p_type, cls]
-            case _:
-                raise TypeError()
 
 
 class FromQuery(FromRequestParam):
@@ -42,9 +29,20 @@ class FromHeader(FromRequestParam):
 class FromHeaderExtractor:
     def extract(
         self, context: RequestContext, parameter_name: str, metadata: FromHeader
-    ) -> str:
+    ) -> str | None:
         name = metadata.name or parameter_name
-        return context.headers.get(name)
+        candidate_names = (
+            name,
+            name.lower(),
+            "-".join(name.split("_")),
+            "-".join(i.capitalize() for i in name.split("_")),
+        )
+
+        for cand in candidate_names:
+            if value := context.headers.get(cand):
+                return value
+
+        return None
 
 
 class FromCookie(FromRequestParam):

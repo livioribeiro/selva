@@ -19,19 +19,20 @@ from selva.di.container import Container
 from selva.di.decorator import DI_SERVICE_ATTRIBUTE
 from selva.web.context import RequestContext
 from selva.web.converter import (
-    extractor_impl,
     from_request_impl,
+    from_request_param_impl,
     into_response_impl,
-    param_converter_impl,
+    param_extractor_impl,
 )
 from selva.web.converter.error import (
     MissingFromRequestImplError,
-    MissingStrConverterImplError,
+    MissingFromRequestParamImplError,
+    MissingRequestParamExtractorImplError,
 )
-from selva.web.converter.extractor import RequestParamExtractor
 from selva.web.converter.from_request import FromRequest
+from selva.web.converter.from_request_param import FromRequestParam
 from selva.web.converter.into_response import IntoResponse
-from selva.web.converter.param_converter import RequestParamConverter
+from selva.web.converter.param_extractor import RequestParamExtractor
 from selva.web.error import HTTPNotFoundError
 from selva.web.middleware import Middleware
 from selva.web.routing.decorator import CONTROLLER_ATTRIBUTE
@@ -72,7 +73,10 @@ class Selva:
         self.di.define(Router, self.router)
 
         self.di.scan(
-            extractor_impl, from_request_impl, into_response_impl, param_converter_impl
+            param_extractor_impl,
+            from_request_impl,
+            into_response_impl,
+            from_request_param_impl,
         )
         self.di.scan(self.settings.COMPONENTS)
 
@@ -231,12 +235,12 @@ class Selva:
                 continue
 
             if converter := await self._find_param_converter(
-                param_type, RequestParamConverter
+                param_type, FromRequestParam
             ):
                 value = await maybe_async(converter.convert, values[name])
                 result[name] = value
             else:
-                raise MissingStrConverterImplError(param_type)
+                raise MissingFromRequestParamImplError(param_type)
 
         return result
 
@@ -258,23 +262,19 @@ class Selva:
                     RequestParamExtractor[extractor_type], optional=True
                 )
                 if not extractor:
-                    raise TypeError(
-                        f"no implementation of '{RequestParamExtractor.__name__}' found for type '{extractor_type}'"
-                    )
+                    raise MissingRequestParamExtractorImplError(extractor_type)
 
                 param = extractor.extract(context, name, extractor_param)
                 if not param:
                     continue
 
                 if converter := await self._find_param_converter(
-                    param_type, RequestParamConverter
+                    param_type, FromRequestParam
                 ):
-                    value = await maybe_async(converter.convert, param)
+                    value = await maybe_async(converter.from_request_param, param)
                     result[name] = value
                 else:
-                    raise TypeError(
-                        f"no implementation of '{RequestParamConverter.__name__}' found for type '{param_type}'"
-                    )
+                    raise MissingFromRequestParamImplError(param_type)
             else:
                 if converter := await self._find_param_converter(
                     param_type, FromRequest

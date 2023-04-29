@@ -1,3 +1,4 @@
+import inspect
 import re
 import typing
 from collections import Counter
@@ -75,6 +76,12 @@ def build_request_params(
         if typing.get_origin(type_hint) is Annotated:
             # Annotated is garanteed to have at least 2 args
             param_type, param_meta, *_ = typing.get_args(type_hint)
+            if inspect.isclass(param_meta):
+                # TODO: improve error
+                raise Exception(
+                    f"Annotation on parameter '{name}' must be an instance of class '{param_meta}, "
+                    "not the class itself'"
+                )
             result[name] = (param_type, param_meta)
         else:
             result[name] = (type_hint, None)

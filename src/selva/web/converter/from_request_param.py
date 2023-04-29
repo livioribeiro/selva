@@ -1,17 +1,14 @@
 from collections.abc import Awaitable
 from typing import Protocol, TypeVar, runtime_checkable
 
-__all__ = ("RequestParamConverter",)
+__all__ = ("FromRequestParam",)
 
 T = TypeVar("T")
 
 
 @runtime_checkable
-class RequestParamConverter(Protocol[T]):
+class FromRequestParam(Protocol[T]):
     """Convert values from and to path parameters"""
 
-    def convert(self, value: str) -> T | Awaitable[T]:
+    def from_request_param(self, value: str) -> T | Awaitable[T]:
         raise NotImplementedError()
-
-    def convert_back(self, obj: T) -> str | Awaitable[str]:
-        return str(obj)
