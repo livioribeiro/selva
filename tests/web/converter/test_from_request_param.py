@@ -31,6 +31,12 @@ async def test_int_request_param():
     assert result == expected
 
 
+def test_int_request_param_with_invalid_value_should_fail():
+    converter = IntFromRequestParam()
+    with pytest.raises(HTTPBadRequestError):
+        converter.from_request_param("A")
+
+
 async def test_float_request_param():
     converter = FloatFromRequestParam()
     value = "1.1"
@@ -38,6 +44,12 @@ async def test_float_request_param():
 
     result = converter.from_request_param(value)
     assert result == expected
+
+
+def test_float_request_param_with_invalid_value_should_fail():
+    converter = FloatFromRequestParam()
+    with pytest.raises(HTTPBadRequestError):
+        converter.from_request_param("A")
 
 
 @pytest.mark.parametrize(
@@ -61,7 +73,7 @@ async def test_bool_request_param(value: str, expected: bool):
     assert result == expected
 
 
-async def test_bool_request_param_with_invalid_value_should_raise_error():
+async def test_bool_request_param_with_invalid_value_should_fail():
     converter = BoolFromRequestParam()
     with pytest.raises(HTTPBadRequestError):
         converter.from_request_param("invalid")
@@ -71,7 +83,7 @@ async def test_path_request_param():
     converter = PurePathFromRequestParam()
 
     value = "/path/subpath"
-    expected = PurePath("/path") / "subpath"
+    expected = PurePath("/path", "subpath")
 
     result = converter.from_request_param(value)
     assert result == expected

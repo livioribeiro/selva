@@ -35,7 +35,7 @@ class WebSocketFromRequest:
     def from_request(
         self, context: RequestContext, _original_type, _parameter_name
     ) -> WebSocket:
-        if not context.is_http:
+        if not context.is_websocket:
             raise TypeError("Not a 'websocket' request")
         return context.websocket
 
