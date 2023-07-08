@@ -1,7 +1,3 @@
-[build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
-
 [tool.poetry]
 name = "selva"
 version = "0.6.7"
@@ -34,8 +30,8 @@ packages = [
 
 [tool.poetry.dependencies]
 python = "^3.11"
-starlette = "^0.26.1"
-pydantic = "^1.10.7"
+starlette = "^0.28.0"
+pydantic = "^2.0.0"
 
 [tool.poetry.group.dev]
 optional = true
@@ -88,3 +84,7 @@ ignore_missing_imports = true
 line-length = 88
 target-version = ['py310']
 extend-exclude = "^/tests/configuration/invalid_settings/configuration/settings\\.py"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

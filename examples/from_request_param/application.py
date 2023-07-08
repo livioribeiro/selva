@@ -1,8 +1,10 @@
 from dataclasses import dataclass
+from typing import Annotated
 from pathlib import PurePath
 
 from selva.di import service
-from selva.web import StrConverter, controller, get
+from selva.web import controller, get, FromQuery
+from selva.web.converter import FromRequestParam
 
 
 @dataclass
@@ -10,13 +12,10 @@ class MyModel:
     name: str
 
 
-@service(provides=StrConverter[MyModel])
-class MyModelPathParamConverter:
-    def from_path(self, value: str) -> MyModel:
+@service(provides=FromRequestParam[MyModel])
+class MyModelFromRequestParam:
+    def from_request_param(self, value: str) -> MyModel:
         return MyModel(value)
-
-    def into_path(self, obj: MyModel) -> str:
-        return obj.name
 
 
 @controller
@@ -32,6 +31,10 @@ class MyController:
     @get("/bool/:param")
     def handler_bool(self, param: bool):
         return str(param)
+
+    @get("/custom/")
+    def handler_custom_query(self, my_model: Annotated[MyModel, FromQuery]):
+        return str(my_model)
 
     @get("/custom/:my_model")
     def handler_custom(self, my_model: MyModel):

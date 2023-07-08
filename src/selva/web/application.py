@@ -237,7 +237,7 @@ class Selva:
             if converter := await self._find_param_converter(
                 param_type, FromRequestParam
             ):
-                value = await maybe_async(converter.convert, values[name])
+                value = await maybe_async(converter.from_request_param, values[name])
                 result[name] = value
             else:
                 raise MissingFromRequestParamImplError(param_type)

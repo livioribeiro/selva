@@ -7,7 +7,7 @@ from pydantic import BaseModel as PydanticModel
 from selva.di.decorator import service
 from selva.web.context import RequestContext
 from selva.web.converter.from_request import FromRequest
-from selva.web.error import HTTPError
+from selva.web.error import HTTPError, HTTPBadRequestError
 from selva.web.request import Request
 from selva.web.websocket import WebSocket
 
@@ -62,7 +62,10 @@ class PydanticModelFromRequest:
         else:
             raise HTTPError(status_code=HTTPStatus.UNSUPPORTED_MEDIA_TYPE)
 
-        return original_type.parse_obj(data)
+        try:
+            return original_type.model_validate(data)
+        except pydantic.ValidationError:
+            raise HTTPBadRequestError()
 
 
 @service(provides=FromRequest[list[PydanticModel]])
@@ -82,4 +85,9 @@ class PydanticModelListFromRequest:
         else:
             raise HTTPError(status_code=HTTPStatus.UNSUPPORTED_MEDIA_TYPE)
 
-        return pydantic.parse_obj_as(original_type, data)
+        adapter = pydantic.TypeAdapter(original_type)
+
+        try:
+            return adapter.validate_python(data)
+        except pydantic.ValidationError:
+            raise HTTPBadRequestError()

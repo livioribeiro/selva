@@ -4,6 +4,8 @@ from selva.web.converter.param_extractor import RequestParamExtractor
 
 
 class FromRequestParam:
+    name: str = None
+
     def __init__(self, name: str = None):
         self.name = name
 

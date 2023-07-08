@@ -1,14 +1,14 @@
 from typing import Annotated
 
 from selva.di import Inject, service
-from selva.web import RequestContext, controller, get, post, FromQuery, FromHeader, FromCookie
+from selva.web import RequestContext, controller, get, post, FromQuery
 
 from pydantic import BaseModel
 
 
 class MyModel(BaseModel):
     name: str
-    region: str | None
+    region: str = None
 
 
 @service
@@ -46,4 +46,4 @@ class Controller:
 
     @post("pydantic/list")
     def post_data_pydantic_list(self, data: list[MyModel]) -> dict:
-        return {"data": [d.dict() for d in data]}
+        return {"data": [d.model_dump() for d in data]}
