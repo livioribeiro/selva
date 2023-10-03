@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Annotated, Optional
 
 from selva.di.container import Container
 from selva.di.inject import Inject
@@ -11,11 +11,11 @@ class DependentService:
 
 
 class ServiceWithOptionalDep:
-    dependent: Optional[DependentService] = Inject()
+    dependent: Annotated[Optional[DependentService], Inject]
 
 
 class ServiceWithOptionalDepOrNone:
-    dependent: DependentService | None = Inject()
+    dependent: Annotated[DependentService | None, Inject]
 
 
 async def test_optional_dependency(ioc: Container):

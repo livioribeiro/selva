@@ -3,11 +3,8 @@ from typing import Annotated
 import pytest
 
 from selva.di.container import Container
+from selva.di.error import ServiceAlreadyRegisteredError, ServiceNotFoundError
 from selva.di.inject import Inject
-from selva.di.error import (
-    ServiceAlreadyRegisteredError,
-    ServiceNotFoundError,
-)
 
 from .fixtures import ioc
 
@@ -17,11 +14,11 @@ class DependentService:
 
 
 class ServiceWithNamedDep:
-    dependent: DependentService = Inject("1")
+    dependent: Annotated[DependentService, Inject("1")]
 
 
 class ServiceWithUnamedDep:
-    dependent: DependentService = Inject()
+    dependent: Annotated[DependentService, Inject]
 
 
 class Interface:

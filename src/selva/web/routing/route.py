@@ -3,10 +3,12 @@ import re
 import typing
 from collections import Counter
 from collections.abc import Iterable
+from http import HTTPMethod
 from re import Pattern
 from typing import Annotated, Any, Callable, NamedTuple
 
-from selva.web.request import HTTPMethod
+from asgikit.requests import Request
+from asgikit.responses import Response
 
 __all__ = ("Route", "RouteMatch")
 
@@ -73,6 +75,9 @@ def build_request_params(
     result = {}
 
     for name, type_hint in type_hints.items():
+        if inspect.isclass(type_hint) and issubclass(type_hint, (Request, Response)):
+            continue
+
         if typing.get_origin(type_hint) is Annotated:
             # Annotated is garanteed to have at least 2 args
             param_type, param_meta, *_ = typing.get_args(type_hint)

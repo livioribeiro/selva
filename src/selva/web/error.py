@@ -1,46 +1,42 @@
 from http import HTTPStatus
 
-from starlette.exceptions import HTTPException, WebSocketException
 
+class HTTPException(Exception):
+    status: HTTPStatus
 
-class HTTPError(HTTPException):
-    pass
-
-
-class WebSocketError(WebSocketException):
-    pass
-
-
-class HTTPBadRequestError(HTTPError):
     def __init__(
-        self, reason: str | None = None, headers: dict[str, str] | None = None
+        self,
+        *,
+        status: HTTPStatus = None,
+        headers: dict[str, str] = None,
     ):
-        super().__init__(HTTPStatus.BAD_REQUEST, reason, headers)
+        if status:
+            self.status = status
+
+        self.headers = headers or {}
 
 
-class HTTPNotFoundError(HTTPError):
-    def __init__(
-        self, reason: str | None = None, headers: dict[str, str] | None = None
-    ):
-        super().__init__(HTTPStatus.NOT_FOUND, reason, headers)
+class WebSocketException(Exception):
+    def __init__(self, code: int, reason: str = None) -> None:
+        self.code = code
+        self.reason = reason or ""
 
 
-class HTTPUnauthorizedError(HTTPError):
-    def __init__(
-        self, reason: str | None = None, headers: dict[str, str] | None = None
-    ):
-        super().__init__(HTTPStatus.UNAUTHORIZED, reason, headers)
+class HTTPBadRequestException(HTTPException):
+    status = HTTPStatus.BAD_REQUEST
 
 
-class HTTPForbiddenError(HTTPError):
-    def __init__(
-        self, reason: str | None = None, headers: dict[str, str] | None = None
-    ):
-        super().__init__(HTTPStatus.FORBIDDEN, reason, headers)
+class HTTPNotFoundException(HTTPException):
+    status = HTTPStatus.NOT_FOUND
 
 
-class HTTPInternalServerError(HTTPError):
-    def __init__(
-        self, reason: str | None = None, headers: dict[str, str] | None = None
-    ):
-        super().__init__(HTTPStatus.INTERNAL_SERVER_ERROR, reason, headers)
+class HTTPUnauthorizedException(HTTPException):
+    status = HTTPStatus.UNAUTHORIZED
+
+
+class HTTPForbiddenException(HTTPException):
+    status = HTTPStatus.FORBIDDEN
+
+
+class HTTPInternalServerException(HTTPException):
+    status = HTTPStatus.INTERNAL_SERVER_ERROR

@@ -2,10 +2,10 @@ import inspect
 from collections.abc import Callable
 from enum import Enum
 from functools import singledispatch
+from http import HTTPMethod
 from typing import NamedTuple
 
 from selva.di import service
-from selva.web.request import HTTPMethod
 
 CONTROLLER_ATTRIBUTE = "__selva_web_controller__"
 ACTION_ATTRIBUTE = "__selva_web_action__"

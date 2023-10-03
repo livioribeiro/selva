@@ -1,12 +1,12 @@
 import inspect
 import logging
 from collections import OrderedDict
+from http import HTTPMethod
 
 from starlette.requests import Request
 from starlette.websockets import WebSocket
 
-from selva.web.error import HTTPNotFoundError
-from selva.web.request import HTTPMethod
+from selva.web.error import HTTPNotFoundException
 from selva.web.routing.decorator import (
     ACTION_ATTRIBUTE,
     CONTROLLER_ATTRIBUTE,
@@ -114,4 +114,4 @@ class Router:
         if route := self.routes.get(name):
             return route.reverse(**kwargs)
 
-        raise HTTPNotFoundError()
+        raise HTTPNotFoundException()

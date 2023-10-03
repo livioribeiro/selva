@@ -14,7 +14,7 @@ class MyModel:
 
 @service(provides=FromRequestParam[MyModel])
 class MyModelFromRequestParam:
-    def from_request_param(self, value: str) -> MyModel:
+    def from_param(self, value: str) -> MyModel:
         return MyModel(value)
 
 

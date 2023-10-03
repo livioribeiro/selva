@@ -1,3 +1,8 @@
+from typing import Annotated
+
+from asgikit.requests import Request
+from asgikit.responses import Response, respond_text
+
 from selva.configuration import Settings
 from selva.di import Inject
 from selva.web import controller, get
@@ -5,8 +10,8 @@ from selva.web import controller, get
 
 @controller
 class Controller:
-    settings: Settings = Inject()
+    settings: Annotated[Settings, Inject]
 
     @get
-    def index(self) -> str:
-        return self.settings.MESSAGE
+    async def index(self, request: Request, response: Response):
+        await respond_text(response, self.settings.MESSAGE)

@@ -186,14 +186,14 @@ And if the error is a subclass of `selva.web.error.HTTPError`, for example
 from selva.di import service
 from selva.web import RequestContext
 from selva.web.converter import FromRequest
-from selva.web.error import HTTPUnauthorizedError
+from selva.web.error import HTTPUnauthorizedException
 
 
 @service(provides=FromRequest[Param])
 class ParamFromRequest:
     def from_request(self, context: RequestContext) -> Param:
         if "authorization" not in context.headers:
-            raise HTTPUnauthorizedError()
+            raise HTTPUnauthorizedException()
         return Param(context.path)
 ```
 

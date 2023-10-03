@@ -1,4 +1,4 @@
-from typing import Generic, TypeVar
+from typing import Annotated, Generic, TypeVar
 
 import pytest
 
@@ -24,7 +24,7 @@ def service_factory() -> GenericService[int]:
 
 
 class ServiceDepends:
-    service: GenericService[int] = Inject()
+    service: Annotated[GenericService[int], Inject]
 
 
 def service_factory_depends(service: GenericService[int]) -> ServiceDepends:

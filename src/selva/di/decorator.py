@@ -54,7 +54,7 @@ def service(
                 if original_init:
                     original_init(self)
 
-                positional_params = [d for d in dependencies if d not in kwargs.keys()]
+                positional_params = [d for d in dependencies if d not in kwargs]
 
                 # set positional argument values
                 values = dict(zip(positional_params, args))

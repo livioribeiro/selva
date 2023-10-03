@@ -8,7 +8,14 @@ T = TypeVar("T")
 
 @runtime_checkable
 class FromRequestParam(Protocol[T]):
-    """Convert values from and to path parameters"""
+    """Convert values from and to request parameters
 
-    def from_request_param(self, value: str) -> T | Awaitable[T]:
+    Request parameters come from path, querystring, headers.
+    Request parameters can be extended with `ParamExtractor` implementations
+    """
+
+    def from_param(self, value: str) -> T | Awaitable[T]:
         raise NotImplementedError()
+
+    def into_str(self, data: T) -> str | Awaitable[str]:
+        return str(data)

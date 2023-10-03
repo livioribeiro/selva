@@ -3,22 +3,22 @@ from http import HTTPStatus
 import pytest
 
 from selva.web.error import (
-    HTTPBadRequestError,
-    HTTPForbiddenError,
-    HTTPInternalServerError,
-    HTTPNotFoundError,
-    HTTPUnauthorizedError,
+    HTTPBadRequestException,
+    HTTPForbiddenException,
+    HTTPInternalServerException,
+    HTTPNotFoundException,
+    HTTPUnauthorizedException,
 )
 
 
 @pytest.mark.parametrize(
     "error_cls, status",
     [
-        (HTTPBadRequestError, HTTPStatus.BAD_REQUEST),
-        (HTTPNotFoundError, HTTPStatus.NOT_FOUND),
-        (HTTPUnauthorizedError, HTTPStatus.UNAUTHORIZED),
-        (HTTPForbiddenError, HTTPStatus.FORBIDDEN),
-        (HTTPInternalServerError, HTTPStatus.INTERNAL_SERVER_ERROR),
+        (HTTPBadRequestException, HTTPStatus.BAD_REQUEST),
+        (HTTPNotFoundException, HTTPStatus.NOT_FOUND),
+        (HTTPUnauthorizedException, HTTPStatus.UNAUTHORIZED),
+        (HTTPForbiddenException, HTTPStatus.FORBIDDEN),
+        (HTTPInternalServerException, HTTPStatus.INTERNAL_SERVER_ERROR),
     ],
     ids=[
         HTTPStatus.BAD_REQUEST.name,
@@ -28,6 +28,6 @@ from selva.web.error import (
         HTTPStatus.INTERNAL_SERVER_ERROR.name,
     ],
 )
-def test_correct_status_code(error_cls, status: HTTPStatus):
+def test_correct_status(error_cls, status: HTTPStatus):
     error = error_cls()
-    assert error.status_code == status
+    assert error.status == status

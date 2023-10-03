@@ -1,3 +1,5 @@
+from typing import Annotated
+
 from selva.di.container import Container
 from selva.di.decorator import service
 from selva.di.inject import Inject
@@ -12,38 +14,38 @@ class Service1:
 
 @service
 class Service2:
-    dep1: Service1 = Inject()
+    dep1: Annotated[Service1, Inject]
 
 
 @service
 class Service3:
-    dep1: Service1 = Inject()
-    dep2: Service2 = Inject()
+    dep1: Annotated[Service1, Inject]
+    dep2: Annotated[Service2, Inject]
 
 
 @service
 class Service4:
-    dep1: Service1 = Inject()
-    dep2: Service2 = Inject()
-    dep3: Service3 = Inject()
+    dep1: Annotated[Service1, Inject]
+    dep2: Annotated[Service2, Inject]
+    dep3: Annotated[Service3, Inject]
 
 
 @service
 class Service5:
-    dep1: Service1 = Inject()
-    dep2: Service2 = Inject()
-    dep3: Service3 = Inject()
-    dep4: Service4 = Inject()
-    dep6: "Service6" = Inject()
+    dep1: Annotated[Service1, Inject]
+    dep2: Annotated[Service2, Inject]
+    dep3: Annotated[Service3, Inject]
+    dep4: Annotated[Service4, Inject]
+    dep6: Annotated["Service6", Inject]
 
 
 @service
 class Service6:
-    dep1: Service1 = Inject()
-    dep2: Service2 = Inject()
-    dep3: Service3 = Inject()
-    dep4: Service4 = Inject()
-    dep5: Service5 = Inject()
+    dep1: Annotated[Service1, Inject]
+    dep2: Annotated[Service2, Inject]
+    dep3: Annotated[Service3, Inject]
+    dep4: Annotated[Service4, Inject]
+    dep5: Annotated[Service5, Inject]
 
 
 async def test_complex_graph(ioc: Container):

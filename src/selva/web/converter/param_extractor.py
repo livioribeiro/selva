@@ -1,10 +1,10 @@
-from typing import Protocol, TypeVar
+from typing import Protocol, Type, TypeVar
 
-from selva.web.context import RequestContext
+from asgikit.requests import Request
 
 T = TypeVar("T")
 
 
 class RequestParamExtractor(Protocol[T]):
-    def extract(self, context: RequestContext, parameter_name: str, metadata: T):
+    def extract(self, request: Request, parameter_name: str, metadata: T | Type[T]):
         raise NotImplementedError()

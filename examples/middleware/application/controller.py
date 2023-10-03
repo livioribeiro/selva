@@ -1,9 +1,11 @@
 from http import HTTPStatus
+from typing import Annotated
+
+from asgikit.requests import Request
+from asgikit.responses import Response, respond_json, respond_status
 
 from selva.di import Inject
 from selva.web import controller, get
-from selva.web.request import Request
-from selva.web.response import Response
 
 from .auth import User
 from .service import Greeter
@@ -11,20 +13,18 @@ from .service import Greeter
 
 @controller
 class Controller:
-    greeter: Greeter = Inject()
+    greeter: Annotated[Greeter, Inject]
 
     @get
-    async def index(self, context: Request):
-        name = context.query.get("name")
-        return {"message": self.greeter.greet(name)}
+    async def index(self, request: Request, response: Response):
+        name = request.query.get("name")
+        await respond_json(response, {"message": self.greeter.greet(name)})
 
     @get("/protected")
-    def protected(self, user: User):
-        return {"message": f"Access granted to: {user.name}"}
+    async def protected(self, request: Request, response: Response, user: User):
+        await respond_json(response, {"message": f"Access granted to: {user.name}"})
 
     @get("/logout")
-    def logout(self):
-        return Response(
-            status_code=HTTPStatus.UNAUTHORIZED,
-            headers={"WWW-Authenticate": 'Basic realm="localhost:8000"'},
-        )
+    async def logout(self, request: Request, response: Response):
+        response.header("WWW-Authenticate", 'Basic realm="localhost:8000"')
+        await respond_status(response, HTTPStatus.UNAUTHORIZED)

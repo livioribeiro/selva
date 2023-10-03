@@ -1,5 +1,9 @@
+import inspect
+from typing import Type
+
+from asgikit.requests import Request
+
 from selva.di.decorator import service
-from selva.web.context import RequestContext
 from selva.web.converter.param_extractor import RequestParamExtractor
 
 
@@ -17,10 +21,17 @@ class FromQuery(FromRequestParam):
 @service(provides=RequestParamExtractor[FromQuery])
 class FromQueryExtractor:
     def extract(
-        self, context: RequestContext, parameter_name: str, metadata: FromQuery
+        self,
+        request: Request,
+        parameter_name: str,
+        metadata: FromQuery | Type[FromQuery],
     ) -> str:
-        name = metadata.name or parameter_name
-        return context.query.get(name)
+        if inspect.isclass(metadata):
+            name = parameter_name
+        else:
+            name = metadata.name or parameter_name
+
+        return request.query.get(name)
 
 
 class FromHeader(FromRequestParam):
@@ -30,9 +41,16 @@ class FromHeader(FromRequestParam):
 @service(provides=RequestParamExtractor[FromHeader])
 class FromHeaderExtractor:
     def extract(
-        self, context: RequestContext, parameter_name: str, metadata: FromHeader
+        self,
+        request: Request,
+        parameter_name: str,
+        metadata: FromHeader | Type[FromHeader],
     ) -> str | None:
-        name = metadata.name or parameter_name
+        if inspect.isclass(metadata):
+            name = parameter_name
+        else:
+            name = metadata.name or parameter_name
+
         candidate_names = (
             name,
             name.lower(),
@@ -41,7 +59,7 @@ class FromHeaderExtractor:
         )
 
         for cand in candidate_names:
-            if value := context.headers.get(cand):
+            if value := request.headers.get(cand):
                 return value
 
         return None
@@ -54,7 +72,14 @@ class FromCookie(FromRequestParam):
 @service(provides=RequestParamExtractor[FromCookie])
 class FromCookieExtractor:
     def extract(
-        self, context: RequestContext, parameter_name: str, metadata: FromCookie
+        self,
+        request: Request,
+        parameter_name: str,
+        metadata: FromCookie | Type[FromCookie],
     ) -> str:
-        name = metadata.name or parameter_name
-        return context.cookies.get(name)
+        if inspect.isclass(metadata):
+            name = parameter_name
+        else:
+            name = metadata.name or parameter_name
+
+        return request.cookie.get(name)

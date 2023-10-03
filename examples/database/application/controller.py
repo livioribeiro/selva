@@ -1,28 +1,32 @@
 from http import HTTPStatus
+from typing import Annotated
+
+from asgikit.requests import Request
+from asgikit.responses import Response, respond_json
 
 from selva.di import Inject
 from selva.web import controller, get
-from selva.web.response import JSONResponse
 
 from .service import Repository
 
 
 @controller
 class Controller:
-    repository: Repository = Inject()
+    repository: Annotated[Repository, Inject]
 
     @get
-    async def count(self):
+    async def count(self, request: Request, response: Response):
         count = await self.repository.count()
-        return {"count": count}
+        await respond_json(response, {"count": count})
 
     @get("/test")
-    async def test(self):
+    async def test(self, request: Request, response: Response):
         try:
             await self.repository.test()
-            return {"status": "OK"}
+            await respond_json(response, {"status": "OK"})
         except Exception as err:
-            return JSONResponse(
+            await respond_json(
+                response,
                 {"status": "FAIL", "message": str(err)},
-                status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+                status=HTTPStatus.INTERNAL_SERVER_ERROR
             )

@@ -3,11 +3,13 @@ from pathlib import Path
 
 from starlette.websockets import WebSocketDisconnect
 
+from asgikit.requests import Request
+from asgikit.websockets import WebSocket
+
 from selva.configuration import Settings
 from selva.di import Inject, service
-from selva.web import RequestContext, WebSocket, controller, get, websocket
+from selva.web import controller, get, websocket
 from selva.web.error import WebSocketException
-from selva.web.response import FileResponse
 
 logger = logging.getLogger(__name__)
 
@@ -17,19 +19,20 @@ class WebSocketService:
     def __init__(self):
         self.clients: dict[str, WebSocket] = {}
 
-    async def handle_websocket(self, ws: WebSocket):
+    async def handle_websocket(self, request: Request):
+        ws = request.websocket
         client = str(ws.client)
         self.clients[client] = ws
 
         while True:
             try:
-                message = await ws.receive_text()
+                message = await ws.receive()
                 logger.info(
-                    "client message: content=%s, client=%s", message, repr(ws.client)
+                    "client message: content=%s, client=%s", message, repr(client)
                 )
                 await self.broadcast(message)
             except (WebSocketDisconnect, WebSocketException):
-                logger.info("client disconnected: %s", repr(ws.client))
+                logger.info("client disconnected: %s", repr(client))
                 del self.clients[client]
                 break
 
@@ -39,7 +42,7 @@ class WebSocketService:
 
         for ws in self.clients.values():
             try:
-                await ws.send_text(message)
+                await ws.send(message)
             except (WebSocketDisconnect, WebSocketException):
                 logger.info("client disconnected: %s", repr(ws.client))
 
