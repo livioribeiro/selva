@@ -11,7 +11,11 @@ class FromRequest[T](Protocol[T]):
     """Base class for services that extract values from the request"""
 
     def from_request(
-        self, request: Request, original_type: Type[T], parameter_name: str, metadata: Any = None
+        self,
+        request: Request,
+        original_type: Type[T],
+        parameter_name: str,
+        metadata: Any = None,
     ) -> T | Awaitable[T]:
         """Extract values from the request based on the type hint
 

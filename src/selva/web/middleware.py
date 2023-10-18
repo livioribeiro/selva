@@ -9,5 +9,10 @@ __all__ = ("Middleware",)
 
 class Middleware(ABC):
     @abstractmethod
-    async def __call__(self, call: Callable[[Request, Response], Awaitable], request: Request, response: Response):
+    async def __call__(
+        self,
+        call: Callable[[Request, Response], Awaitable],
+        request: Request,
+        response: Response,
+    ):
         raise NotImplementedError()

@@ -176,7 +176,9 @@ class Selva:
             try:
                 await self.handler(request, response)
             except Exception as err:
-                if handler := await self.di.get(ExceptionHandler[type(err)], optional=True):
+                if handler := await self.di.get(
+                    ExceptionHandler[type(err)], optional=True
+                ):
                     await handler.handle_exception(request, response, err)
                 else:
                     raise

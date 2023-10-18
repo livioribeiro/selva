@@ -3,8 +3,8 @@ from http import HTTPStatus
 import pytest
 
 from selva.web.exception import (
-    HTTPException,
     HTTPBadRequestException,
+    HTTPException,
     HTTPForbiddenException,
     HTTPInternalServerException,
     HTTPNotFoundException,

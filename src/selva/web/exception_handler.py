@@ -1,4 +1,4 @@
-from typing import Type, TypeVar, Protocol, runtime_checkable
+from typing import Protocol, Type, runtime_checkable
 
 from asgikit.requests import Request
 from asgikit.responses import Response
@@ -6,11 +6,8 @@ from asgikit.responses import Response
 from selva.di.decorator import service
 
 
-TExc = TypeVar("TExc")
-
-
 @runtime_checkable
-class ExceptionHandler(Protocol[TExc]):
+class ExceptionHandler[TExc](Protocol[TExc]):
     async def handle_exception(self, request: Request, response: Response, exc: TExc):
         raise NotImplementedError()
 
