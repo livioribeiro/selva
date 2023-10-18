@@ -186,7 +186,7 @@ And if the error is a subclass of `selva.web.error.HTTPError`, for example
 from selva.di import service
 from selva.web import RequestContext
 from selva.web.converter import FromRequest
-from selva.web.error import HTTPUnauthorizedException
+from selva.web.exception import HTTPUnauthorizedException
 
 
 @service(provides=FromRequest[Param])

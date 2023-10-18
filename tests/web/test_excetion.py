@@ -2,7 +2,8 @@ from http import HTTPStatus
 
 import pytest
 
-from selva.web.error import (
+from selva.web.exception import (
+    HTTPException,
     HTTPBadRequestException,
     HTTPForbiddenException,
     HTTPInternalServerException,
@@ -31,3 +32,8 @@ from selva.web.error import (
 def test_correct_status(error_cls, status: HTTPStatus):
     error = error_cls()
     assert error.status == status
+
+
+def test_custom_http_exception():
+    error = HTTPException(status=HTTPStatus.IM_A_TEAPOT)
+    assert error.status == HTTPStatus.IM_A_TEAPOT

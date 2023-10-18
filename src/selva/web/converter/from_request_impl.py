@@ -7,15 +7,7 @@ from pydantic import BaseModel as PydanticModel
 
 from selva.di.decorator import service
 from selva.web.converter.from_request import FromRequest
-from selva.web.error import HTTPBadRequestException, HTTPException
-
-
-@service(provides=FromRequest[Request])
-class RequestContextFromRequest:
-    def from_request(
-        self, request: Request, _original_type, _parameter_name
-    ) -> Request:
-        return request
+from selva.web.exception import HTTPBadRequestException, HTTPException
 
 
 @service(provides=FromRequest[PydanticModel])
@@ -25,6 +17,7 @@ class PydanticModelFromRequest:
         request: Request,
         original_type: Type[PydanticModel],
         _parameter_name,
+        _metadata=None,
     ) -> PydanticModel:
         if request.method not in (HTTPMethod.POST, HTTPMethod.PUT, HTTPMethod.PATCH):
             # TODO: improve error
@@ -38,7 +31,7 @@ class PydanticModelFromRequest:
         elif "application/x-www-form-urlencoded" in request.content_type:
             data = await read_form(request)
         else:
-            raise HTTPException(status_code=HTTPStatus.UNSUPPORTED_MEDIA_TYPE)
+            raise HTTPException(status=HTTPStatus.UNSUPPORTED_MEDIA_TYPE)
 
         try:
             return original_type.model_validate(data)
@@ -53,6 +46,7 @@ class PydanticModelListFromRequest:
         request: Request,
         original_type: Type[list[PydanticModel]],
         _parameter_name,
+        _metadata=None,
     ) -> list[PydanticModel]:
         if request.method not in (HTTPMethod.POST, HTTPMethod.PUT, HTTPMethod.PATCH):
             # TODO: improve error

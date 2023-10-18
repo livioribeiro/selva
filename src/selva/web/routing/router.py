@@ -3,10 +3,7 @@ import logging
 from collections import OrderedDict
 from http import HTTPMethod
 
-from starlette.requests import Request
-from starlette.websockets import WebSocket
-
-from selva.web.error import HTTPNotFoundException
+from selva.web.exception import HTTPNotFoundException
 from selva.web.routing.decorator import (
     ACTION_ATTRIBUTE,
     CONTROLLER_ATTRIBUTE,
@@ -59,17 +56,6 @@ class Router:
             route_name = f"{controller.__module__}.{controller.__qualname__}:{name}"
 
             route = Route(method, path, controller, action, route_name)
-
-            if action_type.is_websocket and Request in route.request_params.values():
-                # TODO: create exception
-                raise TypeError("websocket route cannot receive HttpRequest")
-
-            if (
-                not action_type.is_websocket
-                and WebSocket in route.request_params.values()
-            ):
-                # TODO: create exception
-                raise TypeError("http route cannot receive WebSocket")
 
             for current_route in self.routes.values():
                 # skip route if already registered

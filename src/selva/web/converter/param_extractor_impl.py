@@ -20,8 +20,8 @@ class FromQuery(FromRequestParam):
 
 @service(provides=RequestParamExtractor[FromQuery])
 class FromQueryExtractor:
+    @staticmethod
     def extract(
-        self,
         request: Request,
         parameter_name: str,
         metadata: FromQuery | Type[FromQuery],
@@ -40,8 +40,8 @@ class FromHeader(FromRequestParam):
 
 @service(provides=RequestParamExtractor[FromHeader])
 class FromHeaderExtractor:
+    @staticmethod
     def extract(
-        self,
         request: Request,
         parameter_name: str,
         metadata: FromHeader | Type[FromHeader],
@@ -71,8 +71,8 @@ class FromCookie(FromRequestParam):
 
 @service(provides=RequestParamExtractor[FromCookie])
 class FromCookieExtractor:
+    @staticmethod
     def extract(
-        self,
         request: Request,
         parameter_name: str,
         metadata: FromCookie | Type[FromCookie],

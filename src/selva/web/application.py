@@ -1,3 +1,4 @@
+import functools
 import importlib
 import inspect
 import logging
@@ -19,7 +20,7 @@ from selva.di.container import Container
 from selva.di.decorator import DI_SERVICE_ATTRIBUTE
 from selva.web.converter import (
     from_request_impl,
-    from_request_param_impl,
+    param_converter_impl,
     param_extractor_impl,
 )
 from selva.web.converter.error import (
@@ -28,9 +29,10 @@ from selva.web.converter.error import (
     MissingRequestParamExtractorImplError,
 )
 from selva.web.converter.from_request import FromRequest
-from selva.web.converter.from_request_param import FromRequestParam
+from selva.web.converter.param_converter import ParamConverter
 from selva.web.converter.param_extractor import RequestParamExtractor
-from selva.web.error import HTTPException, HTTPNotFoundException, WebSocketException
+from selva.web.exception import HTTPException, HTTPNotFoundException, WebSocketException
+from selva.web.exception_handler import ExceptionHandler
 from selva.web.middleware import Middleware
 from selva.web.routing.decorator import CONTROLLER_ATTRIBUTE
 from selva.web.routing.router import Router
@@ -70,9 +72,9 @@ class Selva:
         self.di.define(Router, self.router)
 
         self.di.scan(
-            param_extractor_impl,
             from_request_impl,
-            from_request_param_impl,
+            param_extractor_impl,
+            param_converter_impl,
         )
         self.di.scan(self.settings.COMPONENTS)
 
@@ -138,8 +140,8 @@ class Selva:
 
         for cls in reversed(self.settings.MIDDLEWARE):
             mid = await self.di.create(cls)
-            mid.set_app(self.handler)
-            self.handler = mid
+            chain = functools.partial(mid, self.handler)
+            self.handler = chain
 
     async def _initialize(self):
         await self._initialize_middleware()
@@ -171,7 +173,13 @@ class Selva:
         response = Response(scope, receive, send)
 
         try:
-            await self.handler(request, response)
+            try:
+                await self.handler(request, response)
+            except Exception as err:
+                if handler := await self.di.get(ExceptionHandler[type(err)], optional=True):
+                    await handler.handle_exception(request, response, err)
+                else:
+                    raise
         except WebSocketException as err:
             await request.websocket.close(err.code, err.reason)
         except (WebSocketDisconnectError, WebSocketError):
@@ -237,9 +245,9 @@ class Selva:
                 continue
 
             if converter := await self._find_param_converter(
-                param_type, FromRequestParam
+                param_type, ParamConverter
             ):
-                value = await maybe_async(converter.from_request_param, values[name])
+                value = await maybe_async(converter.from_param, values[name])
                 result[name] = value
             else:
                 raise MissingFromRequestParamImplError(param_type)
@@ -271,7 +279,7 @@ class Selva:
                     continue
 
                 if converter := await self._find_param_converter(
-                    param_type, FromRequestParam
+                    param_type, ParamConverter
                 ):
                     value = await maybe_async(converter.from_param, param)
                     result[name] = value

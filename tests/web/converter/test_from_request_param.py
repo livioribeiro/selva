@@ -2,18 +2,18 @@ from pathlib import PurePath
 
 import pytest
 
-from selva.web.converter.from_request_param_impl import (
-    BoolFromRequestParam,
-    FloatFromRequestParam,
-    IntFromRequestParam,
-    PurePathFromRequestParam,
-    StrFromRequestParam,
+from selva.web.converter.param_converter_impl import (
+    BoolParamConverter,
+    FloatParamConverter,
+    IntParamConverter,
+    PurePathParamConverter,
+    StrParamConverter,
 )
-from selva.web.error import HTTPBadRequestException
+from selva.web.exception import HTTPBadRequestException
 
 
 async def test_str_request_param():
-    converter = StrFromRequestParam()
+    converter = StrParamConverter()
     value = "A"
     expected = "A"
 
@@ -22,7 +22,7 @@ async def test_str_request_param():
 
 
 async def test_int_request_param():
-    converter = IntFromRequestParam()
+    converter = IntParamConverter()
     value = "1"
     expected = 1
 
@@ -31,13 +31,13 @@ async def test_int_request_param():
 
 
 def test_int_request_param_with_invalid_value_should_fail():
-    converter = IntFromRequestParam()
+    converter = IntParamConverter()
     with pytest.raises(HTTPBadRequestException):
         converter.from_param("A")
 
 
 async def test_float_request_param():
-    converter = FloatFromRequestParam()
+    converter = FloatParamConverter()
     value = "1.1"
     expected = 1.1
 
@@ -46,7 +46,7 @@ async def test_float_request_param():
 
 
 def test_float_request_param_with_invalid_value_should_fail():
-    converter = FloatFromRequestParam()
+    converter = FloatParamConverter()
     with pytest.raises(HTTPBadRequestException):
         converter.from_param("A")
 
@@ -66,20 +66,20 @@ def test_float_request_param_with_invalid_value_should_fail():
     ids=["1", "True", "true", "tRuE", "0", "False", "false", "fAlSe"],
 )
 async def test_bool_request_param(value: str, expected: bool):
-    converter = BoolFromRequestParam()
+    converter = BoolParamConverter()
 
     result = converter.from_param(value)
     assert result == expected
 
 
 async def test_bool_request_param_with_invalid_value_should_fail():
-    converter = BoolFromRequestParam()
+    converter = BoolParamConverter()
     with pytest.raises(HTTPBadRequestException):
         converter.from_param("invalid")
 
 
 async def test_path_request_param():
-    converter = PurePathFromRequestParam()
+    converter = PurePathParamConverter()
 
     value = "/path/subpath"
     expected = PurePath("/path", "subpath")

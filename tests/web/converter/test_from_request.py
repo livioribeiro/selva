@@ -4,7 +4,6 @@ from pydantic import BaseModel
 from selva.web.converter.from_request_impl import (
     PydanticModelFromRequest,
     PydanticModelListFromRequest,
-    RequestContextFromRequest,
 )
 
 
@@ -28,7 +27,7 @@ async def test_pydantic_model_from_request():
     request = Request(scope, receive, None)
     converter = PydanticModelFromRequest()
 
-    result = await converter.from_request(request, Model, "name")
+    result = await converter.from_request(request, Model, "name", None)
 
     assert type(result) == Model
     assert result.field == "value"
@@ -54,7 +53,7 @@ async def test_pydantic_model_list_from_request():
     context = Request(scope, receive, None)
     converter = PydanticModelListFromRequest()
 
-    result = await converter.from_request(context, list[Model], "name")
+    result = await converter.from_request(context, list[Model], "name", None)
 
     assert type(result) == list
     assert result[0].field == "value1"

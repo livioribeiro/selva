@@ -9,7 +9,7 @@ from asgikit.websockets import WebSocket
 from selva.configuration import Settings
 from selva.di import Inject, service
 from selva.web import controller, get, websocket
-from selva.web.error import WebSocketException
+from selva.web.exception import WebSocketException
 
 logger = logging.getLogger(__name__)
 
