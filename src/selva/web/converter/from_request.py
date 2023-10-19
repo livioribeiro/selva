@@ -1,5 +1,5 @@
 from collections.abc import Awaitable
-from typing import Any, Protocol, Type, TypeVar, runtime_checkable
+from typing import Any, Protocol, Type, runtime_checkable
 
 from asgikit.requests import Request
 

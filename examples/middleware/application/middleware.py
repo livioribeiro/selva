@@ -37,7 +37,9 @@ class LoggingMiddleware(Middleware):
         request_line = f"{request.method} {request.path} HTTP/{request.http_version}"
         status = response.status
 
-        logging.warning('%s "%s" %s %s', client, request_line, status.value, status.phrase)
+        logging.warning(
+            '%s "%s" %s %s', client, request_line, status.value, status.phrase
+        )
 
 
 class AuthMiddleware(Middleware):
@@ -45,7 +47,9 @@ class AuthMiddleware(Middleware):
         if request.path == "/protected":
             authn = request.headers.get("authorization")
             if not authn:
-                response.header("WWW-Authenticate", 'Basic realm="localhost:8000/protected"')
+                response.header(
+                    "WWW-Authenticate", 'Basic realm="localhost:8000/protected"'
+                )
                 await respond_status(response, HTTPStatus.UNAUTHORIZED)
                 return
 

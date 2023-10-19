@@ -1,8 +1,9 @@
-from typing import Protocol, Type
+from typing import Protocol, Type, runtime_checkable
 
 from asgikit.requests import Request
 
 
-class RequestParamExtractor[T](Protocol[T]):
+@runtime_checkable
+class ParamExtractor[T](Protocol[T]):
     def extract(self, request: Request, parameter_name: str, metadata: T | Type[T]):
         raise NotImplementedError()

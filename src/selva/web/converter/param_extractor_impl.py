@@ -3,8 +3,14 @@ from typing import Type
 
 from asgikit.requests import Request
 
-from selva.di.decorator import service
-from selva.web.converter.param_extractor import RequestParamExtractor
+from selva.web.converter.decorator import register_param_extractor
+
+__all__ = (
+    "FromPath",
+    "FromQuery",
+    "FromHeader",
+    "FromCookie",
+)
 
 
 class FromRequestParam:
@@ -14,11 +20,31 @@ class FromRequestParam:
         self.name = name
 
 
+class FromPath(FromRequestParam):
+    pass
+
+
+@register_param_extractor(FromPath)
+class FromPathExtractor:
+    @staticmethod
+    def extract(
+        request: Request,
+        parameter_name: str,
+        metadata: FromPath | Type[FromPath],
+    ) -> str:
+        if inspect.isclass(metadata):
+            name = parameter_name
+        else:
+            name = metadata.name or parameter_name
+
+        return request["path_params"][name]
+
+
 class FromQuery(FromRequestParam):
     pass
 
 
-@service(provides=RequestParamExtractor[FromQuery])
+@register_param_extractor(FromQuery)
 class FromQueryExtractor:
     @staticmethod
     def extract(
@@ -38,7 +64,7 @@ class FromHeader(FromRequestParam):
     pass
 
 
-@service(provides=RequestParamExtractor[FromHeader])
+@register_param_extractor(FromHeader)
 class FromHeaderExtractor:
     @staticmethod
     def extract(
@@ -69,7 +95,7 @@ class FromCookie(FromRequestParam):
     pass
 
 
-@service(provides=RequestParamExtractor[FromCookie])
+@register_param_extractor(FromCookie)
 class FromCookieExtractor:
     @staticmethod
     def extract(

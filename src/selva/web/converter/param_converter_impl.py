@@ -1,15 +1,14 @@
 from decimal import Decimal
 from pathlib import PurePath
 
-from selva.di.decorator import service
-from selva.web.converter.param_converter import ParamConverter
+from selva.web.converter.decorator import register_param_converter
 from selva.web.exception import HTTPBadRequestException
 
 
-@service(provides=ParamConverter[str])
+@register_param_converter(str)
 class StrParamConverter:
     @staticmethod
-    def from_param(value: str) -> str:
+    def from_str(value: str) -> str:
         return value
 
     @staticmethod
@@ -17,43 +16,43 @@ class StrParamConverter:
         return data
 
 
-@service(provides=ParamConverter[int])
+@register_param_converter(int)
 class IntParamConverter:
     @staticmethod
-    def from_param(value: str) -> int:
+    def from_str(value: str) -> int:
         try:
             return int(value)
         except ValueError as err:
             raise HTTPBadRequestException() from err
 
 
-@service(provides=ParamConverter[float])
+@register_param_converter(float)
 class FloatParamConverter:
     @staticmethod
-    def from_param(value: str) -> float:
+    def from_str(value: str) -> float:
         try:
             return float(value)
         except ValueError as err:
             raise HTTPBadRequestException() from err
 
 
-@service(provides=ParamConverter[Decimal])
+@register_param_converter(Decimal)
 class DecimalParamConverter:
     @staticmethod
-    def from_param(value: str) -> Decimal:
+    def from_str(value: str) -> Decimal:
         try:
             return Decimal(value)
         except ValueError as err:
             raise HTTPBadRequestException() from err
 
 
-@service(provides=ParamConverter[bool])
+@register_param_converter(bool)
 class BoolParamConverter:
     TRUE_VALUES = ["1", "true"]
     FALSE_VALUES = ["0", "false"]
 
     @staticmethod
-    def from_param(value: str) -> bool:
+    def from_str(value: str) -> bool:
         if value.lower() in BoolParamConverter.TRUE_VALUES:
             return True
         if value.lower() in BoolParamConverter.FALSE_VALUES:
@@ -66,10 +65,10 @@ class BoolParamConverter:
         return "true" if data else "false"
 
 
-@service(provides=ParamConverter[PurePath])
+@register_param_converter(PurePath)
 class PurePathParamConverter:
     @staticmethod
-    def from_param(value: str) -> PurePath:
+    def from_str(value: str) -> PurePath:
         return PurePath(value)
 
     @staticmethod

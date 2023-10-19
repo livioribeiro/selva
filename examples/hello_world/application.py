@@ -2,11 +2,10 @@ from typing import Annotated
 
 from asgikit.requests import Request, read_json
 from asgikit.responses import Response, respond_json
+from pydantic import BaseModel
 
 from selva.di import Inject, service
-from selva.web import controller, get, post, FromQuery
-
-from pydantic import BaseModel
+from selva.web import FromQuery, controller, get, post
 
 
 class MyModel(BaseModel):
@@ -30,7 +29,7 @@ class Controller:
         request: Request,
         response: Response,
         name: Annotated[str, FromQuery("name")] = "World",
-        number: Annotated[int, FromQuery] = 1
+        number: Annotated[int, FromQuery] = 1,
     ):
         greeting = self.greeter.greet(name)
         await respond_json(response, {"greeting": greeting, "number": number})
@@ -46,9 +45,13 @@ class Controller:
         await respond_json(response, {"result": body})
 
     @post("pydantic")
-    async def post_data_pydantic(self, request: Request, response: Response, data: MyModel):
+    async def post_data_pydantic(
+        self, request: Request, response: Response, data: MyModel
+    ):
         await respond_json(response, {"name": data.name, "region": data.region})
 
     @post("pydantic/list")
-    async def post_data_pydantic_list(self, request: Request, response: Response, data: list[MyModel]):
+    async def post_data_pydantic_list(
+        self, request: Request, response: Response, data: list[MyModel]
+    ):
         await respond_json(response, {"data": [d.model_dump() for d in data]})

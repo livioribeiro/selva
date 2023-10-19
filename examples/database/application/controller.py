@@ -28,5 +28,5 @@ class Controller:
             await respond_json(
                 response,
                 {"status": "FAIL", "message": str(err)},
-                status=HTTPStatus.INTERNAL_SERVER_ERROR
+                status=HTTPStatus.INTERNAL_SERVER_ERROR,
             )

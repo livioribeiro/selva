@@ -1,10 +1,9 @@
 import logging
 from pathlib import Path
 
-from starlette.websockets import WebSocketDisconnect
-
 from asgikit.requests import Request
 from asgikit.websockets import WebSocket
+from starlette.websockets import WebSocketDisconnect
 
 from selva.configuration import Settings
 from selva.di import Inject, service

@@ -8,11 +8,11 @@ __all__ = ("ParamConverter",)
 class ParamConverter[T](Protocol[T]):
     """Convert values from and to request parameters
 
-    Request parameters come from path, querystring, headers.
+    Request parameters come from path, querystring or headers.
     Request parameters can be extended with `ParamExtractor` implementations
     """
 
-    def from_param(self, data: str) -> T | Awaitable[T]:
+    def from_str(self, data: str) -> T | Awaitable[T]:
         raise NotImplementedError()
 
     def into_str(self, value: T) -> str | Awaitable[str]:

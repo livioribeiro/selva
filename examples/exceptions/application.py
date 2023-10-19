@@ -1,7 +1,7 @@
 from http import HTTPStatus
 
 from selva.web import controller, get
-from selva.web.exception import HTTPUnauthorizedException, HTTPException
+from selva.web.exception import HTTPException, HTTPUnauthorizedException
 
 
 @controller

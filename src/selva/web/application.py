@@ -30,7 +30,7 @@ from selva.web.converter.error import (
 )
 from selva.web.converter.from_request import FromRequest
 from selva.web.converter.param_converter import ParamConverter
-from selva.web.converter.param_extractor import RequestParamExtractor
+from selva.web.converter.param_extractor import ParamExtractor
 from selva.web.exception import HTTPException, HTTPNotFoundException, WebSocketException
 from selva.web.exception_handler import ExceptionHandler
 from selva.web.middleware import Middleware
@@ -214,16 +214,14 @@ class Selva:
         controller = match.route.controller
         action = match.route.action
         path_params = match.params
-
-        path_params = await self._params_from_path(path_params, match.route.path_params)
+        request["path_params"] = path_params
 
         request_params = await self._params_from_request(
             request, match.route.request_params
         )
 
-        all_params = path_params | request_params
         instance = await self.di.get(controller)
-        await action(instance, request, response, **all_params)
+        await action(instance, request, response, **request_params)
 
         if ws := request.websocket:
             if ws.state != WebSocket.State.CLOSED:
@@ -233,28 +231,6 @@ class Selva:
             await respond_status(response, HTTPStatus.INTERNAL_SERVER_ERROR)
         elif not response.is_finished:
             await response.end()
-
-    async def _params_from_path(
-        self,
-        values: dict[str, str],
-        params: dict[str, type],
-    ) -> dict[str, Any]:
-        result = {}
-
-        for name, param_type in params.items():
-            if param_type is str:
-                result[name] = values[name]
-                continue
-
-            if converter := await self._find_param_converter(
-                param_type, ParamConverter
-            ):
-                value = await maybe_async(converter.from_param, values[name])
-                result[name] = value
-            else:
-                raise MissingFromRequestParamImplError(param_type)
-
-        return result
 
     async def _params_from_request(
         self,
@@ -271,7 +247,7 @@ class Selva:
                     extractor_type = type(extractor_param)
 
                 extractor = await self.di.get(
-                    RequestParamExtractor[extractor_type], optional=True
+                    ParamExtractor[extractor_type], optional=True
                 )
                 if not extractor:
                     raise MissingRequestParamExtractorImplError(extractor_type)
@@ -283,7 +259,7 @@ class Selva:
                 if converter := await self._find_param_converter(
                     param_type, ParamConverter
                 ):
-                    value = await maybe_async(converter.from_param, param)
+                    value = await maybe_async(converter.from_str, param)
                     result[name] = value
                 else:
                     raise MissingFromRequestParamImplError(param_type)
