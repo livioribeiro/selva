@@ -9,7 +9,7 @@ from typing import Any
 
 from asgikit.errors.websocket import WebSocketDisconnectError, WebSocketError
 from asgikit.requests import Request
-from asgikit.responses import Response, respond_status
+from asgikit.responses import respond_status
 from asgikit.websockets import WebSocket
 
 from selva._util.base_types import get_base_types
@@ -170,16 +170,15 @@ class Selva:
 
     async def _handle_request(self, scope, receive, send):
         request = Request(scope, receive, send)
-        response = Response(scope, receive, send)
 
         try:
             try:
-                await self.handler(request, response)
+                await self.handler(request)
             except Exception as err:
                 if handler := await self.di.get(
                     ExceptionHandler[type(err)], optional=True
                 ):
-                    await handler.handle_exception(request, response, err)
+                    await handler.handle_exception(request, err)
                 else:
                     raise
         except WebSocketException as err:
@@ -188,21 +187,26 @@ class Selva:
             logger.exception("WebSocket error")
             await request.websocket.close()
         except HTTPException as err:
-            if response.is_started:
-                logger.error("Response has already started")
-                await response.end()
-                return
+            if websocket := request.websocket:
+                logger.error("WebSocket request raise HTTPException")
+                await websocket.close()
+            else:
+                response = request.response
+                if response.is_started:
+                    logger.error("Response has already started")
+                    await response.end()
+                    return
 
-            if response.is_finished:
-                logger.error("Response is finished")
-                return
+                if response.is_finished:
+                    logger.error("Response is finished")
+                    return
 
-            await respond_status(response, err.status)
+                await respond_status(response, err.status)
         except Exception as err:
             logger.exception("Error processing request", exc_info=err)
-            await respond_status(response, HTTPStatus.INTERNAL_SERVER_ERROR)
+            await respond_status(request.response, HTTPStatus.INTERNAL_SERVER_ERROR)
 
-    async def _process_request(self, request: Request, response: Response):
+    async def _process_request(self, request: Request):
         method = request.method
         path = request.path
 
@@ -221,7 +225,9 @@ class Selva:
         )
 
         instance = await self.di.get(controller)
-        await action(instance, request, response, **request_params)
+        await action(instance, request, **request_params)
+
+        response = request.response
 
         if ws := request.websocket:
             if ws.state != WebSocket.State.CLOSED:

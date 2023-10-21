@@ -10,12 +10,12 @@ class MyException(Exception):
 
 @exception_handler(MyException)
 class MyExceptionHandler:
-    async def handle_exception(self, request, response, exc):
-        await respond_json(response, {"exception": exc.__class__.__name__})
+    async def handle_exception(self, request, exc):
+        await respond_json(request.response, {"exception": exc.__class__.__name__})
 
 
 @controller
 class Controller:
     @get
-    async def index(self, request, response):
+    async def index(self, request):
         raise MyException()

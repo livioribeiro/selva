@@ -2,7 +2,7 @@
 
 Selva is a tool for creating ASGI applications that are easy to build and maintain.
 
-It is based on Starlette and Pydantic and comes with a dependency injection system built upon Python type annotations.
+It is based on Asgikit and comes with a dependency injection system built upon Python type annotations.
 
 ## Quickstart
 
@@ -15,14 +15,15 @@ pip install selva uvicorn
 Create file `application.py`:
 
 ```python
+from asgikit.responses import respond_text
 from selva.web import controller, get
 
 
 @controller
 class Controller:
     @get
-    def hello(self):
-        return "Hello, World"
+    async def hello(self, request):
+        await respond_text(request.response, "Hello, World")
 ```
 
 Run application with `uvicorn`. Selva will automatically load `application.py`:

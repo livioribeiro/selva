@@ -2,7 +2,7 @@ from http import HTTPStatus
 from typing import Annotated
 
 from asgikit.requests import Request
-from asgikit.responses import Response, respond_json
+from asgikit.responses import respond_json
 
 from selva.di import Inject
 from selva.web import controller, get
@@ -15,12 +15,14 @@ class Controller:
     repository: Annotated[Repository, Inject]
 
     @get
-    async def count(self, request: Request, response: Response):
+    async def count(self, request: Request):
         count = await self.repository.count()
-        await respond_json(response, {"count": count})
+        await respond_json(request.response, {"count": count})
 
     @get("/test")
-    async def test(self, request: Request, response: Response):
+    async def test(self, request: Request):
+        response = request.response
+
         try:
             await self.repository.test()
             await respond_json(response, {"status": "OK"})

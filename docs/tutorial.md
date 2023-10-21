@@ -24,8 +24,8 @@ project/
 │   ├── repository.py
 │   └── service.py
 ├── configuration/
-│   └── application.toml
-├── resources/
+│   └── settings.py
+└── resources/
 ```
 
 And... that's it! A module or package named `application` will automatically
@@ -54,14 +54,17 @@ requests. They can receive services through dependency injection.
 === "application/controller.py"
 
     ```python
-    from selva.web import controller, get
+    from typing import Annotated
+    from asgikit.requests import Request
+    from asgikit.responses import respond_json
+    from selva.web import controller, get, FromPath
     
     
     @controller # (1)
     class GreetingController:
         @get("hello/:name") # (2)
-        def hello(self, name: str) -> dict:
-            return {"greeting": f"Hello, {name}!"}
+        async def hello(self, request: Request, name: Annotated[str, FromPath]):
+            await respond_json(request.response, {"greeting": f"Hello, {name}!"})
     ```
 
     1.  `@controller` marks a class as a controller. It can optionally receive
@@ -71,7 +74,7 @@ requests. They can receive services through dependency injection.
         If no path is given, the path from the controller will be used.
 
         `:name` defines a path parameter that will be bound to the `name`
-        parameter on the handler
+        parameter on the handler, indicated by `Annotated[str, FromPath]`
 
 And now we test if our controller is working:
 
@@ -107,6 +110,9 @@ will be injected into the controller we created previously.
 === "application/controller.py"
 
     ```python
+    from typing import Annotated
+    from asgikit.requests import Request
+    from asgikit.responses import respond_json
     from selva.di import Inject
     from selva.web import controller, get
     from .service import Greeter
@@ -114,15 +120,15 @@ will be injected into the controller we created previously.
     
     @controller
     class GreetingController:
-        gretter: Gretter = Inject() # (1)
+        gretter: Annotated[Gretter, Inject] # (1)
     
         @get("/hello/:name")
-        def hello_name(self, name: str) -> dict:
+        async def hello(self, request: Request, name: Annotated[str, FromPath]):
             greeting = self.greeter.greet(name)
-            return {"greeting": greeting}
+            await respond_json(request.response, {"greeting": greeting})
     ```
     
-    1.  Inject the `Greeter` service in the constructor
+    1.  Inject the `Greeter` service
 
 ## Adding a database
 
@@ -144,6 +150,7 @@ with `@service`, so in this case we need to create a factory function for it:
 
     ```python
     from datetime import datetime
+    from typing import Annotated
     from databases import Database
     from selva.di import service, Inject
     
@@ -162,7 +169,7 @@ with `@service`, so in this case we need to create a factory function for it:
     
     @service
     class GreetingRepository:
-        database: Database = Inject() # (2)
+        database: Annotated[Database, Inject] # (2)
     
         async def initialize(self): # (3)
             await self.database.connect()
@@ -179,7 +186,7 @@ with `@service`, so in this case we need to create a factory function for it:
             await self.database.execute(query, params)
     ```
 
-    1.  A function decorated with `@service` can used to create a service when
+    1.  A function decorated with `@service` is used to create a service when
         you need to provide types you do not own
 
     2.  Inject the `Database` service in the `GreetingRepository`
@@ -193,38 +200,45 @@ with `@service`, so in this case we need to create a factory function for it:
 === "application/controller.py"
 
     ```python
+    from typing import Annotated
     from datetime import datetime
+    from asgikit.requests import Request
+    from asgikit.responses import respond_json
     from selva.di import Inject
-    from selva.web import controller, get
+    from selva.web import controller, get, FromPath
     from .repository import GreetingRepository
     from .service import Greeter
     
     
     @controller
     class GreetingController:
-        greeter: Greeter = Inject()
-        repository: GreetingRepository = Inject()
+        greeter: Annotated[Greeter, Inject]
+        repository: Annotated[GreetingRepository, Inject]
     
         @get("hello/:name")
-        async def hello_name(self, name: str) -> dict:
+        async def hello_name(self, request: Request, name: Annotated[str, FromPath]):
             greeting = self.greeter.greet(name)
             await self.repository.save_greeting(greeting, datetime.now())
-            return {"greeting": greeting}
+            await respond_json(request.response, {"greeting": greeting})
     ```
 
-## Using background tasks
+## Deferred actions
 
 The greetings are being save to the database, but now we have a problem: the
 user has to wait until the greeting is saved before receiving it.
 
-To solve this problem and improve the user experience, we can use *background tasks*:
+To solve this problem and improve the user experience, we can use save the greeging
+after the request is completed:
 
 === "application/controller.py"
 
     ```python
     from datetime import datetime
+    from typing import Annotated
+    from asgikit.requests import Request
+    from asgikit.responses improt respond_json
     from selva.di import Inject
-    from selva.web import RequestContext, controller, get
+    from selva.web import controller, get, FromPath
     from selva.web.response import JSONResponse, BackgroundTask
     from .repository import GreetingRepository
     from .service import Greeter
@@ -232,24 +246,20 @@ To solve this problem and improve the user experience, we can use *background ta
     
     @controller
     class GreetingController:
-        greeter: Greeter = Inject()
-        repository: GreetingRepository = Inject()
+        greeter: Annotated[Greeter, Inject]
+        repository: Annotated[GreetingRepository, Inject]
     
         @get("hello/:name")
-        async def hello_name(self, name: str, context: RequestContext) -> JSONResponse:
+        async def hello_name(self, request: Request, name: Annotated[str, FromPath]):
             greeting = self.greeter.greet(name)
-
-            background = BackgroundTask(
-                self.repository.save_greeting,
-                greeting,
-                datetime.now(),
-            )
-
-            return JSONResponse(
-                {"greeting": greeting},
-                background=background,
-            )
+            await respond_json(request.response, {"greeting": greeting})  # (1)
+    
+            await self.repository.save_greeting(greeting, datetime.now())  # (2)
     ```
+    
+    1.  The call to `respond_json` completes the response
+    
+    2.  The greeting is saved after the response is completed
 
 ## Retrieving the greeting logs
 
@@ -278,8 +288,9 @@ the logs and return them:
     class GreetingController:
         # ...
         @get("/logs")
-        async def greeting_logs(self) -> list[tuple[str, str]]:
-            return await self.repository.get_greetings()
+        async def greeting_logs(self, request: Request):
+            greetings = await self.repository.get_greetings()
+            await respond_json(request.response, greetings)
     ```
 
 Now let us try requesting some greetings and retrieving the logs:
@@ -322,22 +333,23 @@ use Pydantic to parse the request body:
 === "application/controller.py"
 
     ```python
+    # ...
     from .model import GreetingRequest
     
     
     @controller
     class GreetingController:
-        greeter: Greeter = Inject()
-        repository: GreetingRepository = Inject()
+        greeter: Annotated[Greeter, Inject]
+        repository: Annotated[GreetingRepository, Inject]
     
         # ...
     
         @post("hello")
-        async def hello_post(self, greeting_request: GreetingRequest) -> dict:
+        async def hello_post(self, request: Request, greeting_request: GreetingRequest):
             name = greeting_request.name
             greeting = self.greeter.greet(name)
+            await respond_json(request.response, {"greeting": greeting})
             await self.repository.save_greeting(greeting, datetime.now())
-            return {"greeting": greeting}
     ```
 
 And to test it:

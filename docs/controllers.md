@@ -6,45 +6,67 @@ Controllers are classes responsible for handling requests through handler method
 They are defined using the `@controller` on the class and `@get`, `@post`, `@put`,
 `@patch`, `@delete` and `@websocket` on each of the handler methods.
 
+Handler methods must receive, at least, two parameters: `Request` and `Response`.
+It is not needed to annotate the request and response parameters, but they should
+be the first two parameters.
+
 ```python
-from selva.web import HttpResponse, RequestContext, controller, get, post
+from asgikit.requests import Request, read_json
+from asgikit.responses import Response, respond_text, respond_redirect
+from selva.web import controller, get, post
 
 
 @controller
 class IndexController:
     @get
-    def index(self):
-        return "application root"
+    async def index(self, request: Request, response: Response):
+        await respond_text(response, "application root")
 
 
 @controller("admin")
 class AdminController:
     @post("send")
-    async def handle_data(self, context: RequestContext):
-        print(await context.request.json())
-        return HttpResponse.redirect("/")
+    async def handle_data(self, request: Request, response: Response):
+        print(await read_json(request))
+        await respond_redirect(response, "/")
 ```
 
 !!! note
     Defining a path on `@controller` or `@get @post etc...` is optional and
     defaults to an empty string `""`.
 
-Handler methods can be defined with path parameters, which will be bound to the
-handler's arguments with the same name:
+Handler methods can be defined with path parameters, which can be bound to the
+handler with the annotation `FromPath`:
 
 ```python
+from typing import Annotated
+from selva.web.converter import FromPath
+from selva.web.routing.decorator import get
+
+
 @get("/:path_param")
-def handler(path_param):
+def handler(req, res, path_param: Annotated[str, FromPath]):
     ...
 ```
 
-The [routing section](../routing) provides more information about path parameters
+It is also possible to explicitly declare from which parameter the value will
+be retrieved from:
+
+```python
+@get("/:path_param")
+def handler(req, res, value: Annotated[str, FromPath("path_param")]):
+    ...
+```
+
+
+The [routing section](routing.md) provides more information about path parameters
 
 ## Dependencies
 
 Controllers themselves are services, and therefore can have services injected.
 
 ```python
+from typing import Annotated
 from selva.di import service, Inject
 from selva.web import controller
 
@@ -56,74 +78,61 @@ class MyService:
 
 @controller
 class MyController:
-    my_service: MyService = Inject()
+    my_service: Annotated[MyService, Inject]
 ```
 
 ## Request Information
 
-Handler methods can receive a parameter annotated with type `RequestContext`
-that provides access to request information (path, method, headers, query
-string, request body). The underlying http request or websocket from
-[starlette](https://www.starlette.io/) can be accessed via  the properties
-`RequestContext.request` or `RequestContext.websocket`, respectively.
-
-`RequestContext` provides the following methods:
-
-```python
-def is_http() -> bool
-def is_websocket() -> bool
-def method() -> HTTPMethod | None
-def url() -> URL
-def base_url() -> URL
-def path() -> str
-def headers() -> Headers
-def query() -> QueryParams
-def cookies() -> Mapping[str, str]
-def client() -> Address | None
-```
+Handler methods receive an object of type `asgikit.requests.Request` as the first
+parameter that provides access to request information (path, method, headers, query
+string, request body). It also provides the `asgikit.responses.Response` or
+`asgikit.websockets.WebSocket` objects to either respond the request or interact
+with the client via websocket.
 
 !!! attention
 
-    For http requests, `RequestContext.websocket` will be `None`, and for
-    websocket requests, `RequestContext.request` will be `None`
+    For http requests, `Request.websocket` will be `None`, and for
+    websocket requests, `Request.response` will be `None`
 
 ```python
-from selva.web import RequestContext, controller, get, websocket
-from selva.web.request import HTTPMethod
+from http import HTTPMethod, HTTPStatus
+from asgikit.requests import Request
+from asgikit.responses import respond_json
+from selva.web import controller, get, websocket
 
 
 @controller
 class MyController:
     @get
-    def handler(self, context: RequestContext):
-        assert context.request is not None
-        assert context.websocket is None
+    async def handler(self, request: Request):
+        assert request.response is not None
+        assert request.websocket is None
 
-        assert context.method == HTTPMethod.GET
-        assert context.path == "/"
-        return context.path
+        assert request.method == HTTPMethod.GET
+        assert request.path == "/"
+        await respond_json(request.response, {"status": HTTPStatus.OK})
 
     @websocket
-    async def ws_handler(self, context: RequestContext):
-        assert context.request is None
-        assert context.websocket is not None
+    async def ws_handler(self, request: Request):
+        assert request.response is None
+        assert request.websocket is not None
         
-        ws = context.websocket
+        ws = request.websocket
         await ws.accept()
         while True:
             data = await ws.receive()
-            await ws.send_text(data)
+            await ws.send(data)
 ```
 
 ## Request body
 
-There are several methods to access the request body:
+`asgikit` provides several functions to retrieve the request body:
 
 ```python
-async def stream() -> AsyncIterable[bytes]
-async def body() -> bytes
-async def json() -> dict | list
-async def form() -> dict
+async def read_body(request: Request) -> bytes
+async def read_text(request: Request, encoding: str = None) -> str
+async def read_json(request: Request) -> dict | list
+async def read_form(request: Request) -> dict[str, str | multipart.File]:
 ```
 
 ## Websockets
@@ -132,32 +141,25 @@ For websocket, there are the following methods:
 
 ```python
 async def accept(subprotocol: str = None, headers: Iterable[tuple[bytes, bytes]] = None)
-async def receive() -> Message
-async def send(message: Message) -> Awaitable
-async def receive_text() -> str
-async def receive_bytes() -> bytes
-async def receive_json(mode: str = "text") -> Any
-async def iter_text() -> str
-async def iter_bytes() -> AsyncIterator[bytes]
-async def iter_json() -> AsyncIterator[Any]
-async def send_text(data: str)
-async def send_bytes(data: bytes)
-async def send_json(data: Any, mode: str = "text")
-async def close(code: int = 1000, reason: str = None)
+async def receive(self) -> str | bytes
+async def send(self, data: bytes | str)
+async def close(self, code: int = 1000, reason: str = "")
 ```
 
 ## Request Parameters
 
 Handler methods can receive additional parameters, which will be extracted from
-the request context using an implementation of `selva.web.FromRequest[Type]`.
+the request using an implementation of `selva.web.FromRequest[Type]`.
 If there is no direct implementation of `FromRequest[Type]`, Selva will iterate
 over the base types of `Type` until an implementation is found or an error will
 be returned if there is none.
 
+You can use the `register_from_request` decorator to register an `FromRequest` implementation.
+
 ```python
-from selva.di import service
-from selva.web import RequestContext, controller, get
-from selva.web.converter import FromRequest
+from asgikit.requests import Request
+from selva.web import controller, get
+from selva.web.converter.decorator import register_from_request
 
 
 class Param:
@@ -165,10 +167,16 @@ class Param:
         self.request_path = path
 
 
-@service(provides=FromRequest[Param])
+@register_from_request(Param)
 class ParamFromRequest:
-    def from_request(self, context: RequestContext) -> Param:
-        return Param(context.path)
+    def from_request(
+        self,
+        request: Request,
+        original_type,
+        parameter_name,
+        metadata = None,
+    ) -> Param:
+        return Param(request.path)
 
 
 @controller
@@ -179,20 +187,23 @@ class MyController:
 ```
 
 If the `FromRequest` implementation raise an error, the handler is not called.
-And if the error is a subclass of `selva.web.error.HTTPError`, for example
-`UnathorizedError`, a response will be returned according to the error.
+And if the error is a subclass of `selva.web.error.HTTPError`, for instance
+`UnathorizedError`, a response will be produced according to the error.
 
 ```python
-from selva.di import service
-from selva.web import RequestContext
-from selva.web.converter import FromRequest
 from selva.web.exception import HTTPUnauthorizedException
 
 
-@service(provides=FromRequest[Param])
+@register_from_request(Param)
 class ParamFromRequest:
-    def from_request(self, context: RequestContext) -> Param:
-        if "authorization" not in context.headers:
+    def from_request(
+        self,
+        request: Request,
+        original_type,
+        parameter_name,
+        metadata = None,
+    ) -> Param:
+        if "authorization" not in request.headers:
             raise HTTPUnauthorizedException()
         return Param(context.path)
 ```
@@ -201,60 +212,23 @@ class ParamFromRequest:
 
 Selva already implements `FromRequest[pydantic.BaseModel]` by reading the request
 body and parsing the input into the pydantic model, if the content type is json
-or form, otherwise raising an `HTTPError` with status code 415.
+or form, otherwise raising an `HTTPError` with status code 415. It is also implemented
+for `list[pydantic.BaseModel]`.
 
 ## Responses
 
-Handler methods can return an instance of `selva.web.response.Response`, which
-provides shortcut methods for several response types.
+Inheriting the `asgikit.responses.Response` from `asgikit`, the handler methods
+do not return a response, instead they write to the response.
 
 ```python
+from asgikit.requests import Request
+from asgikit.responses import respond_text
 from selva.web import controller, get
-from selva.web.response import PlainTextResponse
 
 
 @controller
 class Controller:
     @get
-    def handler(self) -> PlainTextResponse:
-        return PlainTextResponse("Ok")
+    async def handler(self, request: Request):
+        await respond_text(request.response, "Ok")
 ```
-
-Handler methods can also return objects that have a corresponding `selva.web.converter.IntoResponse[Type]`
-implementation. As with `FromRequest[Type]`, Selva will iterate over the base
-types of `Type` until an implementation is found or an error will be returned.
-
-```python
-from selva.di import service
-from selva.web import controller, get
-from selva.web.converter import IntoResponse
-from selva.web.response import JSONResponse
-
-
-class Result:
-    def __init__(self, data: str):
-        self.data = data
-
-
-@service(provides=IntoResponse[Result])
-class ResultIntoResponse:
-    def into_response(self, value: Result) -> JSONResponse:
-        return JSONResponse({"result": value.data})
-
-
-@controller
-class MyController:
-    @get
-    def handler(self) -> Result:
-        return Result("OK")
-```
-
-There are already implementations of `IntoResponse` for the following:
-
-- `int` (response with status code)
-- [`http.HTTPStatus`](https://docs.python.org/3/library/http.html#http.HTTPStatus) (response with status code)
-- `str` (text response)
-- `list` (json response)
-- `dict` (json response)
-- `set` (json response)
-- `os.PathLike` (file response)

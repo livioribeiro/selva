@@ -28,7 +28,7 @@ packages = [
 
 [tool.poetry.dependencies]
 python = "^3.12"
-asgikit = "^0.4.2"
+asgikit = "^0.5"
 pydantic = "^2.4"
 
 [tool.poetry.group.dev]

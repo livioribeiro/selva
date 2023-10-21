@@ -17,9 +17,7 @@ def register_from_request(target: Type):
 def register_param_converter(target: Type):
     def inner(cls):
         if not hasattr(cls, ParamConverter.into_str.__name__):
-            setattr(
-                cls, ParamConverter.into_str.__name__, lambda self, value: str(value)
-            )
+            setattr(cls, ParamConverter.into_str.__name__, ParamConverter.into_str)
 
         assert issubclass(cls, ParamConverter)
         return service(cls, provides=ParamConverter[target])

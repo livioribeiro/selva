@@ -1,7 +1,6 @@
 import inspect
 from collections.abc import Callable
 from enum import Enum
-from functools import singledispatch
 from http import HTTPMethod
 from typing import NamedTuple
 
@@ -35,37 +34,31 @@ class ActionInfo(NamedTuple):
     path: str
 
 
-@singledispatch
-def controller(path):
-    # TODO: create exception
-    raise ValueError(f"@controller must be applied to class, '{path}' given")
+def controller(target: type | str):
+    if inspect.isclass(target):
+        path = ""
+        cls = target
+    elif isinstance(target, str):
+        path = target.strip("/")
+        cls = None
+    else:
+        raise TypeError(f"@controller must be applied to class, '{target}' given")
 
+    def inner(arg: type):
+        setattr(arg, CONTROLLER_ATTRIBUTE, ControllerInfo(path))
+        return service(arg)
 
-@controller.register
-def _(path: str):
-    path = path.strip("/")
-
-    def inner(cls: type):
-        if not inspect.isclass(cls):
-            # TODO: create exception
-            raise ValueError(f"@controller must be applied to class, '{cls}' given")
-
-        setattr(cls, CONTROLLER_ATTRIBUTE, ControllerInfo(path))
-        return service(cls)
-
-    return inner
-
-
-@controller.register
-def _(cls: type):
-    setattr(cls, CONTROLLER_ATTRIBUTE, ControllerInfo(""))
-    return service(cls)
+    return inner(cls) if cls else inner
 
 
 def route(action=None, /, *, method: HTTPMethod | None, path: str | None):
     path = path.strip("/") if path else ""
 
     def inner(arg: Callable):
+        sig = inspect.signature(arg)
+        if len([x for x in sig.parameters if x != "return"]) < 1:
+            raise TypeError("Handler method must have at least 1 parameter")
+
         setattr(arg, ACTION_ATTRIBUTE, ActionInfo(ActionType(method), path))
         return arg
 

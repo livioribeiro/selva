@@ -3,10 +3,9 @@ from pathlib import PurePath
 from typing import Annotated
 
 from asgikit.requests import Request
-from asgikit.responses import Response, respond_text
+from asgikit.responses import respond_text
 
-from selva.web import FromQuery, controller, get
-from selva.web.converter import FromPath
+from selva.web import FromPath, FromQuery, controller, get
 from selva.web.converter.decorator import register_param_converter
 
 
@@ -24,37 +23,29 @@ class MyModelParamConverter:
 @controller
 class MyController:
     @get("/int/:param")
-    async def handler_int(
-        self, req: Request, res: Response, param: Annotated[int, FromPath]
-    ):
-        await respond_text(res, str(param))
+    async def handler_int(self, request: Request, param: Annotated[int, FromPath]):
+        await respond_text(request.response, str(param))
 
     @get("/float/:param")
-    async def handler_float(
-        self, req: Request, res: Response, param: Annotated[float, FromPath]
-    ):
-        await respond_text(res, str(param))
+    async def handler_float(self, request: Request, param: Annotated[float, FromPath]):
+        await respond_text(request.response, str(param))
 
     @get("/bool/:param")
-    async def handler_bool(
-        self, req: Request, res: Response, param: Annotated[bool, FromPath]
-    ):
-        await respond_text(res, str(param))
+    async def handler_bool(self, request: Request, param: Annotated[bool, FromPath]):
+        await respond_text(request.response, str(param))
 
     @get("/custom/")
     async def handler_custom_query(
-        self, req: Request, res: Response, param: Annotated[MyModel, FromQuery]
+        self, request: Request, param: Annotated[MyModel, FromQuery]
     ):
-        await respond_text(res, str(param))
+        await respond_text(request.response, str(param))
 
     @get("/custom/:param")
     async def handler_custom(
-        self, req: Request, res: Response, param: Annotated[MyModel, FromPath]
+        self, request: Request, param: Annotated[MyModel, FromPath]
     ):
-        await respond_text(res, str(param))
+        await respond_text(request.response, str(param))
 
     @get("/path/*path")
-    async def handler_path(
-        self, req: Request, res: Response, path: Annotated[PurePath, FromPath]
-    ):
-        await respond_text(res, str(path))
+    async def handler_path(self, request: Request, path: Annotated[PurePath, FromPath]):
+        await respond_text(request.response, str(path))

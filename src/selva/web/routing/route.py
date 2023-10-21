@@ -70,8 +70,8 @@ def build_request_params(action: Callable) -> dict[str, tuple[type, Any | None]]
     skip_req_res = 0
 
     for name, type_hint in type_hints.items():
-        # skip first 2 parameters, request and response
-        if skip_req_res < 2:
+        # skip first parameter, request
+        if skip_req_res < 1:
             skip_req_res += 1
             continue
 

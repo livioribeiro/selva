@@ -1,7 +1,7 @@
 from typing import Annotated
 
 from asgikit.requests import Request
-from asgikit.responses import Response, respond_text
+from asgikit.responses import respond_text
 
 from selva.configuration import Settings
 from selva.di import Inject
@@ -13,5 +13,5 @@ class Controller:
     settings: Annotated[Settings, Inject]
 
     @get
-    async def index(self, request: Request, response: Response):
-        await respond_text(response, self.settings.MESSAGE)
+    async def index(self, request: Request):
+        await respond_text(request.response, self.settings.MESSAGE)
