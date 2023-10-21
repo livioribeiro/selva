@@ -55,6 +55,9 @@ def route(action=None, /, *, method: HTTPMethod | None, path: str | None):
     path = path.strip("/") if path else ""
 
     def inner(arg: Callable):
+        if not inspect.iscoroutinefunction(arg):
+            raise TypeError("Handler method must be async")
+
         sig = inspect.signature(arg)
         if len([x for x in sig.parameters if x != "return"]) < 1:
             raise TypeError("Handler method must have at least 1 parameter")

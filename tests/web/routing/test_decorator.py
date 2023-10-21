@@ -40,7 +40,7 @@ def test_controller_decorator_with_path():
 
 
 def test_controller_decorator_on_non_class_should_fail():
-    def func():
+    async def func():
         pass
 
     with pytest.raises(TypeError):
@@ -60,7 +60,7 @@ def test_controller_decorator_on_non_class_should_fail():
     ids=["get", "post", "put", "patch", "delete", "websocket"],
 )
 def test_route_decorator_without_path(decorator, action_type):
-    def handler(req, res):
+    async def handler(req):
         pass
 
     decorator(handler)
@@ -82,7 +82,7 @@ def test_route_decorator_without_path(decorator, action_type):
     ids=["get", "post", "put", "patch", "delete", "websocket"],
 )
 def test_route_decorator_with_path(decorator, action_type):
-    def handler(req, res):
+    async def handler(req):
         pass
 
     decorator("path")(handler)
@@ -92,13 +92,21 @@ def test_route_decorator_with_path(decorator, action_type):
 
 
 def test_handler_with_less_than_one_parameter_should_fail():
-    def func0():
+    async def func0():
         pass
 
-    def func1(req):
+    async def func1(req):
         pass
 
-    with pytest.raises(TypeError):
+    with pytest.raises(TypeError, match="Handler method must have at least 1 parameter"):
         route(func0, method=HTTPMethod.GET, path="")
 
     route(func1, method=HTTPMethod.GET, path="")
+
+
+def test_non_async_handler_should_fail():
+    def handler(req):
+        pass
+
+    with pytest.raises(TypeError, match="Handler method must be async"):
+        route(handler, method=HTTPMethod.GET, path="")
