@@ -12,23 +12,23 @@ be the first two parameters.
 
 ```python
 from asgikit.requests import Request, read_json
-from asgikit.responses import Response, respond_text, respond_redirect
+from asgikit.responses import respond_text, respond_redirect
 from selva.web import controller, get, post
 
 
 @controller
 class IndexController:
     @get
-    async def index(self, request: Request, response: Response):
-        await respond_text(response, "application root")
+    async def index(self, request: Request):
+        await respond_text(request.response, "application root")
 
 
 @controller("admin")
 class AdminController:
     @post("send")
-    async def handle_data(self, request: Request, response: Response):
+    async def handle_data(self, request: Request):
         print(await read_json(request))
-        await respond_redirect(response, "/")
+        await respond_redirect(request.response, "/")
 ```
 
 !!! note
@@ -45,7 +45,7 @@ from selva.web.routing.decorator import get
 
 
 @get("/:path_param")
-def handler(req, res, path_param: Annotated[str, FromPath]):
+def handler(request, path_param: Annotated[str, FromPath]):
     ...
 ```
 
@@ -158,6 +158,7 @@ You can use the `register_from_request` decorator to register an `FromRequest` i
 
 ```python
 from asgikit.requests import Request
+from asgikit.responses import respond_text
 from selva.web import controller, get
 from selva.web.converter.decorator import register_from_request
 
@@ -182,8 +183,8 @@ class ParamFromRequest:
 @controller
 class MyController:
     @get
-    def handler(self, param: Param):
-        return param.request_path
+    async def handler(self, request: Request, param: Param):
+        await respond_text(request.response, param.request_path)
 ```
 
 If the `FromRequest` implementation raise an error, the handler is not called.
