@@ -1,4 +1,3 @@
-import inspect
 import re
 import typing
 from collections import Counter
@@ -6,16 +5,13 @@ from http import HTTPMethod
 from re import Pattern
 from typing import Annotated, Any, Callable, NamedTuple
 
-from asgikit.requests import Request
-from asgikit.responses import Response
-
 __all__ = ("Route", "RouteMatch")
 
 RE_PATH_PARAM_SPEC = re.compile(r"([:*])([a-zA-Z\w]+)")
 RE_MULTI_SLASH = re.compile(r"/{2,}")
 
 PATH_PARAM_PATTERN = {
-    ":": r".+?",
+    ":": r"[^/]+?",
     "*": r".*",
 }
 
