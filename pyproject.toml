@@ -28,8 +28,10 @@ packages = [
 
 [tool.poetry.dependencies]
 python = "^3.12"
-asgikit = "^0.5"
+#asgikit = "^0.5"
+asgikit = { path = "../asgikit", develop = true }
 pydantic = "^2.4"
+loguru = "^0.7"
 
 [tool.poetry.group.dev]
 optional = true
@@ -44,6 +46,7 @@ optional = true
 pytest = "^7.4"
 pytest-asyncio = "^0.21"
 pytest-cov = "^4.1"
+pytest-loguru = "^0.3"
 coverage = { version = "^7.3", extras = ["toml"] }
 
 [tool.poetry.group.lint]

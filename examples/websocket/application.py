@@ -1,6 +1,7 @@
-import logging
 from pathlib import Path
 from typing import Annotated
+
+from loguru import logger
 
 from asgikit.errors.websocket import WebSocketDisconnectError
 from asgikit.requests import Request
@@ -11,8 +12,6 @@ from selva.configuration import Settings
 from selva.di import Inject, service
 from selva.web import controller, get, websocket
 from selva.web.exception import WebSocketException
-
-logger = logging.getLogger(__name__)
 
 
 @service
@@ -25,17 +24,17 @@ class WebSocketService:
         ws = request.websocket
         self.clients[client] = ws
 
-        logger.info("client connected: %s", client)
+        logger.info("client connected: {}", client)
 
         while True:
             try:
                 message = await ws.receive()
                 logger.info(
-                    "client message: content=%s, client=%s", message, repr(client)
+                    "client message: content={}, client={}", message, repr(client)
                 )
                 await self.broadcast(message)
             except (WebSocketDisconnectError, WebSocketException):
-                logger.info("client disconnected: %s", repr(client))
+                logger.info("client disconnected: {}", repr(client))
                 del self.clients[client]
                 break
 
@@ -48,7 +47,7 @@ class WebSocketService:
                 await ws.send(message)
             except (WebSocketDisconnectError, WebSocketException):
                 del self.clients[client]
-                logger.info("client disconnected: %s", repr(client))
+                logger.info("client disconnected: {}", repr(client))
 
 
 @controller

@@ -1,13 +1,12 @@
-import logging
 import os
 from typing import Annotated
+
+from loguru import logger
 
 from databases import Database
 
 from selva.configuration import Settings
 from selva.di import Inject, service
-
-logger = logging.getLogger(__name__)
 
 
 @service
@@ -44,5 +43,5 @@ class Repository:
     async def count(self) -> int:
         await self.database.execute("update counter set value = value + 1")
         result = await self.database.fetch_val("select value from counter")
-        logger.info("Current count: %d", result)
+        logger.info("Current count: {}", result)
         return result

@@ -1,11 +1,12 @@
 import functools
 import importlib
 import inspect
-import logging
 import typing
 from http import HTTPStatus
 from types import FunctionType, ModuleType
 from typing import Any
+
+from loguru import logger
 
 from asgikit.errors.websocket import WebSocketDisconnectError, WebSocketError
 from asgikit.requests import Request
@@ -14,7 +15,6 @@ from asgikit.websockets import WebSocket
 
 from selva._util.base_types import get_base_types
 from selva._util.maybe_async import maybe_async
-from selva.configuration.logging import setup_logging
 from selva.configuration.settings import Settings, get_settings
 from selva.di.container import Container
 from selva.di.decorator import DI_SERVICE_ATTRIBUTE
@@ -36,8 +36,6 @@ from selva.web.exception_handler import ExceptionHandler
 from selva.web.middleware import Middleware
 from selva.web.routing.decorator import CONTROLLER_ATTRIBUTE
 from selva.web.routing.router import Router
-
-logger = logging.getLogger(__name__)
 
 
 def _is_controller(arg) -> bool:
@@ -66,8 +64,6 @@ class Selva:
 
         self.settings = get_settings()
         self.di.define(Settings, self.settings)
-
-        setup_logging(self.settings)
 
         self.di.define(Router, self.router)
 
@@ -153,16 +149,22 @@ class Selva:
         while True:
             message = await receive()
             if message["type"] == "lifespan.startup":
+                logger.debug("Handling lifespan startup")
                 try:
                     await self._initialize()
+                    logger.debug("Lifespan startup complete")
                     await send({"type": "lifespan.startup.complete"})
                 except Exception as err:
+                    logger.debug("Lifespan startup failed")
                     await send({"type": "lifespan.startup.failed", "message": str(err)})
             elif message["type"] == "lifespan.shutdown":
+                logger.debug("Handling lifespan shutdown")
                 try:
                     await self._finalize()
+                    logger.debug("Lifespan shutdown complete")
                     await send({"type": "lifespan.shutdown.complete"})
                 except Exception as err:
+                    logger.debug("Lifespan shutdown failed")
                     await send(
                         {"type": "lifespan.shutdown.failed", "message": str(err)}
                     )
@@ -171,6 +173,8 @@ class Selva:
     async def _handle_request(self, scope, receive, send):
         request = Request(scope, receive, send)
 
+        logger.debug("Started handling of request '{} {}?{}'", request.method, request.path, request.raw_query)
+
         try:
             try:
                 await self.handler(request)
@@ -178,6 +182,7 @@ class Selva:
                 if handler := await self.di.get(
                     ExceptionHandler[type(err)], optional=True
                 ):
+                    logger.debug("Handling exception with handler {}.{}", handler.__module__, handler.__qualname__)
                     await handler.handle_exception(request, err)
                 else:
                     raise
@@ -202,8 +207,8 @@ class Selva:
                     return
 
                 await respond_status(response, err.status)
-        except Exception as err:
-            logger.exception("Error processing request", exc_info=err)
+        except Exception:
+            logger.exception("Error processing request")
             await respond_status(request.response, HTTPStatus.INTERNAL_SERVER_ERROR)
 
     async def _process_request(self, request: Request):
