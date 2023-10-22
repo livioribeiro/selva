@@ -1,10 +1,7 @@
 import pytest
 
 from selva.di.container import Container
-from selva.di.error import (
-    FactoryMissingReturnTypeError,
-    ServiceAlreadyRegisteredError,
-)
+from selva.di.error import FactoryMissingReturnTypeError, ServiceAlreadyRegisteredError
 
 from .fixtures import ioc
 
@@ -70,6 +67,7 @@ async def test_inject_singleton(ioc: Container, capfd):
 
     await ioc.run_finalizers()
     assert capfd.readouterr().out == "Service2\nService1\n"
+
 
 async def test_interface_implementation(ioc: Container, capfd):
     ioc.register(interface_factory)

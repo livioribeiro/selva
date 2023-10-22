@@ -1,9 +1,9 @@
 from dataclasses import dataclass
 
-from selva.di import service
-from selva.web.context import RequestContext
-from selva.web.converter.from_request import FromRequest
-from selva.web.error import HTTPUnauthorizedError
+from asgikit.requests import Request
+
+from selva.web.converter.decorator import register_from_request
+from selva.web.exception import HTTPUnauthorizedException
 
 
 @dataclass
@@ -11,10 +11,12 @@ class User:
     name: str
 
 
-@service(provides=FromRequest[User])
+@register_from_request(User)
 class UserFromRequest:
-    def from_request(self, context: RequestContext) -> User:
-        if user := context["user"]:
+    def from_request(
+        self, request: Request, original_type, parameter_name: str, metadata=None
+    ) -> User:
+        if user := request["user"]:
             return User(user)
 
-        raise HTTPUnauthorizedError()
+        raise HTTPUnauthorizedException()

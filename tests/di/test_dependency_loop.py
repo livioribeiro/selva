@@ -1,3 +1,5 @@
+from typing import Annotated
+
 from selva.di.container import Container
 from selva.di.inject import Inject
 
@@ -5,11 +7,11 @@ from .fixtures import ioc
 
 
 class Service1:
-    service2: "Service2" = Inject()
+    service2: Annotated["Service2", Inject]
 
 
 class Service2:
-    service1: Service1 = Inject()
+    service1: Annotated[Service1, Inject]
 
 
 async def test_dependency_loop(ioc: Container):

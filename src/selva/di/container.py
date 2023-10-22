@@ -1,6 +1,7 @@
+import asyncio
 import inspect
 import logging
-from collections.abc import Awaitable, Iterable
+from collections.abc import AsyncGenerator, Awaitable, Generator, Iterable
 from types import FunctionType, ModuleType
 from typing import Any, Type, TypeVar
 
@@ -179,13 +180,13 @@ class Container:
 
             instance = await maybe_async(factory, **dependencies)
             if inspect.isgenerator(instance):
-                gen_factory = instance.__next__
-                instance = await maybe_async(gen_factory)
-                self._setup_generator_finalizer(gen_factory)
+                generator = instance
+                instance = await asyncio.to_thread(next, generator)
+                self._setup_generator_finalizer(generator)
             elif inspect.isasyncgen(instance):
-                gen_factory = instance.__anext__
-                instance = await gen_factory()
-                self._setup_asyncgen_finalizer(gen_factory)
+                generator = instance
+                instance = await anext(generator)
+                self._setup_asyncgen_finalizer(generator)
 
             self.store[service_spec.provides, name] = instance
         else:
@@ -213,23 +214,11 @@ class Container:
         if finalizer := service_spec.finalizer:
             self.finalizers.append(maybe_async(finalizer, instance))
 
-    def _setup_generator_finalizer(self, finalizer):
-        def _finalizer():
-            try:
-                finalizer()
-            except StopIteration:
-                pass
+    def _setup_generator_finalizer(self, gen: Generator):
+        self.finalizers.append(asyncio.to_thread(next, gen, None))
 
-        self.finalizers.append(maybe_async(_finalizer))
-
-    def _setup_asyncgen_finalizer(self, finalizer):
-        async def _finalizer():
-            try:
-                await finalizer()
-            except StopAsyncIteration:
-                pass
-
-        self.finalizers.append(_finalizer())
+    def _setup_asyncgen_finalizer(self, gen: AsyncGenerator):
+        self.finalizers.append(anext(gen, None))
 
     async def _run_interceptors(self, instance: Any, service_type: type):
         for cls in self.interceptors:

@@ -1,5 +1,6 @@
 import logging
 import os
+from typing import Annotated
 
 from databases import Database
 
@@ -22,7 +23,7 @@ def database_factory(settings: Settings) -> Database:
 
 @service
 class Repository:
-    database: Database = Inject()
+    database: Annotated[Database, Inject]
 
     async def initialize(self):
         await self.database.connect()

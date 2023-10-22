@@ -1,9 +1,11 @@
 from typing import Annotated
 
-from selva.di import Inject, service
-from selva.web import RequestContext, controller, get, post, FromQuery
-
+from asgikit.requests import Request, read_json
+from asgikit.responses import respond_json
 from pydantic import BaseModel
+
+from selva.di import Inject, service
+from selva.web import FromPath, FromQuery, controller, get, post
 
 
 class MyModel(BaseModel):
@@ -19,31 +21,32 @@ class Greeter:
 
 @controller
 class Controller:
-    greeter: Greeter = Inject()
+    greeter: Annotated[Greeter, Inject]
 
     @get
     async def greet_query(
         self,
+        request: Request,
         name: Annotated[str, FromQuery("name")] = "World",
-        number: Annotated[int, FromQuery()] = 1
+        number: Annotated[int, FromQuery] = 1,
     ):
         greeting = self.greeter.greet(name)
-        return {"greeting": greeting, "number": number}
+        await respond_json(request.response, {"greeting": greeting, "number": number})
 
     @get("/:name")
-    async def greet_path(self, name: str):
+    async def greet_path(self, request: Request, name: Annotated[str, FromPath]):
         greeting = self.greeter.greet(name)
-        return {"greeting": greeting}
+        await respond_json(request.response, {"greeting": greeting})
 
     @post
-    async def post_data(self, context: RequestContext):
-        body = await context.request.json()
-        return {"result": body}
+    async def post_data(self, request: Request):
+        body = await read_json(request)
+        await respond_json(request.response, {"result": body})
 
     @post("pydantic")
-    def post_data_pydantic(self, data: MyModel) -> dict:
-        return {"name": data.name, "region": data.region}
+    async def post_data_pydantic(self, request: Request, data: MyModel):
+        await respond_json(request.response, {"name": data.name, "region": data.region})
 
     @post("pydantic/list")
-    def post_data_pydantic_list(self, data: list[MyModel]) -> dict:
-        return {"data": [d.model_dump() for d in data]}
+    async def post_data_pydantic_list(self, request: Request, data: list[MyModel]):
+        await respond_json(request.response, {"data": [d.model_dump() for d in data]})

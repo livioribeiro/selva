@@ -1,19 +1,19 @@
 import asyncio
 
-from selva.web import RequestContext, controller, get
-from selva.web.response import BackgroundTask, JSONResponse
+from asgikit.requests import Request
+from asgikit.responses import respond_json
+
+from selva.web import controller, get
 
 
 @controller
 class Controller:
     @get
-    def background_task(self, context: RequestContext) -> JSONResponse:
-        name = context.query.get("name", "World")
+    async def background_task(self, request: Request):
+        name = request.query.get("name", "World")
         message = f"Hello, {name}!"
-        return JSONResponse(
-            {"message": message}, background=BackgroundTask(self.say_message, message)
-        )
 
-    async def say_message(self, message: str):
+        await respond_json(request.response, {"message": message})
+
         await asyncio.sleep(5)
         print(message)

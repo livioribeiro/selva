@@ -1,3 +1,5 @@
+from typing import Annotated
+
 from selva.di.container import Container
 from selva.di.inject import Inject
 
@@ -55,7 +57,7 @@ class FinalizerOrder1:
 
 
 class FinalizerOrder2:
-    dep: FinalizerOrder1 = Inject()
+    dep: Annotated[FinalizerOrder1, Inject]
 
     def initialize(self):
         print("initialize 2", flush=True)

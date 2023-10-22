@@ -1,12 +1,9 @@
-import inspect
 import re
 import typing
 from collections import Counter
-from collections.abc import Iterable
+from http import HTTPMethod
 from re import Pattern
 from typing import Annotated, Any, Callable, NamedTuple
-
-from selva.web.request import HTTPMethod
 
 __all__ = ("Route", "RouteMatch")
 
@@ -14,7 +11,7 @@ RE_PATH_PARAM_SPEC = re.compile(r"([:*])([a-zA-Z\w]+)")
 RE_MULTI_SLASH = re.compile(r"/{2,}")
 
 PATH_PARAM_PATTERN = {
-    ":": r".+?",
+    ":": r"[^/]+?",
     "*": r".*",
 }
 
@@ -61,18 +58,19 @@ def build_path_regex_and_params(
     return re.compile(regex), param_types
 
 
-def build_request_params(
-    action: Callable, path_params: Iterable[str]
-) -> dict[str, tuple[type, Any | None]]:
+def build_request_params(action: Callable) -> dict[str, tuple[type, Any | None]]:
     type_hints = typing.get_type_hints(action, include_extras=True)
     type_hints.pop("return", None)
 
-    for path_param in path_params:
-        type_hints.pop(path_param, None)
-
     result = {}
+    skip_req_res = 0
 
     for name, type_hint in type_hints.items():
+        # skip first parameter, request
+        if skip_req_res < 1:
+            skip_req_res += 1
+            continue
+
         if typing.get_origin(type_hint) is Annotated:
             # Annotated is garanteed to have at least 2 args
             param_type, param_meta, *_ = typing.get_args(type_hint)
@@ -99,7 +97,7 @@ class Route:
         self.name = name
 
         self.regex, self.path_params = build_path_regex_and_params(action, path)
-        self.request_params = build_request_params(action, self.path_params.keys())
+        self.request_params = build_request_params(action)
 
     def match(self, method: HTTPMethod | None, path: str) -> dict[str, str] | None:
         if method is self.method and (match := self.regex.match(path)):

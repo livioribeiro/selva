@@ -3,7 +3,7 @@ import logging
 import typing
 from collections.abc import Callable, Iterable
 from types import NoneType, UnionType
-from typing import Any, Optional, TypeVar, Union
+from typing import Annotated, Any, Optional, TypeVar, Union
 
 from selva.di.error import (
     FactoryMissingReturnTypeError,
@@ -40,12 +40,23 @@ def _check_optional(type_hint: type, default: Any) -> tuple[type, bool]:
     return type_hint, is_optional
 
 
+def _get_injectable_params(hint) -> tuple[type, Any] | None:
+    if typing.get_origin(hint) is not Annotated:
+        return None
+
+    arg_type, arg_meta = typing.get_args(hint)[0:2]
+    if not isinstance(arg_meta, Inject) and arg_meta is not Inject:
+        return None
+
+    return arg_type, arg_meta
+
+
 def _get_service_signature(service: InjectableType) -> Iterable[str, type, Any]:
     if inspect.isclass(service):
-        for name, hint in typing.get_type_hints(service).items():
-            value = getattr(service, name, None)
-            if isinstance(value, Inject):
-                yield name, hint, value
+        for name, hint in typing.get_type_hints(service, include_extras=True).items():
+            if params := _get_injectable_params(hint):
+                arg_type, arg_meta = params
+                yield name, arg_type, arg_meta
     elif inspect.isfunction(service):
         for name, param in inspect.signature(service).parameters.items():
             hint = param.annotation
@@ -58,14 +69,14 @@ def _get_service_signature(service: InjectableType) -> Iterable[str, type, Any]:
 def get_dependencies(
     service: InjectableType,
 ) -> Iterable[tuple[str, ServiceDependency]]:
-    for name, hint, value in _get_service_signature(service):
-        if isinstance(value, Inject):
-            service_name = value.name
-            value = inspect.Parameter.empty
+    for name, hint, meta in _get_service_signature(service):
+        if isinstance(meta, Inject):
+            service_name = meta.name
+            meta = inspect.Parameter.empty
         else:
             service_name = None
 
-        hint, is_optional = _check_optional(hint, value)
+        hint, is_optional = _check_optional(hint, meta)
 
         dependency = ServiceDependency(hint, name=service_name, optional=is_optional)
         yield name, dependency

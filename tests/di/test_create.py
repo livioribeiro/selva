@@ -1,3 +1,5 @@
+from typing import Annotated
+
 from selva.di.container import Container
 from selva.di.inject import Inject
 
@@ -13,7 +15,7 @@ def service1_factory() -> Service1:
 
 
 class Service2:
-    service1: Service1 = Inject()
+    service1: Annotated[Service1, Inject]
 
 
 def service2_factory(service1: Service1) -> Service2:
@@ -23,7 +25,7 @@ def service2_factory(service1: Service1) -> Service2:
 
 
 class Creatable:
-    service2: Service2 = Inject()
+    service2: Annotated[Service2, Inject]
 
 
 async def test_create_object_with_class(ioc: Container):

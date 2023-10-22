@@ -1,36 +1,20 @@
 import pytest
+from asgikit.requests import Request
+from asgikit.responses import Response
 
 from selva.web.middleware import Middleware
 
 
 class Mid(Middleware):
-    async def __call__(self, context):
-        return await self.app(context)
+    async def __call__(self, chain, request: Request, response: Response):
+        await chain(request, response)
 
 
-async def test_set_app():
-    async def app(ctx):
-        return ctx
-
+async def test_non_async_chain_should_fail():
     mid = Mid()
-    mid.set_app(app)
 
-    result = await mid(1)
-    assert result == 1
-
-
-async def test_non_async_app_should_fail():
-    def app(ctx):
-        return ctx
-
-    mid = Mid()
-    mid.set_app(app)
+    def chain_call(request, response):
+        pass
 
     with pytest.raises(TypeError):
-        await mid(None)
-
-
-async def test_set_app_not_called_should_fail():
-    mid = Mid()
-    with pytest.raises(RuntimeError):
-        await mid(None)
+        await mid(chain_call, None, None)

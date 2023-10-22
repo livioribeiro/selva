@@ -8,12 +8,22 @@ Parameters can be defined in the handler's path using the syntax `:parameter_nam
 where `parameter_name` must be the name of the argument on the handler's signature.
 
 ```python
+from typing import Annotated
+from asgikit.requests import Request
+from asgikit.responses import respond_text
+from selva.web import controller, get, FromPath
+
+
 @controller
 class Controller:
     @get("hello/:name")
-    def handler(self, name: str):
-        return f"Hello, {name}!"
+    async def handler(self, request: Request, name: Annotated[str, FromPath]):
+        await respond_text(request.response, f"Hello, {name}!")
 ```
+
+Here was used `Annotated` and `FromPath` to indicated that the handler argument
+is to be bound to the parameter from the request path. More on that will be explained
+in the following sections.
 
 ## Path matching
 
@@ -22,16 +32,22 @@ If you want to match the whole path, or a subpath of the request path,
 use the syntax `*parameter_name`.
 
 ```python
+from typing import Annotated
+from asgikit.requests import Request
+from asgikit.responses import respond_text
+from selva.web import controller, get, FromPath
+
+
 @controller
 class Controller:
     @get("hello/*path")
-    def handler(self, path: str):
+    async def handler(self, request: Request, path: Annotated[str, FromPath]):
         name = " ".join(path.split("/"))
-        return f"Hello, {name}!"
+        await respond_text(request.response, f"Hello, {name}!")
 ```
 
-For a request like `GET hello/wonderful/Python/world`, the handler will output
-`Hello, wonderful Python world!`.
+For a request like `GET hello/Python/World`, the handler will output
+`Hello, Python World!`.
 
 You can mix both types of parameters with no problem:
 
@@ -41,28 +57,43 @@ You can mix both types of parameters with no problem:
 - `:normal_param/*path/:other_path`
 
 ## Parameter conversion
+
 Parameter conversion is done through the type annotation on the parameter. Selva
 will try to find a converter suitable for the parameter type and then convert
 the value before calling the handler method.
 
 ```python
+from typing import Annotated
+from asgikit.requests import Request
+from asgikit.responses import respond_json
+from selva.web import controller, get, FromPath
+
+
 @controller
 class Controller:
     @get("repeat/:amount")
-    def handler(self, amount: int):
-        return {f"repeat {i}": i for i in range(amount)}
+    async def handler(self, request: Request, amount: Annotated[int, FromPath]):
+        await respond_json(request.response, {f"repeat {i}": i for i in range(amount)})
 ```
 
-Selva already provide converters for the types `str`, `int`, `float` and `bool`.
+The type annotation indicates that we want a value of type `int` that should be
+taken from the request path.
+
+Selva already provide converters for the types `str`, `int`, `float`, `bool` and `pathlib.PurePath`.
 
 ## Custom parameter conversion
 
-Conversion can be customized by providing an implementing of `selva.web.PathConverter[Type]`.
+Conversion can be customized by providing an implementing of `selva.web.converter.param_converter.ParamConverter`.
+You normally use the shortcut decorator `selva.web.converter.decodator.register_param_converter.`
 
 ```python
 from dataclasses import dataclass
-from selva.di import service
-from selva.web import StrConverter, controller, get
+from typing import Annotated
+
+from asgikit.requests import Request
+from asgikit.responses import respond_text
+from selva.web import controller, get, FromPath
+from selva.web.converter.decorator import register_param_converter
 
 
 @dataclass
@@ -70,23 +101,23 @@ class MyModel:
     name: str
 
 
-@service(provides=StrConverter[MyModel])
-class MyModelPathConverter:
-    def from_path(self, value: str) -> MyModel:
+@register_param_converter(MyModel)
+class MyModelParamConverter:
+    def from_str(self, value: str) -> MyModel:
         return MyModel(value)
 
 
 @controller
 class MyController:
     @get("/:model")
-    def handler(self, model: MyModel):
-        return str(model)
+    async def handler(self, request: Request, model: Annotated[MyModel, FromPath]):
+        await respond_text(request.response, str(model))
 ```
 
-If the `PathConverter` implementation raise an error, the handler is not called.
-And if the error is a subclass of `selva.web.error.HTTPError`, for example
-`UnathorizedError`, a response will be returned according to the error.
+If the `ParamConverter` implementation raise an error, the handler is not called.
+And if the error is a subclass of `selva.web.error.HTTPError`, for instance
+`UnathorizedError`, a response will be produced according to the error.
 
-The `PathConverter` can also be provided a method called `:::python into_path(self, obj) -> str`
-that is used to convert the object back into the path. This is used to build urls
-from routes. If not implemented, the default calls `str` on the object.
+The `ParamConverter` can also be provided a method called `:::python into_str(self, obj) -> str`
+that is used to convert the object back. This is used to build urls from routes.
+If not implemented, the default calls `str` on the object.

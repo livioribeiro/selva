@@ -2,54 +2,53 @@ from pathlib import PurePath
 
 import pytest
 
-from selva.web.converter.from_request_param_impl import (
-    StrFromRequestParam,
-    IntFromRequestParam,
-    FloatFromRequestParam,
-    BoolFromRequestParam,
-    PurePathFromRequestParam,
+from selva.web.converter.param_converter_impl import (
+    BoolParamConverter,
+    FloatParamConverter,
+    IntParamConverter,
+    PurePathParamConverter,
+    StrParamConverter,
 )
-
-from selva.web.error import HTTPBadRequestError
+from selva.web.exception import HTTPBadRequestException
 
 
 async def test_str_request_param():
-    converter = StrFromRequestParam()
+    converter = StrParamConverter()
     value = "A"
     expected = "A"
 
-    result = converter.from_request_param(value)
+    result = converter.from_str(value)
     assert result == expected
 
 
 async def test_int_request_param():
-    converter = IntFromRequestParam()
+    converter = IntParamConverter()
     value = "1"
     expected = 1
 
-    result = converter.from_request_param(value)
+    result = converter.from_str(value)
     assert result == expected
 
 
 def test_int_request_param_with_invalid_value_should_fail():
-    converter = IntFromRequestParam()
-    with pytest.raises(HTTPBadRequestError):
-        converter.from_request_param("A")
+    converter = IntParamConverter()
+    with pytest.raises(HTTPBadRequestException):
+        converter.from_str("A")
 
 
 async def test_float_request_param():
-    converter = FloatFromRequestParam()
+    converter = FloatParamConverter()
     value = "1.1"
     expected = 1.1
 
-    result = converter.from_request_param(value)
+    result = converter.from_str(value)
     assert result == expected
 
 
 def test_float_request_param_with_invalid_value_should_fail():
-    converter = FloatFromRequestParam()
-    with pytest.raises(HTTPBadRequestError):
-        converter.from_request_param("A")
+    converter = FloatParamConverter()
+    with pytest.raises(HTTPBadRequestException):
+        converter.from_str("A")
 
 
 @pytest.mark.parametrize(
@@ -67,23 +66,23 @@ def test_float_request_param_with_invalid_value_should_fail():
     ids=["1", "True", "true", "tRuE", "0", "False", "false", "fAlSe"],
 )
 async def test_bool_request_param(value: str, expected: bool):
-    converter = BoolFromRequestParam()
+    converter = BoolParamConverter()
 
-    result = converter.from_request_param(value)
+    result = converter.from_str(value)
     assert result == expected
 
 
 async def test_bool_request_param_with_invalid_value_should_fail():
-    converter = BoolFromRequestParam()
-    with pytest.raises(HTTPBadRequestError):
-        converter.from_request_param("invalid")
+    converter = BoolParamConverter()
+    with pytest.raises(HTTPBadRequestException):
+        converter.from_str("invalid")
 
 
 async def test_path_request_param():
-    converter = PurePathFromRequestParam()
+    converter = PurePathParamConverter()
 
     value = "/path/subpath"
     expected = PurePath("/path", "subpath")
 
-    result = converter.from_request_param(value)
+    result = converter.from_str(value)
     assert result == expected

@@ -8,10 +8,10 @@ from selva.configuration.settings import (
     Settings,
     SettingsModuleError,
     extract_valid_keys,
+    get_default_settings,
     get_settings,
     get_settings_for_env,
     is_valid_conf,
-    get_default_settings,
 )
 
 

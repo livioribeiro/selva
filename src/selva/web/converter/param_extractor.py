@@ -1,10 +1,9 @@
-from typing import Protocol, TypeVar
+from typing import Protocol, Type, runtime_checkable
 
-from selva.web.context import RequestContext
-
-T = TypeVar("T")
+from asgikit.requests import Request
 
 
-class RequestParamExtractor(Protocol[T]):
-    def extract(self, context: RequestContext, parameter_name: str, metadata: T):
+@runtime_checkable
+class ParamExtractor[T](Protocol[T]):
+    def extract(self, request: Request, parameter_name: str, metadata: T | Type[T]):
         raise NotImplementedError()

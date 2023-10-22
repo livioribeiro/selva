@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from typing import Annotated
 
 import pytest
 
@@ -14,7 +14,7 @@ class Service1:
 
 
 class Service2:
-    service1: Service1 = Inject()
+    service1: Annotated[Service1, Inject]
 
 
 class Service3:

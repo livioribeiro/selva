@@ -1,5 +1,5 @@
 import os
-from typing import NamedTuple
+from typing import Annotated, NamedTuple
 
 from selva.di import Inject, service
 
@@ -18,7 +18,7 @@ def settings_factory() -> Settings:
 
 @service
 class Greeter:
-    settings: Settings = Inject()
+    settings: Annotated[Settings, Inject]
 
     @property
     def default_name(self):

@@ -1,93 +1,66 @@
-from http import HTTPStatus
+from http import HTTPMethod, HTTPStatus
 from typing import Type
 
 import pydantic
+from asgikit.requests import Request, read_form, read_json
 from pydantic import BaseModel as PydanticModel
 
 from selva.di.decorator import service
-from selva.web.context import RequestContext
+from selva.web.converter.decorator import register_from_request
 from selva.web.converter.from_request import FromRequest
-from selva.web.error import HTTPError, HTTPBadRequestError
-from selva.web.request import Request
-from selva.web.websocket import WebSocket
+from selva.web.exception import HTTPBadRequestException, HTTPException
 
 
-@service(provides=FromRequest[RequestContext])
-class RequestContextFromRequest:
-    def from_request(
-        self, context: RequestContext, _original_type, _parameter_name
-    ) -> RequestContext:
-        return context
-
-
-@service(provides=FromRequest[Request])
-class RequestFromRequest:
-    def from_request(
-        self, context: RequestContext, _original_type, _parameter_name
-    ) -> Request:
-        if not context.is_http:
-            raise TypeError("Not a 'http' request")
-        return context.request
-
-
-@service(provides=FromRequest[WebSocket])
-class WebSocketFromRequest:
-    def from_request(
-        self, context: RequestContext, _original_type, _parameter_name
-    ) -> WebSocket:
-        if not context.is_websocket:
-            raise TypeError("Not a 'websocket' request")
-        return context.websocket
-
-
-@service(provides=FromRequest[PydanticModel])
+@register_from_request(PydanticModel)
 class PydanticModelFromRequest:
     async def from_request(
         self,
-        context: RequestContext,
+        request: Request,
         original_type: Type[PydanticModel],
         _parameter_name,
+        _metadata=None,
     ) -> PydanticModel:
-        if not context.method.has_body:
+        if request.method not in (HTTPMethod.POST, HTTPMethod.PUT, HTTPMethod.PATCH):
             # TODO: improve error
             raise Exception(
                 "Pydantic model parameter on method that does not accept body"
             )
 
         # TODO: make request body decoding extensible
-        if "application/json" in context.headers["content-type"]:
-            data = await context.request.json()
-        elif "application/x-www-form-urlencoded" in context.headers["content-type"]:
-            data = await context.request.form()
+        if "application/json" in request.content_type:
+            data = await read_json(request)
+        elif "application/x-www-form-urlencoded" in request.content_type:
+            data = await read_form(request)
         else:
-            raise HTTPError(status_code=HTTPStatus.UNSUPPORTED_MEDIA_TYPE)
+            raise HTTPException(status=HTTPStatus.UNSUPPORTED_MEDIA_TYPE)
 
         try:
             return original_type.model_validate(data)
-        except pydantic.ValidationError:
-            raise HTTPBadRequestError()
+        except pydantic.ValidationError as err:
+            raise HTTPBadRequestException() from err
 
 
-@service(provides=FromRequest[list[PydanticModel]])
+@register_from_request(list[PydanticModel])
 class PydanticModelListFromRequest:
     async def from_request(
         self,
-        context: RequestContext,
+        request: Request,
         original_type: Type[list[PydanticModel]],
         _parameter_name,
+        _metadata=None,
     ) -> list[PydanticModel]:
-        if not context.method.has_body:
+        if request.method not in (HTTPMethod.POST, HTTPMethod.PUT, HTTPMethod.PATCH):
             # TODO: improve error
             raise Exception("Pydantic parameter on method that does not accept body")
 
-        if "application/json" in context.headers["content-type"]:
-            data = await context.request.json()
+        if "application/json" in request.content_type:
+            data = await read_json(request)
         else:
-            raise HTTPError(status_code=HTTPStatus.UNSUPPORTED_MEDIA_TYPE)
+            raise HTTPException(status=HTTPStatus.UNSUPPORTED_MEDIA_TYPE)
 
         adapter = pydantic.TypeAdapter(original_type)
 
         try:
             return adapter.validate_python(data)
-        except pydantic.ValidationError:
-            raise HTTPBadRequestError()
+        except pydantic.ValidationError as err:
+            raise HTTPBadRequestException() from err

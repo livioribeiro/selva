@@ -3,60 +3,60 @@ import logging
 from datetime import datetime
 from http import HTTPStatus
 
-from selva.web.context import RequestContext
+from asgikit.requests import Request
+from asgikit.responses import respond_status
+
 from selva.web.middleware import Middleware
-from selva.web.response import Response
 
 logger = logging.getLogger(__name__)
 
 
 class TimingMiddleware(Middleware):
-    async def __call__(self, context: RequestContext):
-        if context.is_websocket:
-            return await self.app(context)
+    async def __call__(self, chain, request: Request):
+        if request.is_websocket:
+            await chain(request)
+            return
 
         request_start = datetime.now()
-        response = await self.app(context)
+        await chain(request)
         request_end = datetime.now()
 
         delta = request_end - request_start
-        logging.info("Request time: %s", delta)
-
-        return response
+        logging.warning("Request time: %s", delta)
 
 
 class LoggingMiddleware(Middleware):
-    async def __call__(self, context: RequestContext):
-        if context.is_websocket:
-            await self.app(context)
+    async def __call__(self, chain, request: Request):
+        if request.is_websocket:
+            await chain(request)
+            return
 
-        response = await self.app(context)
+        await chain(request)
 
-        client = f"{context.client[0]}:{context.client[1]}"
-        request_line = f"{context.method} {context.path} HTTP/{context['http_version']}"
-        status = HTTPStatus(response.status_code)
-        status = f"{status.value} {status.phrase}"
+        client = f"{request.client[0]}:{request.client[1]}"
+        request_line = f"{request.method} {request.path} HTTP/{request.http_version}"
+        status = request.response.status
 
-        logging.info("%s '%s' %s", client, request_line, status)
-
-        return response
+        logging.warning(
+            '%s "%s" %s %s', client, request_line, status.value, status.phrase
+        )
 
 
 class AuthMiddleware(Middleware):
-    async def __call__(self, context: RequestContext):
-        if context.path == "/protected":
-            authn = context.headers.get("authorization")
+    async def __call__(self, chain, request: Request):
+        response = request.response
+        if request.path == "/protected":
+            authn = request.headers.get("authorization")
             if not authn:
-                return Response(
-                    status_code=HTTPStatus.UNAUTHORIZED,
-                    headers={
-                        "WWW-Authenticate": 'Basic realm="localhost:8000/protected"'
-                    },
+                response.header(
+                    "WWW-Authenticate", 'Basic realm="localhost:8000/protected"'
                 )
+                await respond_status(response, HTTPStatus.UNAUTHORIZED)
+                return
 
             authn = authn.removeprefix("Basic")
             user, password = base64.urlsafe_b64decode(authn).decode().split(":")
-            logging.info(f"User '%s' with password '%s'", user, password)
-            context["user"] = user
+            logging.info("User '%s' with password '%s'", user, password)
+            request["user"] = user
 
-        return await self.app(context)
+        await chain(request, response)
