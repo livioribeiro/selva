@@ -1,9 +1,8 @@
+import asyncio
 import functools
 import inspect
 from collections.abc import Awaitable, Callable
 from typing import Any, ParamSpec
-
-import anyio
 
 P = ParamSpec("P")
 
@@ -22,4 +21,4 @@ async def maybe_async(
     if inspect.iscoroutinefunction(call):
         return await call(*args, **kwargs)
 
-    return await anyio.to_thread.run_sync(functools.partial(call, *args, **kwargs))
+    return await asyncio.to_thread(functools.partial(call, *args, **kwargs))
