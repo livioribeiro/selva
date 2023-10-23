@@ -14,4 +14,5 @@ class Controller:
 
     @get
     async def index(self, request: Request):
-        await respond_text(request.response, self.settings.MESSAGE)
+        # await respond_text(request.response, self.settings["message"])
+        await respond_text(request.response, self.settings["application"]["value"])

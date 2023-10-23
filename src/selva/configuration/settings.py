@@ -1,19 +1,19 @@
-import importlib
-import importlib.util
-import inspect
 import os
+from collections import UserDict
+from copy import deepcopy
 from pathlib import Path
-from types import ModuleType, SimpleNamespace
 from typing import Any
 
+import strictyaml
 from loguru import logger
 
-from selva.configuration import defaults
+from selva.configuration.defaults import default_settings
+from selva.configuration.environment import replace_environment
 
 __all__ = ("Settings", "SettingsModuleError", "get_settings")
 
-SELVA_SETTINGS_MODULE = "SELVA_SETTINGS_MODULE"
-DEFAULT_SELVA_SETTINGS_MODULE = str(Path("configuration") / "settings.py")
+SELVA_SETTINGS_DIR = "SELVA_SETTINGS_DIR"
+DEFAULT_SELVA_SETTINGS_FILE = str(Path("configuration") / "settings.yaml")
 
 SELVA_ENV = "SELVA_ENV"
 
@@ -24,90 +24,51 @@ class SettingsModuleError(Exception):
         self.path = path
 
 
-def is_valid_conf(conf: str) -> bool:
-    """Checks if the config item can be collected into settings
-
-    Config settings that are exported must start with an uppercase letter
-    followed by other uppercase letters, numbers or underscores
-    """
-
-    if not (conf[0].isalpha() and conf[0].isupper()):
-        return False
-
-    return all((i.isalpha() and i.isupper()) or i.isnumeric() or i == "_" for i in conf)
-
-
-def extract_valid_keys(settings: ModuleType) -> dict[str, Any]:
-    """Collect settings from module into dict"""
-    return {
-        name: value
-        for name, value in inspect.getmembers(settings)
-        if is_valid_conf(name)
-    }
-
-
-def get_default_settings():
-    return extract_valid_keys(defaults)
-
-
 def get_settings_for_env(env: str = None) -> dict[str, Any]:
-    settings_module_name = "selva_settings"
+    settings_file_name = "settings"
 
-    settings_module_path = Path(
-        os.getenv(SELVA_SETTINGS_MODULE, DEFAULT_SELVA_SETTINGS_MODULE)
+    settings_file_path = Path(
+        os.getenv(SELVA_SETTINGS_DIR, DEFAULT_SELVA_SETTINGS_FILE)
     )
-    settings_module_path = settings_module_path.with_suffix(".py")
 
     if env is not None:
-        settings_module_name += f"_{env}"
-        settings_module_path = settings_module_path.with_stem(
-            f"{settings_module_path.stem}_{env}"
+        settings_file_name += f"_{env}"
+        settings_file_path = settings_file_path.with_stem(
+            f"{settings_file_path.stem}_{env}"
         )
 
-    settings_module_path = settings_module_path.absolute()
+    settings_file_path = settings_file_path.absolute()
 
     try:
-        spec = importlib.util.spec_from_file_location(
-            settings_module_name, settings_module_path
-        )
-        settings_module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(settings_module)
+        settings_yaml = settings_file_path.read_text("utf-8")
+        settings_yaml = replace_environment(settings_yaml)
+        return strictyaml.load(settings_yaml).data
     except FileNotFoundError:
-        logger.info("settings module not found: {}", settings_module_path)
+        logger.info("settings file not found: {}", settings_file_path)
         return {}
     except (KeyError, ValueError):
         raise
     except Exception as err:
-        raise SettingsModuleError(settings_module_path) from err
-
-    return extract_valid_keys(settings_module)
+        raise SettingsModuleError(settings_file_path) from err
 
 
-class Settings(SimpleNamespace):
-    def __init__(self, settings: dict[str, Any]):
-        super().__init__(**settings)
+class Settings(UserDict):
+    pass
 
-    def __getitem__(self, item):
-        if (value := self.get(item)) is not None:
-            return value
 
-        raise KeyError(item)
-
-    def __setattr__(self, key, value):
-        raise AttributeError("can't set attribute")
-
-    def __delattr__(self, item):
-        raise AttributeError("can't del attribute")
-
-    def get(self, name: str, default=None) -> Any | None:
-        return getattr(self, name, default)
+def _merge_settings(arg1: dict, arg2: dict):
+    for key in arg2:
+        if key in arg1 and all(isinstance(arg[key], dict) for arg in (arg1, arg2)):
+            _merge_settings(arg1[key], arg2[key])
+        else:
+            arg1[key] = arg2[key]
 
 
 def get_settings() -> Settings:
-    settings = get_default_settings()
-    settings |= get_settings_for_env()
+    settings = deepcopy(default_settings)
+    _merge_settings(settings, get_settings_for_env())
 
     if active_env := os.getenv(SELVA_ENV):
-        settings |= get_settings_for_env(active_env)
+        _merge_settings(settings, get_settings_for_env(active_env))
 
     return Settings(settings)

@@ -72,9 +72,9 @@ class Selva:
             param_extractor_impl,
             param_converter_impl,
         )
-        self.di.scan(self.settings.COMPONENTS)
+        self.di.scan(self.settings["selva"]["components"])
 
-        components = self.settings.COMPONENTS
+        components = self.settings["selva"]["components"]
         self._register_components(components)
 
     async def __call__(self, scope, receive, send):
@@ -120,7 +120,7 @@ class Selva:
                 self.router.route(impl)
 
     async def _initialize_middleware(self):
-        middleware = self.settings.MIDDLEWARE
+        middleware = self.settings["selva"]["middleware"]
         if len(middleware) == 0:
             return
 
@@ -135,7 +135,7 @@ class Selva:
                 f"Middleware classes must inherit from '{mid_class_name}': {mid_classes}"
             )
 
-        for cls in reversed(self.settings.MIDDLEWARE):
+        for cls in reversed(self.settings["selva"]["middleware"]):
             mid = await self.di.create(cls)
             chain = functools.partial(mid, self.handler)
             self.handler = chain

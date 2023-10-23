@@ -1,0 +1,3 @@
+message: Hello, World!
+application:
+  value: ${TESTE:teste}
