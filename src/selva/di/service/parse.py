@@ -1,9 +1,10 @@
 import inspect
-import logging
 import typing
 from collections.abc import Callable, Iterable
 from types import NoneType, UnionType
 from typing import Annotated, Any, Optional, TypeVar, Union
+
+from loguru import logger
 
 from selva.di.error import (
     FactoryMissingReturnTypeError,
@@ -16,8 +17,6 @@ from selva.di.service.model import InjectableType, ServiceDependency, ServiceSpe
 
 DI_INITIALIZER = "initialize"
 DI_FINALIZER = "finalize"
-
-logger = logging.getLogger(__name__)
 
 
 def _check_optional(type_hint: type, default: Any) -> tuple[type, bool]:
@@ -97,10 +96,7 @@ def _parse_definition_class(
     return provided_service, initializer, finalizer
 
 
-def _parse_definition_factory(service: Callable, provides: type | None) -> type:
-    if provides:
-        logging.warning("option 'provides' on a factory function has no effect")
-
+def _parse_definition_factory(service: Callable) -> type:
     service_type = typing.get_type_hints(service).get("return")
     if service_type is None:
         raise FactoryMissingReturnTypeError(service)
@@ -123,7 +119,10 @@ def parse_service_spec(
         service = injectable
         factory = None
     elif inspect.isfunction(injectable):
-        provided_service = _parse_definition_factory(injectable, provides)
+        if provides:
+            logger.warning("option 'provides' on a factory function has no effect")
+
+        provided_service = _parse_definition_factory(injectable)
         initializer = None
         finalizer = None
 

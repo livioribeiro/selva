@@ -1,11 +1,12 @@
 import importlib
 import importlib.util
 import inspect
-import logging
 import os
 from pathlib import Path
 from types import ModuleType, SimpleNamespace
 from typing import Any
+
+from loguru import logger
 
 from selva.configuration import defaults
 
@@ -15,8 +16,6 @@ SELVA_SETTINGS_MODULE = "SELVA_SETTINGS_MODULE"
 DEFAULT_SELVA_SETTINGS_MODULE = str(Path("configuration") / "settings.py")
 
 SELVA_ENV = "SELVA_ENV"
-
-logger = logging.getLogger(__name__)
 
 
 class SettingsModuleError(Exception):
@@ -74,7 +73,7 @@ def get_settings_for_env(env: str = None) -> dict[str, Any]:
         settings_module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(settings_module)
     except FileNotFoundError:
-        logger.info("settings module not found: %s", settings_module_path)
+        logger.info("settings module not found: {}", settings_module_path)
         return {}
     except (KeyError, ValueError):
         raise

@@ -1,14 +1,12 @@
 import base64
-import logging
 from datetime import datetime
 from http import HTTPStatus
 
 from asgikit.requests import Request
 from asgikit.responses import respond_status
+from loguru import logger
 
 from selva.web.middleware import Middleware
-
-logger = logging.getLogger(__name__)
 
 
 class TimingMiddleware(Middleware):
@@ -22,7 +20,7 @@ class TimingMiddleware(Middleware):
         request_end = datetime.now()
 
         delta = request_end - request_start
-        logging.warning("Request time: %s", delta)
+        logger.warning("Request time: {}", delta)
 
 
 class LoggingMiddleware(Middleware):
@@ -37,8 +35,8 @@ class LoggingMiddleware(Middleware):
         request_line = f"{request.method} {request.path} HTTP/{request.http_version}"
         status = request.response.status
 
-        logging.warning(
-            '%s "%s" %s %s', client, request_line, status.value, status.phrase
+        logger.warning(
+            '{} "{}" {} {}', client, request_line, status.value, status.phrase
         )
 
 
@@ -56,7 +54,7 @@ class AuthMiddleware(Middleware):
 
             authn = authn.removeprefix("Basic")
             user, password = base64.urlsafe_b64decode(authn).decode().split(":")
-            logging.info("User '%s' with password '%s'", user, password)
+            logger.info("User '{}' with password '{}'", user, password)
             request["user"] = user
 
         await chain(request, response)

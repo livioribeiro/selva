@@ -1,7 +1,8 @@
 import inspect
-import logging
 from collections import OrderedDict
 from http import HTTPMethod
+
+from loguru import logger
 
 from selva.web.exception import HTTPNotFoundException
 from selva.web.routing.decorator import (
@@ -11,8 +12,6 @@ from selva.web.routing.decorator import (
     ControllerInfo,
 )
 from selva.web.routing.route import Route, RouteMatch
-
-logger = logging.getLogger(__name__)
 
 
 def _path_with_prefix(path: str, prefix: str):
@@ -38,9 +37,10 @@ class Router:
 
         path_prefix = controller_info.path
 
-        logger.debug(
-            "controller registered at %s: %s",
+        logger.trace(
+            "controller registered at {}: {}.{}",
             path_prefix or "/",
+            controller.__module__,
             controller.__qualname__,
         )
 
@@ -75,18 +75,13 @@ class Router:
                     )
 
             self.routes[route_name] = route
-            logger.debug(
-                (
-                    "action '%(name)s' registered at "
-                    "%(method)s %(path)s in %(controller)s:%(action)s"
-                ),
-                {
-                    "name": route.name,
-                    "method": route.method,
-                    "path": route.path,
-                    "controller": controller.__qualname__,
-                    "action": route.action.__name__,
-                },
+            logger.trace(
+                "action '{}.{}:{}' registered at '{} {}'",
+                controller.__module__,
+                controller.__qualname__,
+                route.action.__name__,
+                route.method,
+                route.path,
             )
 
     def match(self, method: HTTPMethod | None, path: str) -> RouteMatch | None:

@@ -98,7 +98,9 @@ def test_handler_with_less_than_one_parameter_should_fail():
     async def func1(req):
         pass
 
-    with pytest.raises(TypeError, match="Handler method must have at least 1 parameter"):
+    with pytest.raises(
+        TypeError, match="Handler method must have at least 1 parameter"
+    ):
         route(func0, method=HTTPMethod.GET, path="")
 
     route(func1, method=HTTPMethod.GET, path="")

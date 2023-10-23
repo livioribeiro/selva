@@ -1,6 +1,5 @@
 import inspect
 from collections.abc import Callable
-from typing import TypeVar
 
 from selva.di.inject import Inject
 from selva.di.service.model import InjectableType, ServiceInfo
@@ -9,14 +8,12 @@ __all__ = ("service", "DI_SERVICE_ATTRIBUTE")
 
 DI_SERVICE_ATTRIBUTE = "__selva_di_service__"
 
-T = TypeVar("T", bound=InjectableType)
-
 
 def _is_inject(value) -> bool:
     return isinstance(value, Inject) or value is Inject
 
 
-def service(
+def service[T](
     injectable: T = None, /, *, provides: type = None, name: str = None
 ) -> T | Callable[[T], T]:
     """Declare a class or function as a service

@@ -2,6 +2,7 @@ import asyncio
 
 from asgikit.requests import Request
 from asgikit.responses import respond_json
+from loguru import logger
 
 from selva.web import controller, get
 
@@ -16,4 +17,4 @@ class Controller:
         await respond_json(request.response, {"message": message})
 
         await asyncio.sleep(5)
-        print(message)
+        logger.info(message)
