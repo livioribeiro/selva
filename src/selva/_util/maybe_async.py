@@ -2,12 +2,10 @@ import asyncio
 import functools
 import inspect
 from collections.abc import Awaitable, Callable
-from typing import Any, ParamSpec
-
-P = ParamSpec("P")
+from typing import Any
 
 
-async def maybe_async(
+async def maybe_async[**P](
     target: Awaitable | Callable[P, Any], *args: P.args, **kwargs: P.kwargs
 ) -> Any:
     if inspect.isawaitable(target):

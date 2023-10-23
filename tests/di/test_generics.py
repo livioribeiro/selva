@@ -1,4 +1,4 @@
-from typing import Annotated, Generic, TypeVar
+from typing import Annotated, TypeVar
 
 import pytest
 
@@ -8,10 +8,8 @@ from selva.di.inject import Inject
 
 from .fixtures import ioc
 
-T = TypeVar("T")
 
-
-class GenericService(Generic[T]):
+class GenericService[T]:
     pass
 
 
@@ -66,5 +64,7 @@ async def test_get_generic_service_with_factory_with_dependency(ioc: Container):
 
 
 async def test_type_var_in_generic_service_should_fail(ioc: Container):
+    T = TypeVar("T")
+
     with pytest.raises(TypeVarInGenericServiceError):
         ioc.register(Service, provides=GenericService[T])

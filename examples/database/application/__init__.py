@@ -2,7 +2,6 @@ import sys
 
 from loguru import logger
 
-
 logger.remove()
 logger.enable("selva")
 logger.disable("databases")

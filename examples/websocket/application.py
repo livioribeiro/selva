@@ -1,12 +1,11 @@
 from pathlib import Path
 from typing import Annotated
 
-from loguru import logger
-
 from asgikit.errors.websocket import WebSocketDisconnectError
 from asgikit.requests import Request
 from asgikit.responses import respond_file
 from asgikit.websockets import WebSocket
+from loguru import logger
 
 from selva.configuration import Settings
 from selva.di import Inject, service

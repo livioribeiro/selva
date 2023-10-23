@@ -2,10 +2,9 @@ import base64
 from datetime import datetime
 from http import HTTPStatus
 
-from loguru import logger
-
 from asgikit.requests import Request
 from asgikit.responses import respond_status
+from loguru import logger
 
 from selva.web.middleware import Middleware
 

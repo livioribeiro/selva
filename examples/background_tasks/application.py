@@ -2,9 +2,9 @@ import asyncio
 
 from asgikit.requests import Request
 from asgikit.responses import respond_json
+from loguru import logger
 
 from selva.web import controller, get
-from loguru import logger
 
 
 @controller

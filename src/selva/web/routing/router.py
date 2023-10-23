@@ -37,7 +37,7 @@ class Router:
 
         path_prefix = controller_info.path
 
-        logger.debug(
+        logger.trace(
             "controller registered at {}: {}.{}",
             path_prefix or "/",
             controller.__module__,
@@ -75,13 +75,13 @@ class Router:
                     )
 
             self.routes[route_name] = route
-            logger.debug(
-                "action registered at '{} {}' in {}.{}:{}",
-                route.method,
-                route.path,
+            logger.trace(
+                "action '{}.{}:{}' registered at '{} {}'",
                 controller.__module__,
                 controller.__qualname__,
                 route.action.__name__,
+                route.method,
+                route.path,
             )
 
     def match(self, method: HTTPMethod | None, path: str) -> RouteMatch | None:

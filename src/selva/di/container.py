@@ -54,7 +54,7 @@ class Container:
         self.registry[provided_service, name] = service_spec
 
         if provides:
-            logger.debug(
+            logger.trace(
                 "service registered: {}.{}; provided-by={}.{} name={}",
                 provides.__module__,
                 provides.__qualname__,
@@ -63,7 +63,7 @@ class Container:
                 name or "",
             )
         else:
-            logger.debug(
+            logger.trace(
                 "service registered: {}.{}; name={}",
                 service.__module__,
                 service.__qualname__,
@@ -73,7 +73,7 @@ class Container:
     def define(self, service_type: type, instance: Any, *, name: str = None):
         self.store[service_type, name] = instance
 
-        logger.debug(
+        logger.trace(
             "service defined: {}; name={}", service_type.__qualname__, name or ""
         )
 
@@ -85,7 +85,7 @@ class Container:
         )
         self.interceptors.append(interceptor)
 
-        logger.debug("interceptor registered: {}", interceptor.__qualname__)
+        logger.trace("interceptor registered: {}", interceptor.__qualname__)
 
     def scan(self, *packages: str | ModuleType):
         def predicate(item: Any):
@@ -116,13 +116,7 @@ class Container:
             for name, definition in record.providers.items():
                 yield interface, definition.service, name
 
-    async def get[TService](
-        self,
-        service_type: TService,
-        *,
-        name: str = None,
-        optional=False,
-    ) -> TService:
+    async def get[T](self, service_type: T, *, name: str = None, optional=False,) -> T:
         dependency = ServiceDependency(service_type, name=name, optional=optional)
         return await self._get(dependency)
 

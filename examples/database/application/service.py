@@ -1,9 +1,8 @@
 import os
 from typing import Annotated
 
-from loguru import logger
-
 from databases import Database
+from loguru import logger
 
 from selva.configuration import Settings
 from selva.di import Inject, service
