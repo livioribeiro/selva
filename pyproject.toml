@@ -28,8 +28,8 @@ packages = [
 
 [tool.poetry.dependencies]
 python = "^3.12"
-#asgikit = "^0.5"
-asgikit = { path = "../asgikit", develop = true }
+asgikit = "^0.5"
+#asgikit = { path = "../asgikit", develop = true }
 pydantic = "^2.4"
 loguru = "^0.7"
 

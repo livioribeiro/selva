@@ -31,6 +31,7 @@ in the processing of the request:
     
     from asgikit.requests import Request
     from selva.web.middleware import Middleware
+    from loguru import logger
     
     
     class TimingMiddleware(Middleware):
@@ -40,7 +41,7 @@ in the processing of the request:
             request_end = datetime.now()
     
             delta = request_end - request_start
-            print(f"Request time: {delta}")
+            logger.info("Request time: {}", delta)
     ```
 
     1. Invoke the middleware chain to process the request

@@ -55,7 +55,7 @@ class Container:
 
         if provides:
             logger.debug(
-                "service registered: {}.{} provided by {}.{} (name '{}')",
+                "service registered: {}.{}; provided-by={}.{} name={}",
                 provides.__module__,
                 provides.__qualname__,
                 service.__module__,
@@ -64,7 +64,7 @@ class Container:
             )
         else:
             logger.debug(
-                "service registered: {}.{} (name '{}')",
+                "service registered: {}.{}; name={}",
                 service.__module__,
                 service.__qualname__,
                 name or "",
@@ -74,7 +74,7 @@ class Container:
         self.store[service_type, name] = instance
 
         logger.debug(
-            "service defined {} (name '{}')", service_type.__qualname__, name or ""
+            "service defined: {}; name={}", service_type.__qualname__, name or ""
         )
 
     def interceptor(self, interceptor: Type[Interceptor]):

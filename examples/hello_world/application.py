@@ -1,3 +1,4 @@
+import sys
 from typing import Annotated
 
 from asgikit.requests import Request, read_json
@@ -6,6 +7,8 @@ from pydantic import BaseModel
 
 from selva.di import Inject, service
 from selva.web import FromPath, FromQuery, controller, get, post
+
+from loguru import logger
 
 
 class MyModel(BaseModel):
@@ -30,6 +33,7 @@ class Controller:
         name: Annotated[str, FromQuery("name")] = "World",
         number: Annotated[int, FromQuery] = 1,
     ):
+        logger.bind(key="value").info("message")
         greeting = self.greeter.greet(name)
         await respond_json(request.response, {"greeting": greeting, "number": number})
 

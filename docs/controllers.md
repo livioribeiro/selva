@@ -14,6 +14,7 @@ be the first two parameters.
 from asgikit.requests import Request, read_json
 from asgikit.responses import respond_text, respond_redirect
 from selva.web import controller, get, post
+from loguru import logger
 
 
 @controller
@@ -27,7 +28,7 @@ class IndexController:
 class AdminController:
     @post("send")
     async def handle_data(self, request: Request):
-        print(await read_json(request))
+        logger.info(await read_json(request))
         await respond_redirect(request.response, "/")
 ```
 

@@ -173,7 +173,7 @@ class Selva:
     async def _handle_request(self, scope, receive, send):
         request = Request(scope, receive, send)
 
-        logger.debug("Started handling of request '{} {}?{}'", request.method, request.path, request.raw_query)
+        logger.debug("Started handling of request '{} {} {}'", request.method, request.path, request.raw_query)
 
         try:
             try:

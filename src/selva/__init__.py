@@ -1,0 +1,3 @@
+from selva.logging import setup_loguru_std_logging_interceptor
+
+setup_loguru_std_logging_interceptor()
