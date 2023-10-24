@@ -1,6 +1,4 @@
 default_settings = {
-    "selva": {
-        "components": [],
-        "middleware": [],
-    }
+    "components": [],
+    "middleware": [],
 }

@@ -72,9 +72,9 @@ class Selva:
             param_extractor_impl,
             param_converter_impl,
         )
-        self.di.scan(self.settings["selva"]["components"])
 
-        components = self.settings["selva"]["components"]
+        components = self.settings["components"]
+        self.di.scan(components)
         self._register_components(components)
 
     async def __call__(self, scope, receive, send):
@@ -120,7 +120,7 @@ class Selva:
                 self.router.route(impl)
 
     async def _initialize_middleware(self):
-        middleware = self.settings["selva"]["middleware"]
+        middleware = self.settings["middleware"]
         if len(middleware) == 0:
             return
 

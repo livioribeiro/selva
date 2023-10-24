@@ -1,22 +1,71 @@
 import copy
-import os
 import re
 
-RE_VARIABLE = re.compile(r"\$\{(?P<name>\w+?)(?::(?P<default>.*?))?}")
+RE_VARIABLE = re.compile(
+    r"""
+        \$\{                        # Expression start with '${'
+            \ ?                     # Blank space before variable name
+            (?P<name>\w+?)          # Environment variable name
+            \ ?                     # Blank space after variable name
+            (?:                     # Default value non-capture group
+                :                   # Collon separating variable name and default value
+                \ ?                 # Blank space before default value
+                (?P<default>.*?)    # Default value
+                \ ?                 # Blank space after default value
+            )?                      # End of default value non-capture group
+        }                           # Expression end with '}'
+    """,
+    re.VERBOSE,
+)
 
 
-def replace_environment(input_yaml: str):
-    input = copy.copy(input_yaml)
+SELVA_PREFIX = "SELVA__"
 
-    for match in RE_VARIABLE.finditer(input):
+
+def parse_settings(source: dict[str, str]) -> dict:
+    result = {}
+
+    for name, value in source.items():
+        if not name.startswith(SELVA_PREFIX):
+            continue
+
+        current_ref = result
+        keys = name.removeprefix(SELVA_PREFIX).split("__")
+
+        match keys:
+            case [key] if key.strip() != "":
+                current_key = key.lower()
+            case [first_key, *keys, last_key]:
+                for key in [first_key] + keys:
+                    key = key.lower()
+                    if key not in current_ref:
+                        current_ref[key] = {}
+                    current_ref = current_ref[key]
+                current_key = last_key.lower()
+            case _:
+                continue
+
+        current_ref[current_key] = value
+
+    return result
+
+
+def replace_variables(settings_yaml: str, environ: dict[str, str]):
+    settings = copy.copy(settings_yaml)
+
+    for match in RE_VARIABLE.finditer(settings):
         name = match.group("name")
-        if value := os.getenv(name):
-            input = input.replace(match.group(), value)
-            continue
-        if value := match.group("default"):
-            input = input.replace(match.group(), value)
-            continue
-        else:
-            raise ValueError(f"{name} environment variable is neither defined not contains default value")
 
-    return input
+        if value := environ.get(name):
+            settings = settings.replace(match.group(), value)
+            continue
+
+        if value := match.group("default"):
+            settings = settings.replace(match.group(), value)
+            continue
+
+        raise ValueError(
+            f"{name} environment variable is not defined and does not contain a default value"
+        )
+
+    return settings

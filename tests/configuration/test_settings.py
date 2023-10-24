@@ -1,75 +1,27 @@
 import logging
 from pathlib import Path
-from types import SimpleNamespace
 
 import pytest
 
+from selva.configuration.defaults import default_settings
 from selva.configuration.settings import (
     Settings,
-    SettingsModuleError,
-    extract_valid_keys,
-    get_default_settings,
+    SettingsError,
     get_settings,
     get_settings_for_env,
-    is_valid_conf,
+    merge_recursive,
 )
-
-
-@pytest.mark.parametrize(
-    "name",
-    [
-        "ALL_UPPERCASE",
-        "WITH_NUMBER_1",
-        "MULTI__UNDERSCORE",
-        "END_WITH_UNDERLINE_",
-    ],
-)
-def test_valid_config_names(name: str):
-    result = is_valid_conf(name)
-    assert result
-
-
-@pytest.mark.parametrize(
-    "name",
-    [
-        "all_undercase",
-        "ONE_UNDERCASe",
-        "_STARTS_WITH_UNDERSCORE",
-    ],
-)
-def test_invalid_config_names(name: str):
-    result = is_valid_conf(name)
-    assert not result
-
-
-def test_extract_valid_settings():
-    module = SimpleNamespace()
-    module.ALL_UPPERCASE = ""
-    module.WITH_NUMBER_1 = ""
-    module.MULTI__UNDERSCORE = ""
-    module.END_WITH_UNDERLINE_ = ""
-    module.all_undercase = ""
-    module.ONE_UNDERCASe = ""
-    module._STARTS_WITH_UNDERSCORE = ""
-
-    result = extract_valid_keys(module)
-    assert result == {
-        "ALL_UPPERCASE": "",
-        "WITH_NUMBER_1": "",
-        "MULTI__UNDERSCORE": "",
-        "END_WITH_UNDERLINE_": "",
-    }
 
 
 @pytest.mark.parametrize(
     "env,expected",
     [
-        (None, {"NAME": "application"}),
-        ("dev", {"ENVIRONMENT": "dev"}),
-        ("hlg", {"ENVIRONMENT": "hlg"}),
-        ("prd", {"ENVIRONMENT": "prd"}),
+        (None, {"name": "application"}),
+        ("dev", {"environment": "dev"}),
+        ("stg", {"environment": "stg"}),
+        ("prd", {"environment": "prd"}),
     ],
-    ids=["None", "dev", "hlg", "prd"],
+    ids=["None", "dev", "stg", "prd"],
 )
 def test_get_settings_for_env(monkeypatch, env, expected):
     monkeypatch.chdir(Path(__file__).parent / "envs")
@@ -82,215 +34,241 @@ def test_get_settings(monkeypatch):
     monkeypatch.chdir(Path(__file__).parent / "base")
 
     result = get_settings()
-    assert result.__dict__ == get_default_settings() | {
-        "CONF_STR": "str",
-        "CONF_INT": 1,
-        "CONF_LIST": [1, 2, 3],
-        "CONF_DICT": {
-            "a": 1,
-            "b": 2,
-            "c": 3,
-        },
+    assert result.data == default_settings | {
+        "prop": "value",
+        "list": ["1", "2", "3"],
+        "dict": Settings(
+            {
+                "a": "1",
+                "b": "2",
+                "c": "3",
+            }
+        ),
     }
 
 
-def test_configure_settings_module(monkeypatch):
+def test_configure_settings_file(monkeypatch):
     monkeypatch.setenv(
-        "SELVA_SETTINGS_MODULE",
-        str(Path(__file__).parent / "base/configuration/settings"),
+        "SELVA_SETTINGS",
+        str(Path(__file__).parent / "alternate/configuration/application.yaml"),
     )
 
     result = get_settings()
-    assert result.__dict__ == get_default_settings() | {
-        "CONF_STR": "str",
-        "CONF_INT": 1,
-        "CONF_LIST": [1, 2, 3],
-        "CONF_DICT": {
-            "a": 1,
-            "b": 2,
-            "c": 3,
+    assert result.data == default_settings | {
+        "prop": "value",
+        "list": ["1", "2", "3"],
+        "dict": Settings(
+            {
+                "a": "1",
+                "b": "2",
+                "c": "3",
+            }
+        ),
+    }
+
+
+def test_configure_settings_file_with_env(monkeypatch):
+    monkeypatch.setenv(
+        "SELVA_SETTINGS",
+        str(Path(__file__).parent / "alternate/configuration/application.yaml"),
+    )
+
+    monkeypatch.setenv("SELVA_ENV", "prd")
+
+    result = get_settings()
+    assert result.data == default_settings | {
+        "environment": "prd",
+        "prop": "value",
+        "list": ["1", "2", "3"],
+        "dict": {
+            "a": "1",
+            "b": "2",
+            "c": "3",
         },
     }
 
 
 @pytest.mark.parametrize(
     "env",
-    ["dev", "hlg", "prd"],
+    ["dev", "stg", "prd"],
 )
 def test_get_env_setttings(monkeypatch, env):
     monkeypatch.chdir(Path(__file__).parent / "envs")
     monkeypatch.setenv("SELVA_ENV", env)
 
     result = get_settings()
-    assert result.__dict__ == get_default_settings() | {
-        "NAME": "application",
-        "ENVIRONMENT": env,
+    assert result.data == default_settings | {
+        "name": "application",
+        "environment": env,
     }
 
 
 @pytest.mark.parametrize(
     "env",
-    ["dev", "hlg", "prd"],
+    ["dev", "stg", "prd"],
 )
-def test_configure_env_setttings_module(monkeypatch, env):
+def test_configure_env_setttings(monkeypatch, env):
     monkeypatch.setenv(
-        "SELVA_SETTINGS_MODULE",
-        str(Path(__file__).parent / "envs/configuration/settings"),
+        "SELVA_SETTINGS",
+        str(Path(__file__).parent / "envs/configuration/settings.yaml"),
     )
     monkeypatch.setenv("SELVA_ENV", env)
 
     result = get_settings()
-    assert result.__dict__ == get_default_settings() | {
-        "NAME": "application",
-        "ENVIRONMENT": env,
+    assert result.data == default_settings | {
+        "name": "application",
+        "environment": env,
     }
 
 
 @pytest.mark.parametrize(
     "env",
-    ["dev", "hlg", "prd"],
+    ["dev", "stg", "prd"],
 )
 def test_override_settings(monkeypatch, env):
-    default_settings = get_default_settings()
     monkeypatch.chdir(Path(__file__).parent / "override")
 
     result = get_settings()
-    assert result.__dict__ == default_settings | {"VALUE": "base"}
+    assert result.data == default_settings | {"value": "base"}
 
     monkeypatch.setenv("SELVA_ENV", env)
 
     result = get_settings()
-    assert result.__dict__ == default_settings | {"VALUE": env}
+    assert result.data == default_settings | {"value": env}
 
 
 def test_settings_class(monkeypatch):
     monkeypatch.chdir(Path(__file__).parent / "base")
 
     settings = get_settings()
-    assert settings.CONF_STR == "str"
-    assert settings.CONF_INT == 1
-    assert settings.CONF_LIST == [1, 2, 3]
-    assert settings.CONF_DICT == {
-        "a": 1,
-        "b": 2,
-        "c": 3,
+    assert settings["prop"] == "value"
+    assert settings["list"] == ["1", "2", "3"]
+    assert settings["dict"] == {
+        "a": "1",
+        "b": "2",
+        "c": "3",
     }
 
 
 @pytest.mark.parametrize(
     "env",
-    ["dev", "hlg", "prd"],
+    ["dev", "stg", "prd"],
 )
 def test_setttings_class_env(monkeypatch, env):
     monkeypatch.chdir(Path(__file__).parent / "envs")
     monkeypatch.setenv("SELVA_ENV", env)
 
     settings = get_settings()
-    assert settings.NAME == "application"
-    assert settings.ENVIRONMENT == env
+    assert settings["name"] == "application"
+    assert settings["environment"] == env
 
 
 def test_no_settings_file_should_log_info(monkeypatch, caplog):
-    monkeypatch.setenv("SELVA_SETTINGS_MODULE", "does_not_exist.py")
+    monkeypatch.setenv("SELVA_SETTINGS", "does_not_exist.yaml")
 
-    settings_path = Path.cwd() / "does_not_exist.py"
+    settings_path = Path.cwd() / "does_not_exist.yaml"
 
     with caplog.at_level(logging.INFO, logger="selva"):
         get_settings()
 
-    assert f"settings module not found: {settings_path}" in caplog.text
+    assert f"settings file not found: {settings_path}" in caplog.text
 
 
 def test_no_env_settings_file_should_log_info(monkeypatch, caplog):
     monkeypatch.chdir(Path(__file__).parent / "envs")
     monkeypatch.setenv("SELVA_ENV", "does_not_exist")
 
-    settings_path = Path.cwd() / "configuration" / "settings_does_not_exist.py"
+    settings_path = Path.cwd() / "configuration" / "settings_does_not_exist.yaml"
 
     with caplog.at_level(logging.INFO, logger="selva"):
         get_settings()
 
-    assert f"settings module not found: {settings_path}" in caplog.text
+    assert f"settings file not found: {settings_path}" in caplog.text
 
 
-def test_invalid_settings_module_should_fail(monkeypatch):
-    monkeypatch.chdir(Path(__file__).parent / "invalid_settings")
-    with pytest.raises(SettingsModuleError):
-        get_settings()
+def test_non_existent_env_var_should_fail(monkeypatch):
+    monkeypatch.chdir(
+        Path(__file__).parent / "invalid_configuration" / "non_existent_env_var"
+    )
 
-
-def test_non_existent_environment_variable_should_fail(monkeypatch):
-    monkeypatch.chdir(Path(__file__).parent / "invalid_environment" / "non_existent")
     with pytest.raises(
-        KeyError, match=f"Environment variable 'DOES_NOT_EXIST' is not defined"
+        ValueError,
+        match=f"DOES_NOT_EXIST environment variable is not defined and does not contain a default value",
     ):
         get_settings_for_env()
 
 
-@pytest.mark.parametrize("value_type", ["int", "float", "bool", "dict", "json"])
-def test_invalid_value_should_fail(monkeypatch, value_type):
-    monkeypatch.chdir(Path(__file__).parent / "invalid_environment" / "invalid_value")
-    monkeypatch.setenv("INVALID", "abc")
+def test_invalid_yml_should_fail(monkeypatch):
+    settings_path = Path(__file__).parent / "invalid_configuration" / "invalid_yaml"
+    monkeypatch.chdir(Path(__file__).parent / "invalid_configuration" / "invalid_yaml")
 
-    message = (
-        "Environment variable 'INVALID'"
-        f" is not compatible with type '{value_type}': 'abc'"
-    )
+    with pytest.raises(
+        SettingsError, match=f"cannot load settings from {settings_path}"
+    ):
+        get_settings_for_env()
 
-    with pytest.raises(ValueError, match=message):
-        get_settings_for_env(value_type)
+
+def test_merge_recursive():
+    settings = {"a": {"b": 1}}
+    extra = {"a": {"c": 2}}
+
+    merge_recursive(settings, extra)
+
+    assert settings == {"a": {"b": 1, "c": 2}}
+
+
+def test_settings_item_access():
+    settings = Settings({"a": 1})
+
+    assert settings["a"] == 1
+
+
+def test_settings_nested_item_access():
+    settings = Settings({"a": {"b": 1}})
+
+    assert settings["a"]["b"] == 1
 
 
 def test_settings_attribute_access():
-    settings = Settings({"A": 1})
+    settings = Settings({"a": 1})
 
-    assert settings.A == 1
+    assert settings.a == 1
+
+
+def test_settings_nested_attribute_access():
+    settings = Settings({"a": {"b": 1}})
+
+    assert settings.a.b == 1
+
+
+def test_settings_non_existent_attribute_should_fail():
+    settings = Settings({})
+
+    with pytest.raises(AttributeError, match="a"):
+        settings.a
+
+
+def test_settings_mixed_item_attribute_access():
+    settings = Settings({"a": {"b": 1}})
+
+    assert settings["a"].b == 1
+    assert settings.a["b"] == 1
 
 
 def test_settings_method_access():
-    settings = Settings({"A": 1})
+    settings = Settings({"a": 1})
 
-    assert settings.get("A") == 1
+    assert settings.get("a") == 1
 
 
 def test_settings_method_access_default_value():
     settings = Settings({})
 
-    assert settings.get("A") is None
-    assert settings.get("A", "B") == "B"
-
-
-def test_settings_item_access():
-    settings = Settings({"A": 1})
-
-    assert settings["A"] == 1
-
-
-def test_settings_set_attribute_should_fail():
-    settings = Settings({})
-    with pytest.raises(AttributeError, match="can't set attribute"):
-        settings.A = 1
-
-
-def test_settings_setattr_should_fail():
-    settings = Settings({})
-    with pytest.raises(AttributeError, match="can't set attribute"):
-        setattr(settings, "A", 1)
-
-
-def test_settings_del_attribute_should_fail():
-    settings = Settings({"A": 1})
-    with pytest.raises(AttributeError, match="can't del attribute"):
-        del settings.A
-
-
-def test_settings_delattr_should_fail():
-    settings = Settings({"A": 1})
-    with pytest.raises(AttributeError, match="can't del attribute"):
-        delattr(settings, "A")
+    assert settings.get("a") is None
+    assert settings.get("a", "b") == "b"
 
 
 def test_settings_get_nonexistent_item_should_fail():
     settings = Settings({})
-    with pytest.raises(KeyError, match="A"):
-        settings["A"]
+    with pytest.raises(KeyError, match="a"):
+        settings["a"]
