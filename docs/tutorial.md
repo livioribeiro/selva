@@ -24,7 +24,7 @@ project/
 │   ├── repository.py
 │   └── service.py
 ├── configuration/
-│   └── settings.py
+│   └── settings.yaml
 └── resources/
 ```
 

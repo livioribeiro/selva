@@ -1,0 +1,6 @@
+database:
+  url: sqlite:///database.sqlite3
+
+logging:
+  level:
+    application: INFO

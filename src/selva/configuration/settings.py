@@ -5,7 +5,6 @@ from pathlib import Path
 from typing import Any
 
 import strictyaml
-from loguru import logger
 
 from selva.configuration.defaults import default_settings
 from selva.configuration.environment import parse_settings, replace_variables
@@ -59,7 +58,6 @@ def get_settings_for_env(env: str = None) -> dict[str, Any]:
         )
         return strictyaml.load(settings_yaml).data
     except FileNotFoundError:
-        logger.info("settings file not found: {}", settings_file_path)
         return {}
     except (KeyError, ValueError):
         raise

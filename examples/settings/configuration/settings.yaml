@@ -1,3 +1,7 @@
 message: Hello, World!
 application:
   message: ${MESSAGE:Hello, World!}
+logging:
+  root: INFO
+  level:
+    application: WARNING

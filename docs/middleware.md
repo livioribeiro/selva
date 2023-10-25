@@ -46,14 +46,11 @@ in the processing of the request:
 
     1. Invoke the middleware chain to process the request
 
-=== "configuration/settings.py"
+=== "configuration/settings.yaml"
 
-    ```python
-    from application.middleware import TimingMiddleware
-    
-    MIDDLEWARE = [
-        TimingMiddleware,
-    ]
+    ```yaml
+    middleware:
+      - application.middleware.TimingMiddleware
     ```
 
 ## Middleware dependencies
