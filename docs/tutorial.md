@@ -222,9 +222,9 @@ with `@service`, so in this case we need to create a factory function for it:
             await respond_json(request.response, {"greeting": greeting})
     ```
 
-## Deferred actions
+## Execute actions after response
 
-The greetings are being save to the database, but now we have a problem: the
+The greetings are being saved to the database, but now we have a problem: the
 user has to wait until the greeting is saved before receiving it.
 
 To solve this problem and improve the user experience, we can use save the greeging
@@ -239,7 +239,6 @@ after the request is completed:
     from asgikit.responses improt respond_json
     from selva.di import Inject
     from selva.web import controller, get, FromPath
-    from selva.web.response import JSONResponse, BackgroundTask
     from .repository import GreetingRepository
     from .service import Greeter
     
