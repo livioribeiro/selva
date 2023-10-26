@@ -1,7 +1,6 @@
 from typing import Protocol, Type, runtime_checkable
 
 from asgikit.requests import Request
-from asgikit.responses import Response
 
 from selva.di.decorator import service
 

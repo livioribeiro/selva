@@ -1,13 +1,12 @@
 import pytest
 from asgikit.requests import Request
-from asgikit.responses import Response
 
 from selva.web.middleware import Middleware
 
 
 class Mid(Middleware):
-    async def __call__(self, chain, request: Request, response: Response):
-        await chain(request, response)
+    async def __call__(self, chain, request: Request):
+        await chain(request)
 
 
 async def test_non_async_chain_should_fail():
