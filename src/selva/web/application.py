@@ -78,7 +78,7 @@ class Selva:
         self.di.scan(components)
         self._register_components(components)
 
-        from selva.logging.setup import setup_logger
+        setup_logger = import_item(self.settings.logging.setup)
         setup_logger(self.settings)
 
     async def __call__(self, scope, receive, send):

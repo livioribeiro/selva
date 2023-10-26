@@ -186,6 +186,24 @@ def test_no_env_settings_file_should_log_info(monkeypatch, caplog):
     assert f"settings file not found: {settings_path}" in caplog.text
 
 
+def test_override_settings_with_env_var(monkeypatch):
+    monkeypatch.chdir(Path(__file__).parent / "base")
+    monkeypatch.setenv("SELVA__PROP", "override")
+
+    settings = get_settings()
+
+    assert settings.prop == "override"
+
+
+def test_override_nested_settings_with_env_var(monkeypatch):
+    monkeypatch.chdir(Path(__file__).parent / "base")
+    monkeypatch.setenv("SELVA__DICT__A", "override")
+
+    settings = get_settings()
+
+    assert settings.dict.a == "override"
+
+
 def test_non_existent_env_var_should_fail(monkeypatch):
     monkeypatch.chdir(
         Path(__file__).parent / "invalid_configuration" / "non_existent_env_var"
@@ -208,13 +226,29 @@ def test_invalid_yml_should_fail(monkeypatch):
         get_settings_for_env()
 
 
-def test_merge_recursive():
-    settings = {"a": {"b": 1}}
-    extra = {"a": {"c": 2}}
-
+@pytest.mark.parametrize(
+    "settings,extra,expected",
+    [
+        ({"a": 1}, {"b": 2}, {"a": 1, "b": 2}),
+        ({"a": 1}, {"a": 2}, {"a": 2}),
+        ({"a": {"a": 1}}, {"a": {"b": 2}}, {"a": {"a": 1, "b": 2}}),
+        ({"a": {"a": 1}}, {"a": {"a": 2}}, {"a": {"a": 2}}),
+        ({"a": {"a": 1}}, {"a": 1}, {"a": 1}),
+        ({"a": 1}, {"a": {"a": 1}}, {"a": {"a": 1}}),
+    ],
+    ids=[
+        "add value",
+        "replace value",
+        "add nested value",
+        "replace nested value",
+        "replace dict with value",
+        "replace value with dict",
+    ]
+)
+def test_merge_recursive(settings, extra, expected):
     merge_recursive(settings, extra)
 
-    assert settings == {"a": {"b": 1, "c": 2}}
+    assert settings == expected
 
 
 def test_settings_item_access():
