@@ -8,7 +8,7 @@ import strictyaml
 from loguru import logger
 
 from selva.configuration.defaults import default_settings
-from selva.configuration.environment import parse_settings, replace_variables
+from selva.configuration.environment import parse_settings_from_env, replace_variables_recursive
 
 __all__ = ("Settings", "SettingsError", "get_settings")
 
@@ -54,9 +54,10 @@ def get_settings() -> Settings:
         merge_recursive(settings, get_settings_for_profile(active_env))
 
     # merge with environment variables (SELVA_*)
-    from_env_vars = parse_settings(os.environ)
+    from_env_vars = parse_settings_from_env(os.environ)
     merge_recursive(settings, from_env_vars)
 
+    settings = replace_variables_recursive(settings, os.environ)
     return Settings(settings)
 
 
@@ -73,10 +74,7 @@ def get_settings_for_profile(env: str = None) -> dict[str, Any]:
     settings_file_path = settings_file_path.absolute()
 
     try:
-        settings_yaml = replace_variables(
-            settings_file_path.read_text("utf-8"),
-            os.environ,
-        )
+        settings_yaml = settings_file_path.read_text("utf-8")
         return strictyaml.load(settings_yaml).data
     except FileNotFoundError:
         logger.info("settings file not found: {}", settings_file_path)

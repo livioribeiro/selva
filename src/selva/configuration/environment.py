@@ -22,7 +22,7 @@ RE_VARIABLE = re.compile(
 SELVA_PREFIX = "SELVA__"
 
 
-def parse_settings(source: dict[str, str]) -> dict:
+def parse_settings_from_env(source: dict[str, str]) -> dict:
     result = {}
 
     for name, value in source.items():
@@ -50,9 +50,7 @@ def parse_settings(source: dict[str, str]) -> dict:
     return result
 
 
-def replace_variables(settings_yaml: str, environ: dict[str, str]):
-    settings = copy.copy(settings_yaml)
-
+def replace_variables_with_env(settings: str, environ: dict[str, str]):
     for match in RE_VARIABLE.finditer(settings):
         name = match.group("name")
 
@@ -69,3 +67,16 @@ def replace_variables(settings_yaml: str, environ: dict[str, str]):
         )
 
     return settings
+
+
+def replace_variables_recursive(settings: dict | list | str, environ: dict):
+    if isinstance(settings, dict):
+        for key, value in settings.items():
+            settings[key] = replace_variables_recursive(value, environ)
+        return settings
+    elif isinstance(settings, list):
+        return [replace_variables_recursive(value, environ) for value in settings]
+    elif isinstance(settings, str):
+        return replace_variables_with_env(settings, environ)
+    else:
+        raise TypeError("settings should contain only str, list or dict")

@@ -259,7 +259,7 @@ def test_non_existent_env_var_should_fail(monkeypatch):
         ValueError,
         match=f"DOES_NOT_EXIST environment variable is not defined and does not contain a default value",
     ):
-        get_settings_for_profile()
+        get_settings()
 
 
 def test_invalid_yaml_should_fail(monkeypatch):
@@ -352,3 +352,19 @@ def test_settings_get_nonexistent_item_should_fail():
     settings = Settings({})
     with pytest.raises(KeyError, match="a"):
         settings["a"]
+
+
+def test_settings_with_env_var(monkeypatch):
+    monkeypatch.chdir(Path(__file__).parent / "env_var")
+    monkeypatch.setenv("VAR_NAME", "test")
+
+    settings = get_settings()
+    assert settings.name == "test"
+
+
+def test_settings_with_env_var_replaced_in_profile(monkeypatch):
+    monkeypatch.chdir(Path(__file__).parent / "env_var")
+    monkeypatch.setenv("SELVA_PROFILE", "profile")
+
+    settings = get_settings()
+    assert settings.name == "profile"
