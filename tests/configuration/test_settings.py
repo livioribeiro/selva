@@ -8,26 +8,9 @@ from selva.configuration.settings import (
     Settings,
     SettingsError,
     get_settings,
-    get_settings_for_env,
+    get_settings_for_profile,
     merge_recursive,
 )
-
-
-@pytest.mark.parametrize(
-    "env,expected",
-    [
-        (None, {"name": "application"}),
-        ("dev", {"environment": "dev"}),
-        ("stg", {"environment": "stg"}),
-        ("prd", {"environment": "prd"}),
-    ],
-    ids=["None", "dev", "stg", "prd"],
-)
-def test_get_settings_for_env(monkeypatch, env, expected):
-    monkeypatch.chdir(Path(__file__).parent / "envs")
-
-    result = get_settings_for_env(env)
-    assert result == expected
 
 
 def test_get_settings(monkeypatch):
@@ -47,10 +30,42 @@ def test_get_settings(monkeypatch):
     }
 
 
-def test_configure_settings_file(monkeypatch):
+@pytest.mark.parametrize(
+    "profile",
+    ["dev", "stg", "prd"],
+)
+def test_get_settings_with_profile(monkeypatch, profile):
+    monkeypatch.chdir(Path(__file__).parent / "profiles")
+    monkeypatch.setenv("SELVA_PROFILE", profile)
+
+    result = get_settings()
+    assert result.data == default_settings | {
+        "name": "application",
+        "environment": profile,
+    }
+
+
+@pytest.mark.parametrize(
+    "profile,expected",
+    [
+        (None, {"name": "application"}),
+        ("dev", {"environment": "dev"}),
+        ("stg", {"environment": "stg"}),
+        ("prd", {"environment": "prd"}),
+    ],
+    ids=["None", "dev", "stg", "prd"],
+)
+def test_get_settings_for_profile(monkeypatch, profile, expected):
+    monkeypatch.chdir(Path(__file__).parent / "profiles")
+
+    result = get_settings_for_profile(profile)
+    assert result == expected
+
+
+def test_configure_settings_dir(monkeypatch):
     monkeypatch.setenv(
-        "SELVA_SETTINGS",
-        str(Path(__file__).parent / "alternate/configuration/application.yaml"),
+        "SELVA_SETTINGS_DIR",
+        str(Path(__file__).parent / "base" / "configuration"),
     )
 
     result = get_settings()
@@ -67,13 +82,59 @@ def test_configure_settings_file(monkeypatch):
     }
 
 
-def test_configure_settings_file_with_env(monkeypatch):
+def test_configure_settings_file(monkeypatch):
+    monkeypatch.chdir(str(Path(__file__).parent / "alternate"))
     monkeypatch.setenv(
-        "SELVA_SETTINGS",
-        str(Path(__file__).parent / "alternate/configuration/application.yaml"),
+        "SELVA_SETTINGS_FILE",
+        "application.yaml",
     )
 
-    monkeypatch.setenv("SELVA_ENV", "prd")
+    result = get_settings()
+    assert result.data == default_settings | {
+        "prop": "value",
+        "list": ["1", "2", "3"],
+        "dict": Settings(
+            {
+                "a": "1",
+                "b": "2",
+                "c": "3",
+            }
+        ),
+    }
+
+
+def test_configure_settings_dir_and_file(monkeypatch):
+    monkeypatch.setenv(
+        "SELVA_SETTINGS_DIR",
+        str(Path(__file__).parent / "alternate" / "configuration"),
+    )
+    monkeypatch.setenv(
+        "SELVA_SETTINGS_FILE",
+        "application.yaml",
+    )
+
+    result = get_settings()
+    assert result.data == default_settings | {
+        "prop": "value",
+        "list": ["1", "2", "3"],
+        "dict": Settings(
+            {
+                "a": "1",
+                "b": "2",
+                "c": "3",
+            }
+        ),
+    }
+
+
+def test_configure_settings_file_with_profile(monkeypatch):
+    monkeypatch.chdir(str(Path(__file__).parent / "alternate"))
+    monkeypatch.setenv(
+        "SELVA_SETTINGS_FILE",
+        "application.yaml",
+    )
+
+    monkeypatch.setenv("SELVA_PROFILE", "prd")
 
     result = get_settings()
     assert result.data == default_settings | {
@@ -92,27 +153,12 @@ def test_configure_settings_file_with_env(monkeypatch):
     "env",
     ["dev", "stg", "prd"],
 )
-def test_get_env_setttings(monkeypatch, env):
-    monkeypatch.chdir(Path(__file__).parent / "envs")
-    monkeypatch.setenv("SELVA_ENV", env)
-
-    result = get_settings()
-    assert result.data == default_settings | {
-        "name": "application",
-        "environment": env,
-    }
-
-
-@pytest.mark.parametrize(
-    "env",
-    ["dev", "stg", "prd"],
-)
 def test_configure_env_setttings(monkeypatch, env):
     monkeypatch.setenv(
-        "SELVA_SETTINGS",
-        str(Path(__file__).parent / "envs/configuration/settings.yaml"),
+        "SELVA_SETTINGS_DIR",
+        str(Path(__file__).parent / "profiles/configuration"),
     )
-    monkeypatch.setenv("SELVA_ENV", env)
+    monkeypatch.setenv("SELVA_PROFILE", env)
 
     result = get_settings()
     assert result.data == default_settings | {
@@ -131,7 +177,7 @@ def test_override_settings(monkeypatch, env):
     result = get_settings()
     assert result.data == default_settings | {"value": "base"}
 
-    monkeypatch.setenv("SELVA_ENV", env)
+    monkeypatch.setenv("SELVA_PROFILE", env)
 
     result = get_settings()
     assert result.data == default_settings | {"value": env}
@@ -155,8 +201,8 @@ def test_settings_class(monkeypatch):
     ["dev", "stg", "prd"],
 )
 def test_setttings_class_env(monkeypatch, env):
-    monkeypatch.chdir(Path(__file__).parent / "envs")
-    monkeypatch.setenv("SELVA_ENV", env)
+    monkeypatch.chdir(Path(__file__).parent / "profiles")
+    monkeypatch.setenv("SELVA_PROFILE", env)
 
     settings = get_settings()
     assert settings["name"] == "application"
@@ -164,9 +210,9 @@ def test_setttings_class_env(monkeypatch, env):
 
 
 def test_no_settings_file_should_log_info(monkeypatch, caplog):
-    monkeypatch.setenv("SELVA_SETTINGS", "does_not_exist.yaml")
+    monkeypatch.setenv("SELVA_SETTINGS_FILE", "does_not_exist.yaml")
 
-    settings_path = Path.cwd() / "does_not_exist.yaml"
+    settings_path = Path.cwd() / "configuration" / "does_not_exist.yaml"
 
     with caplog.at_level(logging.INFO, logger="selva"):
         get_settings()
@@ -175,8 +221,8 @@ def test_no_settings_file_should_log_info(monkeypatch, caplog):
 
 
 def test_no_env_settings_file_should_log_info(monkeypatch, caplog):
-    monkeypatch.chdir(Path(__file__).parent / "envs")
-    monkeypatch.setenv("SELVA_ENV", "does_not_exist")
+    monkeypatch.chdir(Path(__file__).parent / "profiles")
+    monkeypatch.setenv("SELVA_PROFILE", "does_not_exist")
 
     settings_path = Path.cwd() / "configuration" / "settings_does_not_exist.yaml"
 
@@ -213,17 +259,17 @@ def test_non_existent_env_var_should_fail(monkeypatch):
         ValueError,
         match=f"DOES_NOT_EXIST environment variable is not defined and does not contain a default value",
     ):
-        get_settings_for_env()
+        get_settings_for_profile()
 
 
-def test_invalid_yml_should_fail(monkeypatch):
+def test_invalid_yaml_should_fail(monkeypatch):
     settings_path = Path(__file__).parent / "invalid_configuration" / "invalid_yaml"
     monkeypatch.chdir(Path(__file__).parent / "invalid_configuration" / "invalid_yaml")
 
     with pytest.raises(
         SettingsError, match=f"cannot load settings from {settings_path}"
     ):
-        get_settings_for_env()
+        get_settings_for_profile()
 
 
 @pytest.mark.parametrize(

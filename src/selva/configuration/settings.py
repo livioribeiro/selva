@@ -12,10 +12,13 @@ from selva.configuration.environment import parse_settings, replace_variables
 
 __all__ = ("Settings", "SettingsError", "get_settings")
 
-SELVA_SETTINGS_ENV = "SELVA_SETTINGS"
-DEFAULT_SELVA_SETTINGS = str(Path("configuration") / "settings.yaml")
+SETTINGS_DIR_ENV = "SELVA_SETTINGS_DIR"
+SETTINGS_FILE_ENV = "SELVA_SETTINGS_FILE"
 
-SELVA_ENV = "SELVA_ENV"
+DEFAULT_SETTINGS_DIR = str(Path("configuration"))
+DEFAULT_SETTINGS_FILE = "settings.yaml"
+
+SELVA_PROFILE = "SELVA_PROFILE"
 
 
 class Settings(UserDict):
@@ -39,13 +42,30 @@ class SettingsError(Exception):
         self.path = path
 
 
-def get_settings_for_env(env: str = None) -> dict[str, Any]:
-    settings_file_name = "settings"
+def get_settings() -> Settings:
+    # get default settings
+    settings = deepcopy(default_settings)
 
-    settings_file_path = Path(os.getenv(SELVA_SETTINGS_ENV, DEFAULT_SELVA_SETTINGS))
+    # merge with main settings file (settings.yaml)
+    merge_recursive(settings, get_settings_for_profile())
+
+    # merge with environment settings file (settings_$SELVA_ENV.yaml)
+    if active_env := os.getenv(SELVA_PROFILE):
+        merge_recursive(settings, get_settings_for_profile(active_env))
+
+    # merge with environment variables (SELVA_*)
+    from_env_vars = parse_settings(os.environ)
+    merge_recursive(settings, from_env_vars)
+
+    return Settings(settings)
+
+
+def get_settings_for_profile(env: str = None) -> dict[str, Any]:
+    settings_file = os.getenv(SETTINGS_FILE_ENV, DEFAULT_SETTINGS_FILE)
+    settings_dir_path = Path(os.getenv(SETTINGS_DIR_ENV, DEFAULT_SETTINGS_DIR))
+    settings_file_path = settings_dir_path / settings_file
 
     if env is not None:
-        settings_file_name += f"_{env}"
         settings_file_path = settings_file_path.with_stem(
             f"{settings_file_path.stem}_{env}"
         )
@@ -75,21 +95,3 @@ def merge_recursive(destination: dict, source: dict):
             merge_recursive(destination[key], source[key])
         else:
             destination[key] = deepcopy(source[key])
-
-
-def get_settings() -> Settings:
-    # get default settings
-    settings = deepcopy(default_settings)
-
-    # merge with main settings file (settings.yaml)
-    merge_recursive(settings, get_settings_for_env())
-
-    # merge with environment settings file (settings_$SELVA_ENV.yaml)
-    if active_env := os.getenv(SELVA_ENV):
-        merge_recursive(settings, get_settings_for_env(active_env))
-
-    # merge with environment variables (SELVA_*)
-    from_env_vars = parse_settings(os.environ)
-    merge_recursive(settings, from_env_vars)
-
-    return Settings(settings)
