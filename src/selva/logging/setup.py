@@ -23,10 +23,7 @@ def setup_logger(settings: Settings):
     }
 
     filter_func = filter_func_factory(root_level, log_level)
-
     handler = {"sink": sys.stderr, "filter": filter_func}
-    if log_format := log_config.get("format"):
-        handler["format"] = log_format
 
     logger.configure(
         handlers=[handler],

@@ -3,7 +3,6 @@ default_settings = {
     "middleware": [],
     "logging": {
         "setup": "selva.logging.setup.setup_logger",
-        "format": "",
         "root": "WARNING",
         "level": {},
         "enable": [],
