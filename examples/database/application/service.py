@@ -10,7 +10,7 @@ from selva.di import Inject, service
 
 @service
 def database_factory(settings: Settings) -> Database:
-    database = Database(settings.DATABASE_URL)
+    database = Database(settings.database.url)
     logger.info("Sqlite database created")
 
     yield database

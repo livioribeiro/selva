@@ -1,91 +1,82 @@
-import json
-import os
-from collections.abc import Callable, Mapping, Sequence
-from typing import Any, Optional
+import copy
+import re
 
-_UNSET = ()
-
-
-def get_str(key: str, default: Optional[str] = _UNSET) -> str:
-    if value := os.getenv(key):
-        return value
-
-    if default is not _UNSET:
-        return default
-
-    raise KeyError(f"Environment variable '{key}' is not defined")
-
-
-def _get_env_and_convert[T](key: str, default: T | None, converter: Callable[[str], T], type_name: str) -> T:
-    value = get_str(key, None)
-    if value is None:
-        return default
-
-    try:
-        return converter(value)
-    except ValueError as err:
-        message = (
-            f"Environment variable '{key}'"
-            f" is not compatible with type '{type_name}': '{value}'"
-        )
-        raise ValueError(message) from err
+RE_VARIABLE = re.compile(
+    r"""
+        \$\{                        # Expression start with '${'
+            \ ?                     # Blank space before variable name
+            (?P<name>\w+?)          # Environment variable name
+            \ ?                     # Blank space after variable name
+            (?:                     # Default value non-capture group
+                :                   # Collon separating variable name and default value
+                \ ?                 # Blank space before default value
+                (?P<default>.*?)    # Default value
+                \ ?                 # Blank space after default value
+            )?                      # End of default value non-capture group
+        }                           # Expression end with '}'
+    """,
+    re.VERBOSE,
+)
 
 
-def get_int(key: str, default: Optional[int] = _UNSET) -> int:
-    return _get_env_and_convert(key, default, int, "int")
+SELVA_PREFIX = "SELVA__"
 
 
-def get_float(key: str, default: Optional[float] = _UNSET) -> float:
-    return _get_env_and_convert(key, default, float, "float")
+def parse_settings_from_env(source: dict[str, str]) -> dict:
+    result = {}
 
+    for name, value in source.items():
+        if not name.startswith(SELVA_PREFIX):
+            continue
 
-def _bool_converter(value: str) -> bool:
-    if value in ("1", "true", "True"):
-        return True
+        current_ref = result
+        keys = name.removeprefix(SELVA_PREFIX).split("__")
 
-    if value in ("0", "false", "False"):
-        return False
-
-    raise ValueError(
-        "bool value must be one of ['1', 'true', 'True', '0', 'false', 'False']"
-    )
-
-
-def get_bool(key: str, default: Optional[bool] = _UNSET) -> bool:
-    return _get_env_and_convert(key, default, _bool_converter, "bool")
-
-
-def _list_converter(value: str) -> list[str]:
-    return [v.strip().strip("'\"") for v in value.split(",")]
-
-
-def get_list(key: str, default: Optional[Sequence[str]] = _UNSET) -> Sequence[str]:
-    return _get_env_and_convert(key, default, _list_converter, "list")
-
-
-def _dict_converter(value: str) -> dict[str, str]:
-    result: dict[str, str] = {}
-
-    for item in value.split(","):
-        match item.split("=", maxsplit=1):
-            case [key, val]:
-                key = key.strip().strip("'\"")
-                val = val.strip().strip("'\"")
-                result[key] = val
+        match keys:
+            case [key] if key.strip() != "":
+                current_key = key.lower()
+            case [first_key, *keys, last_key]:
+                for key in [first_key] + keys:
+                    key = key.lower()
+                    if key not in current_ref:
+                        current_ref[key] = {}
+                    current_ref = current_ref[key]
+                current_key = last_key.lower()
             case _:
-                message = f"{item} is not a valid dict item"
-                raise ValueError(message)
+                continue
+
+        current_ref[current_key] = value
 
     return result
 
 
-def get_dict(key, default: Optional[Mapping[str, str]] = _UNSET) -> Mapping[str, str]:
-    return _get_env_and_convert(key, default, _dict_converter, "dict")
+def replace_variables_with_env(settings: str, environ: dict[str, str]):
+    for match in RE_VARIABLE.finditer(settings):
+        name = match.group("name")
+
+        if value := environ.get(name):
+            settings = settings.replace(match.group(), value)
+            continue
+
+        if value := match.group("default"):
+            settings = settings.replace(match.group(), value)
+            continue
+
+        raise ValueError(
+            f"{name} environment variable is not defined and does not contain a default value"
+        )
+
+    return settings
 
 
-def _json_converter(value: str) -> dict[str, Any]:
-    return json.loads(value)
-
-
-def get_json(key, default: Optional[Mapping[str, Any]] = _UNSET) -> Mapping[str, Any]:
-    return _get_env_and_convert(key, default, _json_converter, "json")
+def replace_variables_recursive(settings: dict | list | str, environ: dict):
+    if isinstance(settings, dict):
+        for key, value in settings.items():
+            settings[key] = replace_variables_recursive(value, environ)
+        return settings
+    elif isinstance(settings, list):
+        return [replace_variables_recursive(value, environ) for value in settings]
+    elif isinstance(settings, str):
+        return replace_variables_with_env(settings, environ)
+    else:
+        raise TypeError("settings should contain only str, list or dict")

@@ -1,0 +1,10 @@
+middleware:
+  - application.middleware.TimingMiddleware
+  - application.middleware.LoggingMiddleware
+  - application.middleware.AuthMiddleware
+
+logging:
+  root: WARNING
+  level:
+    application: INFO
+    selva: INFO

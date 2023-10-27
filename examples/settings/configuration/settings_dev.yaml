@@ -1,0 +1,2 @@
+application:
+  message: ${MESSAGE:Hello, dev World!}

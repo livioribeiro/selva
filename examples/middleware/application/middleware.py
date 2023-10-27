@@ -1,7 +1,6 @@
 import base64
 from datetime import datetime
 from http import HTTPStatus
-
 from asgikit.requests import Request
 from asgikit.responses import respond_status
 from loguru import logger
@@ -20,7 +19,7 @@ class TimingMiddleware(Middleware):
         request_end = datetime.now()
 
         delta = request_end - request_start
-        logger.warning("Request time: {}", delta)
+        logger.info("Request time: {}", delta)
 
 
 class LoggingMiddleware(Middleware):
@@ -35,7 +34,7 @@ class LoggingMiddleware(Middleware):
         request_line = f"{request.method} {request.path} HTTP/{request.http_version}"
         status = request.response.status
 
-        logger.warning(
+        logger.info(
             '{} "{}" {} {}', client, request_line, status.value, status.phrase
         )
 
@@ -57,4 +56,4 @@ class AuthMiddleware(Middleware):
             logger.info("User '{}' with password '{}'", user, password)
             request["user"] = user
 
-        await chain(request, response)
+        await chain(request)

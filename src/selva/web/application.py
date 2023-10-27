@@ -15,6 +15,7 @@ from loguru import logger
 
 from selva._util.base_types import get_base_types
 from selva._util.maybe_async import maybe_async
+from selva._util.import_item import import_item
 from selva.configuration.settings import Settings, get_settings
 from selva.di.container import Container
 from selva.di.decorator import DI_SERVICE_ATTRIBUTE
@@ -72,10 +73,13 @@ class Selva:
             param_extractor_impl,
             param_converter_impl,
         )
-        self.di.scan(self.settings.COMPONENTS)
 
-        components = self.settings.COMPONENTS
+        components = self.settings.components
+        self.di.scan(components)
         self._register_components(components)
+
+        setup_logger = import_item(self.settings.logging.setup)
+        setup_logger(self.settings)
 
     async def __call__(self, scope, receive, send):
         match scope["type"]:
@@ -120,9 +124,11 @@ class Selva:
                 self.router.route(impl)
 
     async def _initialize_middleware(self):
-        middleware = self.settings.MIDDLEWARE
+        middleware = self.settings.middleware
         if len(middleware) == 0:
             return
+
+        middleware = [import_item(name) for name in middleware]
 
         if middleware_errors := [
             m for m in middleware if not issubclass(m, Middleware)
@@ -135,7 +141,7 @@ class Selva:
                 f"Middleware classes must inherit from '{mid_class_name}': {mid_classes}"
             )
 
-        for cls in reversed(self.settings.MIDDLEWARE):
+        for cls in reversed(middleware):
             mid = await self.di.create(cls)
             chain = functools.partial(mid, self.handler)
             self.handler = chain

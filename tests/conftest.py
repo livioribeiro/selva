@@ -2,6 +2,8 @@ import pytest
 from _pytest.logging import LogCaptureFixture
 from loguru import logger
 
+logger.remove()
+
 
 @pytest.fixture
 def caplog(caplog: LogCaptureFixture):

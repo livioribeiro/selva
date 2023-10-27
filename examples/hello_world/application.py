@@ -31,8 +31,8 @@ class Controller:
         name: Annotated[str, FromQuery("name")] = "World",
         number: Annotated[int, FromQuery] = 1,
     ):
-        logger.info("message")
         greeting = self.greeter.greet(name)
+        logger.info(greeting)
         await respond_json(request.response, {"greeting": greeting, "number": number})
 
     @get("/:name")
