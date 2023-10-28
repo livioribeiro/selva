@@ -1,11 +1,13 @@
 from collections.abc import Awaitable
-from typing import Protocol, runtime_checkable
+from typing import Protocol, TypeVar, runtime_checkable
 
 __all__ = ("ParamConverter",)
 
+T = TypeVar("T")
+
 
 @runtime_checkable
-class ParamConverter[T](Protocol[T]):
+class ParamConverter(Protocol[T]):
     """Convert values from and to request parameters
 
     Request parameters come from path, querystring or headers.

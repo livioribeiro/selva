@@ -289,7 +289,7 @@ def test_invalid_yaml_should_fail(monkeypatch):
         "replace nested value",
         "replace dict with value",
         "replace value with dict",
-    ]
+    ],
 )
 def test_merge_recursive(settings, extra, expected):
     merge_recursive(settings, extra)

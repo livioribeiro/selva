@@ -1,7 +1,11 @@
+from typing import Generic, TypeVar
+
 from selva.di import service
 
+T = TypeVar("T")
 
-class Interface[T]:
+
+class Interface(Generic[T]):
     pass
 
 

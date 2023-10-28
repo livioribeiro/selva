@@ -1,4 +1,4 @@
-from typing import Annotated, TypeVar
+from typing import Annotated, Generic, TypeVar
 
 import pytest
 
@@ -8,8 +8,10 @@ from selva.di.inject import Inject
 
 from .fixtures import ioc
 
+T = TypeVar("T")
 
-class GenericService[T]:
+
+class GenericService(Generic[T]):
     pass
 
 

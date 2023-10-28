@@ -18,17 +18,13 @@ def setup_logger(settings: Settings):
     log_config = settings.get("logging", {})
     root_level = logger.level(log_config.get("root", "WARNING"))
     log_level = {
-        name: logger.level(value)
-        for name, value in log_config.get("level", {}).items()
+        name: logger.level(value) for name, value in log_config.get("level", {}).items()
     }
 
     filter_func = filter_func_factory(root_level, log_level)
     handler = {"sink": sys.stderr, "filter": filter_func}
 
-    logger.configure(
-        handlers=[handler],
-        activation=activation
-    )
+    logger.configure(handlers=[handler], activation=activation)
 
     setup_loguru_std_logging_interceptor()
 

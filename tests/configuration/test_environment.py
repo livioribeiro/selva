@@ -2,8 +2,8 @@ import pytest
 
 from selva.configuration.environment import (
     parse_settings_from_env,
-    replace_variables_with_env,
     replace_variables_recursive,
+    replace_variables_with_env,
 )
 
 
@@ -79,14 +79,14 @@ def test_replace_variables_recursive():
         "dict": {
             "var": "3",
             "subdict": {"var": "4"},
-        }
+        },
     }
 
 
 def test_replace_variables_recursive_with_invalid_value_should_fail():
-    settings = {
-        "prop": 1
-    }
+    settings = {"prop": 1}
 
-    with pytest.raises(TypeError, match="settings should contain only str, list or dict"):
+    with pytest.raises(
+        TypeError, match="settings should contain only str, list or dict"
+    ):
         replace_variables_recursive(settings, {})

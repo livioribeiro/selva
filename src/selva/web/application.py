@@ -14,8 +14,8 @@ from asgikit.websockets import WebSocket
 from loguru import logger
 
 from selva._util.base_types import get_base_types
-from selva._util.maybe_async import maybe_async
 from selva._util.import_item import import_item
+from selva._util.maybe_async import maybe_async
 from selva.configuration.settings import Settings, get_settings
 from selva.di.container import Container
 from selva.di.decorator import DI_SERVICE_ATTRIBUTE

@@ -2,7 +2,7 @@ import asyncio
 import inspect
 from collections.abc import AsyncGenerator, Awaitable, Generator, Iterable
 from types import FunctionType, ModuleType
-from typing import Any, Type
+from typing import Any, Type, TypeVar
 
 from loguru import logger
 
@@ -19,6 +19,8 @@ from selva.di.service.model import InjectableType, ServiceDependency, ServiceSpe
 from selva.di.service.parse import get_dependencies, parse_service_spec
 from selva.di.service.registry import ServiceRegistry
 
+T = TypeVar("T")
+
 
 class Container:
     def __init__(self):
@@ -28,11 +30,7 @@ class Container:
         self.interceptors: list[Type[Interceptor]] = []
 
     def register(
-        self,
-        service: InjectableType,
-        *,
-        provides: type = None,
-        name: str = None,
+        self, service: InjectableType, *, provides: type = None, name: str = None
     ):
         self._register_service_spec(service, provides, name)
 
@@ -116,8 +114,8 @@ class Container:
             for name, definition in record.providers.items():
                 yield interface, definition.service, name
 
-    async def get[T](self, service_type: T, *, name: str = None, optional=False,) -> T:
-        dependency = ServiceDependency(service_type, name=name, optional=optional)
+    async def get(self, service: T, *, name: str = None, optional=False) -> T:
+        dependency = ServiceDependency(service, name=name, optional=optional)
         return await self._get(dependency)
 
     async def create(self, service: type) -> Any:

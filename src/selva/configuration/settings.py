@@ -8,7 +8,10 @@ import strictyaml
 from loguru import logger
 
 from selva.configuration.defaults import default_settings
-from selva.configuration.environment import parse_settings_from_env, replace_variables_recursive
+from selva.configuration.environment import (
+    parse_settings_from_env,
+    replace_variables_recursive,
+)
 
 __all__ = ("Settings", "SettingsError", "get_settings")
 

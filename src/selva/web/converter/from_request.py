@@ -1,13 +1,15 @@
 from collections.abc import Awaitable
-from typing import Any, Protocol, Type, runtime_checkable
+from typing import Any, Protocol, Type, TypeVar, runtime_checkable
 
 from asgikit.requests import Request
 
 __all__ = ("FromRequest",)
 
+T = TypeVar("T")
+
 
 @runtime_checkable
-class FromRequest[T](Protocol[T]):
+class FromRequest(Protocol[T]):
     """Base class for services that extract values from the request"""
 
     def from_request(
