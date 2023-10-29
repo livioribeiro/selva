@@ -123,3 +123,12 @@ Those variables will be collected as the following:
     },
 }
 ```
+
+### DotEnv
+
+If running you project using `selva.run.app`, for example `uvicorn selva.run:app`,
+environment variables can be loaded from a `.env` file. The parsing is done using
+the [python-dotenv](https://pypi.org/project/python-dotenv/) library.
+
+By default, a `.env` file in the current working directory will be loaded, but it
+can be customized with the environment variable `SELVA_DOTENV` pointing to a `.env` file.

@@ -32,6 +32,7 @@ asgikit = "^0.5"
 pydantic = "^2.4"
 loguru = "^0.7"
 strictyaml = "^1.7"
+python-dotenv = "^1.0.0"
 
 [tool.poetry.group.dev]
 optional = true
