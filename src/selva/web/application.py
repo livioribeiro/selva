@@ -26,7 +26,7 @@ from selva.web.converter import (
 )
 from selva.web.converter.error import (
     MissingFromRequestImplError,
-    MissingFromRequestParamImplError,
+    MissingParamConverterImplError,
     MissingRequestParamExtractorImplError,
 )
 from selva.web.converter.from_request import FromRequest
@@ -289,7 +289,7 @@ class Selva:
                     value = await maybe_async(converter.from_str, param)
                     result[name] = value
                 else:
-                    raise MissingFromRequestParamImplError(param_type)
+                    raise MissingParamConverterImplError(param_type)
             else:
                 if converter := await self._find_param_converter(
                     param_type, FromRequest

@@ -4,6 +4,7 @@ from typing import Type
 from asgikit.requests import Request
 
 from selva.web.converter.decorator import register_param_extractor
+from selva.web.converter.error import PathParamNotFoundError
 
 __all__ = (
     "FromPath",
@@ -37,7 +38,11 @@ class FromPathExtractor:
         else:
             name = metadata.name or parameter_name
 
-        return request["path_params"][name]
+        param = request["path_params"].get(name)
+        if not param:
+            raise PathParamNotFoundError(name)
+
+        return param
 
 
 class FromQuery(FromRequestParam):

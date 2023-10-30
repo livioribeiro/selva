@@ -11,7 +11,7 @@ class MissingFromRequestImplError(Exception):
         self.param_type = param_type
 
 
-class MissingFromRequestParamImplError(Exception):
+class MissingParamConverterImplError(Exception):
     def __init__(self, param_type):
         super().__init__(
             f"no implementation of '{ParamConverter.__name__}' found for type {param_type}"
@@ -25,3 +25,9 @@ class MissingRequestParamExtractorImplError(Exception):
             f"no implementation of '{ParamExtractor.__name__}' found for type {param_type}"
         )
         self.param_type = param_type
+
+
+class PathParamNotFoundError(Exception):
+    def __init__(self, name: str):
+        super().__init__(f"path parameter '{name}' not found")
+        self.name = name
