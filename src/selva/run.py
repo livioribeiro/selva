@@ -1,6 +1,7 @@
 import os
 
 from dotenv import load_dotenv
+
 from selva.web.application import Selva
 
 dotenv_path = os.getenv("SELVA_DOTENV", os.path.join(os.getcwd(), ".env"))

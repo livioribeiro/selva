@@ -1,6 +1,7 @@
 import inspect
+import typing
 from collections.abc import Callable
-from typing import TypeVar
+from typing import Annotated, TypeVar
 
 from selva.di.inject import Inject
 from selva.di.service.model import InjectableType, ServiceInfo
@@ -13,7 +14,9 @@ T = TypeVar("T")
 
 
 def _is_inject(value) -> bool:
-    return isinstance(value, Inject) or value is Inject
+    origin = typing.get_origin(value)
+    args = typing.get_args(value)
+    return origin is Annotated and isinstance(args[1], Inject) or args[1] is Inject
 
 
 def service(
@@ -29,15 +32,11 @@ def service(
         setattr(injectable, DI_SERVICE_ATTRIBUTE, ServiceInfo(provides, name))
 
         if inspect.isclass(injectable):
-            annotations = set(inspect.get_annotations(injectable).keys())
-            dependencies = [d for d, _ in inspect.getmembers(injectable, _is_inject)]
-
-            if missing := [d for d in dependencies if d not in annotations]:
-                # TODO: create exception
-                raise TypeError(
-                    f"Missing type annotation for dependencies of service '{injectable.__qualname__}': "
-                    ", ".join(missing)
-                )
+            dependencies = [
+                dependency
+                for dependency, annotation in inspect.get_annotations(injectable).items()
+                if _is_inject(annotation)
+            ]
 
             # save a reference to the original constructor
             original_init = getattr(injectable, "__init__", None)
