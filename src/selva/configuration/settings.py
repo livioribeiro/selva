@@ -82,8 +82,6 @@ def get_settings_for_profile(env: str = None) -> dict[str, Any]:
     except FileNotFoundError:
         logger.info("settings file not found: {}", settings_file_path)
         return {}
-    except (KeyError, ValueError):
-        raise
     except Exception as err:
         raise SettingsError(settings_file_path) from err
 
