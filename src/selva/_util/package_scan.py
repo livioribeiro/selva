@@ -20,17 +20,16 @@ def scan_packages(
     modules_to_scan: Iterable[str | ModuleType],
     predicate: Callable[[Any], bool] = None,
 ) -> Iterable[type]:
+    if predicate and not inspect.isfunction(predicate):
+        raise ValueError("invalid predicate")
+
     for module in modules_to_scan:
         if isinstance(module, str):
             module = importlib.import_module(module)
 
-        if predicate:
-
-            def scan_predicate(arg):
-                return _is_class_or_function(arg) and predicate(arg)
-
-        else:
-            scan_predicate = _is_class_or_function
+        def scan_predicate(arg):
+            predicate_result = predicate(arg) if predicate else True
+            return _is_class_or_function(arg) and predicate_result
 
         yield from _scan_members(module, scan_predicate)
 
