@@ -34,7 +34,9 @@ def service(
         if inspect.isclass(injectable):
             dependencies = [
                 dependency
-                for dependency, annotation in inspect.get_annotations(injectable).items()
+                for dependency, annotation in inspect.get_annotations(
+                    injectable
+                ).items()
                 if _is_inject(annotation)
             ]
 

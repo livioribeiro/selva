@@ -1,3 +1,4 @@
+import inspect
 import re
 import typing
 from collections import Counter
@@ -59,18 +60,14 @@ def build_path_regex_and_params(
 
 
 def build_request_params(action: Callable) -> dict[str, tuple[type, Any | None]]:
-    type_hints = typing.get_type_hints(action, include_extras=True)
-    type_hints.pop("return", None)
+    type_hints = [
+        (name, param.annotation)
+        for name, param in inspect.signature(action).parameters.items()
+    ]
 
     result = {}
-    skip_req_res = 0
 
-    for name, type_hint in type_hints.items():
-        # skip first parameter, request
-        if skip_req_res < 1:
-            skip_req_res += 1
-            continue
-
+    for name, type_hint in type_hints[2:]:  # skip self and request parameters
         if typing.get_origin(type_hint) is Annotated:
             # Annotated is garanteed to have at least 2 args
             param_type, param_meta, *_ = typing.get_args(type_hint)
