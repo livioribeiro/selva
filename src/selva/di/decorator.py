@@ -1,7 +1,7 @@
 import inspect
 import typing
 from collections.abc import Callable
-from typing import Annotated, TypeVar
+from typing import Annotated, TypeVar, dataclass_transform
 
 from selva.di.inject import Inject
 from selva.di.service.model import InjectableType, ServiceInfo
@@ -15,10 +15,16 @@ T = TypeVar("T")
 
 def _is_inject(value) -> bool:
     origin = typing.get_origin(value)
+    if not origin or origin is not Annotated:
+        return False
+
+    # if origin is Annotated, args has always at least 2 values
     args = typing.get_args(value)
-    return origin is Annotated and isinstance(args[1], Inject) or args[1] is Inject
+
+    return isinstance(args[1], Inject) or args[1] is Inject
 
 
+@dataclass_transform(eq_default=False)
 def service(
     injectable: T = None, /, *, provides: type = None, name: str = None
 ) -> T | Callable[[T], T]:
@@ -46,7 +52,7 @@ def service(
             def init(self, *args, **kwargs):
                 """Generated init method for service
 
-                Positional and keywork arguments will be set to declared dependencies.
+                Positional and keyword arguments will be set to declared dependencies.
                 Dependencies without an argument to set their value will be None.
                 Remaining arguments will be ignored.
                 """
