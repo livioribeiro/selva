@@ -1,10 +1,11 @@
 import os
 from collections import UserDict
 from copy import deepcopy
+from functools import cache
 from pathlib import Path
 from typing import Any
 
-import strictyaml
+import ruamel.yaml
 from loguru import logger
 
 from selva.configuration.defaults import default_settings
@@ -45,16 +46,21 @@ class SettingsError(Exception):
         self.path = path
 
 
+@cache
 def get_settings() -> Settings:
+    return _get_settings_nocache()
+
+
+def _get_settings_nocache() -> Settings:
     # get default settings
     settings = deepcopy(default_settings)
 
     # merge with main settings file (settings.yaml)
     merge_recursive(settings, get_settings_for_profile())
 
-    # merge with environment settings file (settings_$SELVA_ENV.yaml)
-    if active_env := os.getenv(SELVA_PROFILE):
-        merge_recursive(settings, get_settings_for_profile(active_env))
+    # merge with environment settings file (settings_$SELVA_PROFILE.yaml)
+    if active_profile := os.getenv(SELVA_PROFILE):
+        merge_recursive(settings, get_settings_for_profile(active_profile))
 
     # merge with environment variables (SELVA_*)
     from_env_vars = parse_settings_from_env(os.environ)
@@ -64,23 +70,24 @@ def get_settings() -> Settings:
     return Settings(settings)
 
 
-def get_settings_for_profile(env: str = None) -> dict[str, Any]:
+def get_settings_for_profile(profile: str = None) -> dict[str, Any]:
     settings_file = os.getenv(SETTINGS_FILE_ENV, DEFAULT_SETTINGS_FILE)
     settings_dir_path = Path(os.getenv(SETTINGS_DIR_ENV, DEFAULT_SETTINGS_DIR))
     settings_file_path = settings_dir_path / settings_file
 
-    if env is not None:
+    if profile is not None:
         settings_file_path = settings_file_path.with_stem(
-            f"{settings_file_path.stem}_{env}"
+            f"{settings_file_path.stem}_{profile}"
         )
 
     settings_file_path = settings_file_path.absolute()
 
     try:
         settings_yaml = settings_file_path.read_text("utf-8")
-        return strictyaml.load(settings_yaml).data
+        yaml_loader = ruamel.yaml.YAML()
+        return yaml_loader.load(settings_yaml) or {}
     except FileNotFoundError:
-        logger.info("settings file not found: {}", settings_file_path)
+        logger.debug("settings file not found: {}", settings_file_path)
         return {}
     except Exception as err:
         raise SettingsError(settings_file_path) from err
