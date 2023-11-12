@@ -8,6 +8,8 @@ on:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v4
@@ -16,7 +18,5 @@ jobs:
       - run: pip install pipx
       - run: pipx install poetry
       - run: poetry build
-      - shell: bash
-        run: poetry config pypi-token.pypi "$PYPI_TOKEN" && poetry publish
-        env:
-          PYPI_TOKEN: "${secrets.PYPI_TOKEN}"
+      - name: Publish package distributions to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
