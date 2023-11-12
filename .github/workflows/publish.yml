@@ -16,7 +16,7 @@ jobs:
       - run: pip install pipx
       - run: pipx install poetry
       - run: poetry build
-      - run: poetry config pypi-token.pypi "$PYPI_TOKEN"
+      - shell: bash
+        run: poetry publish
         env:
-          PYPI_TOKEN: "${secrets.PYPI_TOKEN}"
-      - run: poetry publish
+          POETRY_PYPI_TOKEN_PYPI: "${secrets.PYPI_TOKEN}"
