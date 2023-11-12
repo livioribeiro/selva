@@ -1,0 +1,22 @@
+name: publish
+
+on:
+  push:
+    tags:
+      - "main/v[0-9]+.[0-9]+.[0-9]+"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: "3.11"
+      - run: pip install pipx
+      - run: pipx install poetry
+      - run: poetry build
+      - run: poetry config pypi-token.pypi "$PYPI_TOKEN"
+        env:
+          PYPI_TOKEN: "${secrets.PYPI_TOKEN}"
+      - run: poetry publish
