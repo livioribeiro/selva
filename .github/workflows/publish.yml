@@ -19,4 +19,4 @@ jobs:
       - shell: bash
         run: poetry config pypi-token.pypi "$PYPI_TOKEN" && poetry publish
         env:
-          TOKEN_PYPI: "${secrets.PYPI_TOKEN}"
+          PYPI_TOKEN: "${secrets.PYPI_TOKEN}"
