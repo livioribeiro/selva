@@ -2,8 +2,10 @@ name: publish
 
 on:
   push:
+    branches:
+      - main
     tags:
-      - "main/v[0-9]+.[0-9]+.[0-9]+"
+      - "v*.*.*"
 
 jobs:
   test:
