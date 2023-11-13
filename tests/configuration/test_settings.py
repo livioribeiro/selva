@@ -62,6 +62,13 @@ def test_get_settings_for_profile(monkeypatch, profile, expected):
     assert result == expected
 
 
+def test_empty_settings_file(monkeypatch):
+    monkeypatch.chdir(Path(__file__).parent / "empty")
+
+    result = get_settings_for_profile()
+    assert result == {}
+
+
 def test_configure_settings_dir(monkeypatch):
     monkeypatch.setenv(
         "SELVA_SETTINGS_DIR",
@@ -209,27 +216,21 @@ def test_setttings_class_env(monkeypatch, env):
     assert settings["environment"] == env
 
 
-def test_no_settings_file_should_log_info(monkeypatch, caplog):
-    monkeypatch.setenv("SELVA_SETTINGS_FILE", "does_not_exist.yaml")
-
-    settings_path = Path.cwd() / "configuration" / "does_not_exist.yaml"
-
-    with caplog.at_level(logging.INFO, logger="selva"):
-        _get_settings_nocache()
-
-    assert f"settings file not found: {settings_path}" in caplog.text
-
-
-def test_no_env_settings_file_should_log_info(monkeypatch, caplog):
+def test_no_profile_settings_file_should_log_warning(monkeypatch, caplog):
     monkeypatch.chdir(Path(__file__).parent / "profiles")
-    monkeypatch.setenv("SELVA_PROFILE", "does_not_exist")
 
-    settings_path = Path.cwd() / "configuration" / "settings_does_not_exist.yaml"
+    profile = "does_not_exist"
+    monkeypatch.setenv("SELVA_PROFILE", profile)
 
-    with caplog.at_level(logging.INFO, logger="selva"):
+    settings_path = Path.cwd() / "configuration" / f"settings_{profile}.yaml"
+
+    with caplog.at_level(logging.WARNING, logger="selva"):
         _get_settings_nocache()
 
-    assert f"settings file not found: {settings_path}" in caplog.text
+    assert (
+        f"no settings file found for profile '{profile}' at {settings_path}"
+        in caplog.text
+    )
 
 
 def test_override_settings_with_env_var(monkeypatch):

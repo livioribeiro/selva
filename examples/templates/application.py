@@ -16,5 +16,5 @@ class Controller:
         self,
         request: Request,
     ):
-        context = dict(title="Selva", heading="<h2>Heading</h2>")
+        context = dict(title="Selva", heading="Heading")
         await self.template.respond(request.response, "index.html", context)

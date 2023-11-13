@@ -1,8 +1,8 @@
 # Configuration
 
 Settings in Selva are handled through YAML files.
-Internally it uses [ruamel.yaml](https://pypi.org/project/ruamel.yaml/) to parse the
-yaml files and supports YAML 1.2.
+Internally it uses [strictyaml](https://pypi.org/project/strictyaml/) to parse the
+yaml files in order to do the parsing in a safe and predictable way.
 
 Settings files are located by default in the `configuration` directory with the
 base name `settings.yaml`:

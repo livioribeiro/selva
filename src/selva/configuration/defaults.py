@@ -11,7 +11,6 @@ default_settings = {
     "templates": {
         "jinja": {
             "path": "resources/templates",
-            "environment": {},
         },
     },
 }

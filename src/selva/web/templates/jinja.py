@@ -12,7 +12,7 @@ from jinja2 import (
     Undefined,
     select_autoescape,
 )
-from pydantic import BaseModel, ConfigDict, Field, field_serializer, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from selva._util.import_item import import_item
 from selva.configuration import Settings
@@ -54,16 +54,37 @@ class JinjaTemplateSettings(BaseModel):
     def model_validator(cls, data: Any):
         if isinstance(data, MutableMapping):
             if undefined := data.get("undefined"):
+                if not isinstance(undefined, str):
+                    raise TypeError(
+                        "Jinja setting 'undefined' must be a python dotted path"
+                    )
+
                 data["undefined"] = import_item(undefined)
 
             if finalize := data.get("finalize"):
+                if not isinstance(finalize, str):
+                    raise TypeError(
+                        "Jinja setting 'finalize' must be a python dotted path"
+                    )
+
                 data["finalize"] = import_item(finalize)
 
-            match data.get("autoescape"):
-                case value if isinstance(value, bool):
-                    data["autoescape"] = value
-                case value if isinstance(value, str):
-                    data["autoescape"] = import_item(value)
+            if autoescape := data.get("autoescape"):
+                match autoescape:
+                    case value if isinstance(value, bool):
+                        autoescape = value
+                    case "true" | "True":
+                        autoescape = True
+                    case "false" | "False":
+                        autoescape = False
+                    case value if isinstance(value, str):
+                        autoescape = import_item(value)
+                    case _:
+                        raise TypeError(
+                            "Jinja setting 'autoescape' must be bool or str"
+                        )
+
+                data["autoescape"] = autoescape
 
         return data
 
@@ -75,7 +96,7 @@ class JinjaTemplate(Template):
 
     def initialize(self):
         jinja_settings = JinjaTemplateSettings.model_validate(
-            copy.deepcopy(self.settings.templates.jinja.environment.data)
+            self.settings.templates.jinja
         )
 
         kwargs = jinja_settings.model_dump(exclude_none=True)

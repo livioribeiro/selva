@@ -81,12 +81,3 @@ def test_replace_variables_recursive():
             "subdict": {"var": "4"},
         },
     }
-
-
-def test_replace_variables_recursive_with_invalid_value_should_fail():
-    settings = {"prop": 1}
-
-    with pytest.raises(
-        TypeError, match="settings should contain only str, list or dict"
-    ):
-        replace_variables_recursive(settings, {})

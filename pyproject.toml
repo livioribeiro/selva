@@ -32,8 +32,8 @@ asgikit = "^0.5"
 pydantic = "^2.4"
 loguru = "^0.7"
 python-dotenv = "^1.0.0"
-ruamel-yaml = "^0.18.5"
 jinja2 = { version = "^3.1", optional = true }
+strictyaml = "^1.7"
 
 [tool.poetry.extras]
 jinja = ["jinja2"]
