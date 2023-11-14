@@ -1,8 +1,8 @@
-import copy
-from collections.abc import Callable, MutableMapping
+import typing
+from collections.abc import Callable
 from http import HTTPStatus
 from pathlib import Path
-from typing import Annotated, Any, Literal, Type
+from typing import Annotated, Any, Generic, Literal, Type, TypeVar
 
 from asgikit.responses import Response, respond_text
 from jinja2 import (
@@ -12,16 +12,71 @@ from jinja2 import (
     Undefined,
     select_autoescape,
 )
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    GetCoreSchemaHandler,
+    ValidatorFunctionWrapHandler,
+)
+from pydantic_core import PydanticCustomError, core_schema
 
 from selva._util.import_item import import_item
 from selva.configuration import Settings
 from selva.di import Inject, service
 from selva.web.templates.template import Template
 
+T = TypeVar("T")
 
-class MyUndefined(Undefined):
-    pass
+
+class DottedPath(Generic[T]):
+    @classmethod
+    def __get_pydantic_core_schema__(
+        cls,
+        source_type: Any,
+        handler: GetCoreSchemaHandler,
+    ) -> core_schema.CoreSchema:
+        origin = typing.get_origin(source_type)
+        if origin is None:  # used as `x: Owner` without params
+            origin = source_type
+            item_tp = Any
+        else:
+            item_tp = typing.get_args(source_type)[0]
+
+        item_schema = handler.generate_schema(item_tp)
+
+        def validate_from_str(
+            value: str, handler: ValidatorFunctionWrapHandler
+        ) -> DottedPath[item_tp]:
+            try:
+                item = import_item(value)
+            except ImportError as e:
+                raise PydanticCustomError("invalid_dotted_path", str(e))
+
+            return handler(item)
+
+        from_str_schema = core_schema.chain_schema(
+            [
+                core_schema.str_schema(),
+                core_schema.no_info_wrap_validator_function(
+                    validate_from_str, item_schema
+                ),
+            ]
+        )
+
+        return core_schema.json_or_python_schema(
+            json_schema=from_str_schema,
+            python_schema=core_schema.union_schema(
+                [
+                    core_schema.is_subclass_schema(str),
+                    from_str_schema,
+                ]
+            ),
+            serialization=core_schema.plain_serializer_function_ser_schema(
+                lambda instance: f"{instance.__module__}.{instance.__qualname__}",
+                when_used="unless-none",
+            ),
+        )
 
 
 class JinjaTemplateSettings(BaseModel):
@@ -41,52 +96,13 @@ class JinjaTemplateSettings(BaseModel):
     keep_trailing_newline: Annotated[bool, Field(default=None)]
     extensions: Annotated[list[str], Field(default=None)]
     optimized: Annotated[bool, Field(default=None)]
-    undefined: Annotated[Type[Undefined], Field(default=None)]
-    finalize: Annotated[Callable[..., None], Field(default=None)]
-    autoescape: Annotated[bool | Callable[[str], bool], Field(default=None)]
+    undefined: Annotated[DottedPath[Type[Undefined]], Field(default=None)]
+    finalize: Annotated[DottedPath[Callable[..., None]], Field(default=None)]
+    autoescape: Annotated[bool | DottedPath[Callable[[str], bool]], Field(default=None)]
     loader: Annotated[BaseLoader, Field(default=None)]
     cache_size: Annotated[int, Field(default=None)]
     auto_reload: Annotated[bool, Field(default=None)]
     bytecode_cache: Annotated[object, Field(default=None)]
-
-    @model_validator(mode="before")
-    @classmethod
-    def model_validator(cls, data: Any):
-        if isinstance(data, MutableMapping):
-            if undefined := data.get("undefined"):
-                if not isinstance(undefined, str):
-                    raise TypeError(
-                        "Jinja setting 'undefined' must be a python dotted path"
-                    )
-
-                data["undefined"] = import_item(undefined)
-
-            if finalize := data.get("finalize"):
-                if not isinstance(finalize, str):
-                    raise TypeError(
-                        "Jinja setting 'finalize' must be a python dotted path"
-                    )
-
-                data["finalize"] = import_item(finalize)
-
-            if autoescape := data.get("autoescape"):
-                match autoescape:
-                    case value if isinstance(value, bool):
-                        autoescape = value
-                    case "true" | "True":
-                        autoescape = True
-                    case "false" | "False":
-                        autoescape = False
-                    case value if isinstance(value, str):
-                        autoescape = import_item(value)
-                    case _:
-                        raise TypeError(
-                            "Jinja setting 'autoescape' must be bool or str"
-                        )
-
-                data["autoescape"] = autoescape
-
-        return data
 
 
 @service(provides=Template)

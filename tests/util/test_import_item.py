@@ -13,5 +13,5 @@ def test_import_item():
 
 @pytest.mark.parametrize("name", ["invalid", "invalid.module:item", ""])
 def test_import_item_invalid_name_should_fail(name):
-    with pytest.raises(ValueError, match="name must be in 'module.item' format"):
+    with pytest.raises(ImportError, match="name must be in 'module.item' format"):
         import_item("invalid")

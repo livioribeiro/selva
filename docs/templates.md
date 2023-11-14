@@ -61,7 +61,6 @@ Jinja can be configured through the `settings.yaml`. For exmaple, to activate ex
 ```yaml
 templates:
   jinja:
-    path: resources/templates
     extensions:
       - jinja2.ext.i18n
       - jinja2.ext.debug
