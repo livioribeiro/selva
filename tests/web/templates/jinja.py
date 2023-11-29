@@ -16,18 +16,27 @@ def autoescape():
     pass
 
 
+class MyBytecodeCache(jinja2.BytecodeCache):
+    pass
+
+
+my_bytecode_cache = MyBytecodeCache()
+
+
 def test_jinja_settings():
     settings = JinjaTemplateSettings.model_validate(
         {
             "undefined": f"{MyUndefined.__module__}.{MyUndefined.__qualname__}",
             "finalize": f"{finalize.__module__}.{finalize.__qualname__}",
             "autoescape": f"{autoescape.__module__}.{autoescape.__qualname__}",
+            "bytecode_cache": f"{my_bytecode_cache.__module__}.my_bytecode_cache"
         },
     )
 
     assert settings.undefined is MyUndefined
     assert settings.finalize is finalize
     assert settings.autoescape is autoescape
+    assert settings.bytecode_cache is my_bytecode_cache
 
 
 @pytest.mark.parametrize(

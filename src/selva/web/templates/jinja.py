@@ -7,6 +7,7 @@ from typing import Annotated, Any, Generic, Literal, Type, TypeVar
 from asgikit.responses import Response, respond_text
 from jinja2 import (
     BaseLoader,
+    BytecodeCache,
     Environment,
     FileSystemLoader,
     Undefined,
@@ -38,7 +39,6 @@ class DottedPath(Generic[T]):
     ) -> core_schema.CoreSchema:
         origin = typing.get_origin(source_type)
         if origin is None:  # used as `x: Owner` without params
-            origin = source_type
             item_tp = Any
         else:
             item_tp = typing.get_args(source_type)[0]
@@ -102,7 +102,7 @@ class JinjaTemplateSettings(BaseModel):
     loader: Annotated[BaseLoader, Field(default=None)]
     cache_size: Annotated[int, Field(default=None)]
     auto_reload: Annotated[bool, Field(default=None)]
-    bytecode_cache: Annotated[object, Field(default=None)]
+    bytecode_cache: Annotated[DottedPath[BytecodeCache], Field(default=None)]
 
 
 @service(provides=Template)
