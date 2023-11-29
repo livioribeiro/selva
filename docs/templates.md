@@ -65,3 +65,31 @@ templates:
       - jinja2.ext.i18n
       - jinja2.ext.debug
 ```
+
+Full settings list:
+
+```yaml
+templates:
+  jinja:
+    block_start_string:
+    block_end_string:
+    variable_start_string:
+    variable_end_string:
+    comment_start_string:
+    comment_end_string:
+    line_statement_prefix:
+    line_comment_prefix:
+    trim_blocks:
+    lstrip_blocks:
+    newline_sequence:
+    keep_trailing_newline:
+    extensions:
+    optimized:
+    undefined:
+    finalize:
+    autoescape:
+    loader:
+    cache_size:
+    auto_reload:
+    bytecode_cache:
+```
