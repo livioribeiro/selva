@@ -1,0 +1,5 @@
+templates:
+  jinja:
+    extensions:
+      - jinja2.ext.i18n
+      - jinja2.ext.debug

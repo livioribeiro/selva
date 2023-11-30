@@ -16,7 +16,7 @@ from loguru import logger
 from selva._util.base_types import get_base_types
 from selva._util.import_item import import_item
 from selva._util.maybe_async import maybe_async
-from selva.configuration.settings import Settings, get_settings
+from selva.configuration.settings import Settings, _get_settings_nocache
 from selva.di.container import Container
 from selva.di.decorator import DI_SERVICE_ATTRIBUTE
 from selva.web.converter import (
@@ -58,12 +58,12 @@ class Selva:
     Other modules and classes can be registered using the "register" method
     """
 
-    def __init__(self):
+    def __init__(self, settings: Settings):
         self.di = Container()
         self.router = Router()
         self.handler = self._process_request
 
-        self.settings = get_settings()
+        self.settings = settings
         self.di.define(Settings, self.settings)
 
         self.di.define(Router, self.router)
@@ -73,6 +73,15 @@ class Selva:
             param_extractor_impl,
             param_converter_impl,
         )
+
+        try:
+            import jinja2
+
+            from selva.web import templates
+
+            self.di.scan(templates)
+        except ImportError:
+            pass
 
         components = self.settings.components
         self.di.scan(components)

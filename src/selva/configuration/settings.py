@@ -1,6 +1,8 @@
+import copy
 import os
 from collections import UserDict
 from copy import deepcopy
+from functools import cache
 from pathlib import Path
 from typing import Any
 
@@ -38,6 +40,13 @@ class Settings(UserDict):
         except KeyError:
             raise AttributeError(item)
 
+    def __copy__(self):
+        return Settings(copy.copy(self.data))
+
+    def __deepcopy__(self, memodict):
+        data = copy.deepcopy(self.data, memodict)
+        return Settings(data)
+
 
 class SettingsError(Exception):
     def __init__(self, path: Path):
@@ -45,16 +54,21 @@ class SettingsError(Exception):
         self.path = path
 
 
+@cache
 def get_settings() -> Settings:
+    return _get_settings_nocache()
+
+
+def _get_settings_nocache() -> Settings:
     # get default settings
     settings = deepcopy(default_settings)
 
     # merge with main settings file (settings.yaml)
     merge_recursive(settings, get_settings_for_profile())
 
-    # merge with environment settings file (settings_$SELVA_ENV.yaml)
-    if active_env := os.getenv(SELVA_PROFILE):
-        merge_recursive(settings, get_settings_for_profile(active_env))
+    # merge with environment settings file (settings_$SELVA_PROFILE.yaml)
+    if active_profile := os.getenv(SELVA_PROFILE):
+        merge_recursive(settings, get_settings_for_profile(active_profile))
 
     # merge with environment variables (SELVA_*)
     from_env_vars = parse_settings_from_env(os.environ)
@@ -64,23 +78,30 @@ def get_settings() -> Settings:
     return Settings(settings)
 
 
-def get_settings_for_profile(env: str = None) -> dict[str, Any]:
+def get_settings_for_profile(profile: str = None) -> dict[str, Any]:
     settings_file = os.getenv(SETTINGS_FILE_ENV, DEFAULT_SETTINGS_FILE)
     settings_dir_path = Path(os.getenv(SETTINGS_DIR_ENV, DEFAULT_SETTINGS_DIR))
     settings_file_path = settings_dir_path / settings_file
 
-    if env is not None:
+    if profile:
         settings_file_path = settings_file_path.with_stem(
-            f"{settings_file_path.stem}_{env}"
+            f"{settings_file_path.stem}_{profile}"
         )
 
     settings_file_path = settings_file_path.absolute()
 
     try:
         settings_yaml = settings_file_path.read_text("utf-8")
-        return strictyaml.load(settings_yaml).data
+        logger.debug("settings loaded from {}", settings_file_path)
+        return strictyaml.dirty_load(settings_yaml, allow_flow_style=True).data or {}
     except FileNotFoundError:
-        logger.info("settings file not found: {}", settings_file_path)
+        if profile:
+            logger.warning(
+                "no settings file found for profile '{}' at {}",
+                profile,
+                settings_file_path,
+            )
+
         return {}
     except Exception as err:
         raise SettingsError(settings_file_path) from err

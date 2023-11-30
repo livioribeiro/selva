@@ -8,4 +8,9 @@ default_settings = {
         "enable": [],
         "disable": [],
     },
+    "templates": {
+        "jinja": {
+            "path": "resources/templates",
+        },
+    },
 }
