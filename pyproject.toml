@@ -29,7 +29,7 @@ packages = [
 [tool.poetry.dependencies]
 python = "^3.11"
 asgikit = "^0.5"
-pydantic = "^2.4"
+pydantic = "^2.5"
 loguru = "^0.7"
 python-dotenv = "^1.0.0"
 jinja2 = { version = "^3.1", optional = true }
@@ -52,6 +52,7 @@ pytest = "^7.4"
 pytest-asyncio = "^0.21"
 pytest-cov = "^4.1"
 coverage = { version = "^7.3", extras = ["toml"] }
+httpx = "^0.25"
 
 [tool.poetry.group.lint]
 optional = true
