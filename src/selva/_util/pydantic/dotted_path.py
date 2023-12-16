@@ -1,5 +1,5 @@
 import typing
-from typing import Any, Generic, Type, TypeVar
+from typing import Any, Generic, TypeVar
 
 from pydantic import GetCoreSchemaHandler, ValidatorFunctionWrapHandler
 from pydantic_core import PydanticCustomError, core_schema
@@ -34,7 +34,7 @@ class DottedPath(Generic[T]):
                     "invalid_dotted_path",
                     "unable to import '{path}': {error}",
                     {"path": value, "error": e.msg},
-                )
+                ) from e
 
             return function_handler(item)
 

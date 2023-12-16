@@ -1,5 +1,6 @@
 default_settings = {
-    "components": [],
+    "application": "application",
+    "modules": [],
     "middleware": [],
     "logging": {
         "setup": "selva.logging.setup.setup_logger",

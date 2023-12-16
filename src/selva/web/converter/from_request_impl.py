@@ -5,9 +5,7 @@ import pydantic
 from asgikit.requests import Request, read_form, read_json
 from pydantic import BaseModel as PydanticModel
 
-from selva.di.decorator import service
 from selva.web.converter.decorator import register_from_request
-from selva.web.converter.from_request import FromRequest
 from selva.web.exception import HTTPBadRequestException, HTTPException
 
 
@@ -22,7 +20,7 @@ class PydanticModelFromRequest:
     ) -> PydanticModel:
         if request.method not in (HTTPMethod.POST, HTTPMethod.PUT, HTTPMethod.PATCH):
             # TODO: improve error
-            raise Exception(
+            raise TypeError(
                 "Pydantic model parameter on method that does not accept body"
             )
 
@@ -51,7 +49,7 @@ class PydanticModelListFromRequest:
     ) -> list[PydanticModel]:
         if request.method not in (HTTPMethod.POST, HTTPMethod.PUT, HTTPMethod.PATCH):
             # TODO: improve error
-            raise Exception("Pydantic parameter on method that does not accept body")
+            raise TypeError("Pydantic parameter on method that does not accept body")
 
         if "application/json" in request.content_type:
             data = await read_json(request)

@@ -1,9 +1,8 @@
 import functools
-import importlib
 import inspect
 import typing
 from http import HTTPStatus
-from types import FunctionType, ModuleType
+from importlib.util import find_spec
 from typing import Any
 from uuid import uuid4
 
@@ -16,7 +15,7 @@ from loguru import logger
 from selva._util.base_types import get_base_types
 from selva._util.import_item import import_item
 from selva._util.maybe_async import maybe_async
-from selva.configuration.settings import Settings, _get_settings_nocache
+from selva.configuration.settings import Settings
 from selva.di.container import Container
 from selva.di.decorator import DI_SERVICE_ATTRIBUTE
 from selva.web.converter import (
@@ -68,24 +67,7 @@ class Selva:
 
         self.di.define(Router, self.router)
 
-        self.di.scan(
-            from_request_impl,
-            param_extractor_impl,
-            param_converter_impl,
-        )
-
-        try:
-            import jinja2
-
-            from selva.web import templates
-
-            self.di.scan(templates)
-        except ImportError:
-            pass
-
-        components = self.settings.components
-        self.di.scan(components)
-        self._register_components(components)
+        self._register_modules()
 
         setup_logger = import_item(self.settings.logging.setup)
         setup_logger(self.settings)
@@ -100,33 +82,23 @@ class Selva:
             case _:
                 raise RuntimeError(f"unknown scope '{scope['type']}'")
 
-    def _register_components(
-        self, components: list[str | ModuleType | type | FunctionType]
-    ):
+    def _register_modules(self):
         try:
-            app = importlib.import_module("application")
-
-            if app not in components or app.__name__ not in components:
-                components.append(app)
-        except ImportError as err:
-            if err.name != "application":
+            self.di.scan(self.settings.application)
+        except ModuleNotFoundError:
+            if not self.settings.modules:
                 raise
 
-        services = []
-        packages = []
+        self.di.scan(
+            from_request_impl,
+            param_extractor_impl,
+            param_converter_impl,
+        )
 
-        for component in components:
-            if _is_service(component):
-                services.append(component)
-            elif _is_module(component):
-                packages.append(component)
-            else:
-                raise TypeError(f"Invalid component: {component}")
+        self.di.scan(*self.settings.modules)
 
-        self.di.scan(*packages)
-
-        for service in services:
-            self.di.service(service)
+        if find_spec("jinja2") is not None:
+            self.di.scan("selva.web.templates")
 
         for _iface, impl, _name in self.di.iter_all_services():
             if _is_controller(impl):
@@ -139,15 +111,11 @@ class Selva:
 
         middleware = [import_item(name) for name in middleware]
 
-        if middleware_errors := [
-            m for m in middleware if not issubclass(m, Middleware)
-        ]:
-            mid_classes = [
-                f"{m.__module__}.{m.__qualname__}" for m in middleware_errors
-            ]
+        if errors := [m for m in middleware if not issubclass(m, Middleware)]:
+            mid_classes = [f"{m.__module__}.{m.__qualname__}" for m in errors]
             mid_class_name = f"{Middleware.__module__}.{Middleware.__qualname__}"
             raise TypeError(
-                f"Middleware classes must inherit from '{mid_class_name}': {mid_classes}"
+                f"Middleware classes must be of type '{mid_class_name}': {mid_classes}"
             )
 
         for cls in reversed(middleware):
@@ -155,10 +123,10 @@ class Selva:
             chain = functools.partial(mid, self.handler)
             self.handler = chain
 
-    async def _initialize(self):
+    async def _lifespan_startup(self):
         await self._initialize_middleware()
 
-    async def _finalize(self):
+    async def _lifespan_shutdown(self):
         await self.di.run_finalizers()
 
     async def _handle_lifespan(self, _scope, receive, send):
@@ -167,7 +135,7 @@ class Selva:
             if message["type"] == "lifespan.startup":
                 logger.trace("Handling lifespan startup")
                 try:
-                    await self._initialize()
+                    await self._lifespan_startup()
                     logger.trace("Lifespan startup complete")
                     await send({"type": "lifespan.startup.complete"})
                 except Exception as err:
@@ -176,7 +144,7 @@ class Selva:
             elif message["type"] == "lifespan.shutdown":
                 logger.trace("Handling lifespan shutdown")
                 try:
-                    await self._finalize()
+                    await self._lifespan_shutdown()
                     logger.trace("Lifespan shutdown complete")
                     await send({"type": "lifespan.shutdown.complete"})
                 except Exception as err:

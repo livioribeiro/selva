@@ -77,9 +77,11 @@ def replace_variables_recursive(
         for key, value in data.items():
             data[key] = replace_variables_recursive(value, environ)
         return data
-    elif isinstance(data, list):
+
+    if isinstance(data, list):
         return [replace_variables_recursive(value, environ) for value in data]
-    elif isinstance(data, str):
+
+    if isinstance(data, str):
         return replace_variables_with_env(data, environ)
-    else:
-        return data
+
+    return data

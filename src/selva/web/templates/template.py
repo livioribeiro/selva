@@ -9,7 +9,7 @@ class Template(ABC):
     async def respond(
         self,
         response: Response,
-        name: str,
+        template_name: str,
         context: dict,
         status: HTTPStatus = HTTPStatus.OK,
     ):

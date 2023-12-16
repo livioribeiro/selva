@@ -1,5 +1,4 @@
-import sys
-from pathlib import Path
+from http import HTTPStatus
 
 from httpx import AsyncClient
 
@@ -9,11 +8,22 @@ from selva.web.application import Selva
 
 
 async def test_application():
-    settings = Settings(default_settings | {
-        "components": ["tests.web.application.application"]
-    })
+    settings = Settings(
+        default_settings | {"application": "tests.web.application.application"}
+    )
     app = Selva(settings)
 
     client = AsyncClient(app=app)
     response = await client.get("http://localhost:8000/")
-    assert response.text == "Selva"
+    assert response.text == "Ok"
+
+
+async def test_not_found():
+    settings = Settings(
+        default_settings | {"application": "tests.web.application.application"}
+    )
+    app = Selva(settings)
+
+    client = AsyncClient(app=app)
+    response = await client.get("http://localhost:8000/not-found")
+    assert response.status_code == HTTPStatus.NOT_FOUND

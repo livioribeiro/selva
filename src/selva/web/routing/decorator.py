@@ -69,7 +69,8 @@ def route(action: Callable = None, /, *, method: HTTPMethod | None, path: str | 
         req_param = params[1].annotation
         if req_param is not inspect.Signature.empty and req_param is not Request:
             raise TypeError(
-                f"Handler request parameter must be of type '{Request.__module__}.{Request.__name__}'"
+                f"Handler request parameter must be of type "
+                f"'{Request.__module__}.{Request.__name__}'"
             )
 
         if any(p.annotation is inspect.Signature.empty for p in params[2:]):
