@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "selva"
-version = "0.8.0"
+version = "0.8.1"
 description = "ASGI Web Framework with Dependency Injection"
 authors = ["Livio Ribeiro <livioribeiro@outlook.com>"]
 license = "MIT"
