@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>HTMX</title>
+</head>
+<body>
+
+<div>
+    Click count: <span id="click-count">{{ click_count }}</span>
+</div>
+
+<button hx-post="/clicked" hx-swap="outerHTML">
+    Click Me
+</button>
+
+<script src="https://unpkg.com/htmx.org@1.9.9"></script>
+</body>
+</html>

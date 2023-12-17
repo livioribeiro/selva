@@ -12,9 +12,6 @@ class Controller:
     template: Annotated[Template, Inject]
 
     @get
-    async def index(
-        self,
-        request: Request,
-    ):
+    async def index(self, request: Request):
         context = dict(title="Selva", heading="Heading")
         await self.template.respond(request.response, "index.html", context)
