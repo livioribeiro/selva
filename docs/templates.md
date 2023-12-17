@@ -54,6 +54,17 @@ To render templates, inject the `selva.web.templates.Template` dependency and ca
     </html>
     ```
 
+## Render templates to str
+
+The `Template` interface provide methods to render templates into an str, instead
+of rendering to the response.
+
+The method `Tempate.render` accepts a template name and returns a string with the
+rendered template.
+
+The method `Template.render_str` accepts a template string, compiles it and returns
+the result.
+
 ## Configuration
 
 Jinja can be configured through the `settings.yaml`. For exmaple, to activate extensions:
