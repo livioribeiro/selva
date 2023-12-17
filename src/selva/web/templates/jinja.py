@@ -3,7 +3,7 @@ from http import HTTPStatus
 from pathlib import Path
 from typing import Annotated, Literal, Type, TypeVar
 
-from asgikit.responses import Response, respond_text
+from asgikit.responses import Response, respond_stream, respond_text
 from jinja2 import (
     BaseLoader,
     BytecodeCache,
@@ -73,10 +73,32 @@ class JinjaTemplate(Template):
         self,
         response: Response,
         template_name: str,
-        context: dict,
+        context: dict = None,
+        *,
         status: HTTPStatus = HTTPStatus.OK,
+        content_type: str = None,
+        stream: bool = False,
     ):
-        response.content_type = "text/html"
+        context = context or {}
+
+        if content_type:
+            response.content_type = content_type
+        elif not response.content_type:
+            response.content_type = "text/html"
+
         template = self.environment.get_template(template_name)
-        rendered = await template.render_async(context)
-        await respond_text(response, rendered, status=status)
+
+        if stream:
+            render_stream = template.generate_async(context)
+            await respond_stream(response, render_stream, status=status)
+        else:
+            rendered = await template.render_async(context)
+            await respond_text(response, rendered, status=status)
+
+    async def render(self, template_name: str, context: dict) -> str:
+        template = self.environment.get_template(template_name)
+        return await template.render_async(context)
+
+    async def render_str(self, source: str, context: dict) -> str:
+        template = self.environment.from_string(source)
+        return await template.render_async(context)

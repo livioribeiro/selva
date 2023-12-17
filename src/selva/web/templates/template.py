@@ -10,7 +10,18 @@ class Template(ABC):
         self,
         response: Response,
         template_name: str,
-        context: dict,
+        context: dict = None,
+        *,
         status: HTTPStatus = HTTPStatus.OK,
+        content_type: str = None,
+        stream: bool = False,
     ):
-        pass
+        raise NotImplementedError()
+
+    @abstractmethod
+    async def render(self, template_name: str, context: dict) -> str:
+        raise NotImplementedError()
+
+    @abstractmethod
+    async def render_str(self, source: str, context: dict) -> str:
+        raise NotImplementedError()

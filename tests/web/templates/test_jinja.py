@@ -1,5 +1,6 @@
 import jinja2
 import pytest
+from pydantic import ValidationError
 
 from selva.web.templates.jinja import JinjaTemplateSettings
 
@@ -56,30 +57,31 @@ def test_autoescape_bool(value, expected):
 
 
 def test_invalid_undefined_should_fail():
-    with pytest.raises(TypeError):
+    with pytest.raises(ValidationError):
         JinjaTemplateSettings.model_validate({"undefined": 1})
 
 
 def test_invalid_import_undefined_should_fail():
-    with pytest.raises(ImportError):
+    with pytest.raises(ValidationError):
         JinjaTemplateSettings.model_validate({"undefined": "does.not.exist"})
 
 
 def test_invalid_finalize_should_fail():
-    with pytest.raises(TypeError):
+    with pytest.raises(ValidationError):
         JinjaTemplateSettings.model_validate({"finalize": 1})
 
 
 def test_invalid_import_finalize_should_fail():
-    with pytest.raises(ImportError):
+    with pytest.raises(ValidationError):
         JinjaTemplateSettings.model_validate({"finalize": "does.not.exist"})
 
 
 def test_invalid_autoescape_should_fail():
-    with pytest.raises(TypeError):
-        JinjaTemplateSettings.model_validate({"autoescape": 1})
+    with pytest.raises(ValidationError):
+        model = JinjaTemplateSettings.model_validate({"autoescape": "invalid"})
+        repr(model)
 
 
 def test_invalid_import_autoescape_should_fail():
-    with pytest.raises(ImportError):
+    with pytest.raises(ValidationError):
         JinjaTemplateSettings.model_validate({"autoescape": "does.not.exist"})
