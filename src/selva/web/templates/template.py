@@ -10,7 +10,7 @@ class Template(ABC):
         self,
         response: Response,
         template_name: str,
-        context: dict = None,
+        context: dict,
         *,
         status: HTTPStatus = HTTPStatus.OK,
         content_type: str = None,

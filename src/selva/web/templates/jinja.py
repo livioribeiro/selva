@@ -73,14 +73,12 @@ class JinjaTemplate(Template):
         self,
         response: Response,
         template_name: str,
-        context: dict = None,
+        context: dict,
         *,
         status: HTTPStatus = HTTPStatus.OK,
         content_type: str = None,
         stream: bool = False,
     ):
-        context = context or {}
-
         if content_type:
             response.content_type = content_type
         elif not response.content_type:
