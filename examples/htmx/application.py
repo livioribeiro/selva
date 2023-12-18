@@ -21,4 +21,10 @@ class Controller:
     @post("/clicked")
     async def clicked(self, request: Request):
         self.click_count += 1
-        await self.template.respond(request.response, "clicked.html", {"click_count": self.click_count})
+
+        rendered = await self.template.render(
+            "click-count.html",
+            {"click_count": self.click_count}
+        )
+
+        await respond_text(request.response, rendered + "Clicked!")
