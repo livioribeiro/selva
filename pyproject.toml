@@ -28,12 +28,12 @@ packages = [
 
 [tool.poetry.dependencies]
 python = "^3.11"
-asgikit = "^0.5"
+asgikit = "^0.6"
 pydantic = "^2.5"
 loguru = "^0.7"
-python-dotenv = "^1.0.0"
-jinja2 = { version = "^3.1", optional = true }
+python-dotenv = "^1.0"
 strictyaml = "^1.7"
+jinja2 = { version = "^3.1", optional = true }
 
 [tool.poetry.extras]
 jinja = ["jinja2"]
