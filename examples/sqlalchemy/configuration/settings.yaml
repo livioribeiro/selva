@@ -1,0 +1,20 @@
+data:
+  sqlalchemy:
+    default:
+#      url: "sqlite+aiosqlite:///:memory:"
+      drivername: sqlite+aiosqlite
+#      username:
+#      password:
+#      host:
+#      port:
+      database: ":memory:"
+#      query:
+    other:
+      #      url: "sqlite+aiosqlite:///:memory:"
+      drivername: sqlite+aiosqlite
+      #      username:
+      #      password:
+      #      host:
+      #      port:
+      database: ":memory:"
+    #      query:

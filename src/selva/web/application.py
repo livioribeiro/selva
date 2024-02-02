@@ -17,7 +17,7 @@ from selva._util.import_item import import_item
 from selva._util.maybe_async import maybe_async
 from selva.configuration.settings import Settings
 from selva.di.container import Container
-from selva.di.decorator import DI_SERVICE_ATTRIBUTE
+from selva.di.decorator import DI_ATTRIBUTE_SERVICE
 from selva.web.converter import (
     from_request_impl,
     param_converter_impl,
@@ -43,7 +43,7 @@ def _is_controller(arg) -> bool:
 
 
 def _is_service(arg) -> bool:
-    return hasattr(arg, DI_SERVICE_ATTRIBUTE)
+    return hasattr(arg, DI_ATTRIBUTE_SERVICE)
 
 
 def _is_module(arg) -> bool:
@@ -59,13 +59,15 @@ class Selva:
 
     def __init__(self, settings: Settings):
         self.di = Container()
+        self.di.define(Container, self.di)
+
         self.router = Router()
-        self.handler = self._process_request
+        self.di.define(Router, self.router)
 
         self.settings = settings
         self.di.define(Settings, self.settings)
 
-        self.di.define(Router, self.router)
+        self.handler = self._process_request
 
         self._register_modules()
 
@@ -100,6 +102,9 @@ class Selva:
         if find_spec("jinja2") is not None:
             self.di.scan("selva.web.templates")
 
+        if find_spec("sqlalchemy") is not None:
+            self.di.scan("selva.data.sqlalchemy")
+
         for _iface, impl, _name in self.di.iter_all_services():
             if _is_controller(impl):
                 self.router.route(impl)
@@ -124,6 +129,7 @@ class Selva:
             self.handler = chain
 
     async def _lifespan_startup(self):
+        await self.di.run_hooks()
         await self._initialize_middleware()
 
     async def _lifespan_shutdown(self):

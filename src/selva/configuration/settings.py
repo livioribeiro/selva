@@ -1,6 +1,6 @@
 import copy
 import os
-from collections import UserDict
+from collections.abc import Mapping
 from copy import deepcopy
 from functools import cache
 from pathlib import Path
@@ -26,26 +26,46 @@ DEFAULT_SETTINGS_FILE = "settings.yaml"
 SELVA_PROFILE = "SELVA_PROFILE"
 
 
-class Settings(UserDict):
+class Settings(Mapping):
     def __init__(self, data: dict):
         for key, value in data.items():
             if isinstance(value, dict):
                 data[key] = Settings(value)
 
-        super().__init__(data)
+        self.__data = data
+
+    def __len__(self) -> int:
+        return len(self.__data)
+
+    def __iter__(self):
+        return iter(self.__data)
+
+    def __contains__(self, key: str):
+        return key in self.__data
+
+    def __getitem__(self, key: str):
+        return self.__data[key]
 
     def __getattr__(self, item: str):
         try:
-            return self.data[item]
+            return self.__data[item]
         except KeyError:
             raise AttributeError(item)
 
     def __copy__(self):
-        return Settings(copy.copy(self.data))
+        return Settings(copy.copy(self.__data))
 
     def __deepcopy__(self, memodict):
-        data = copy.deepcopy(self.data, memodict)
+        data = copy.deepcopy(self.__data, memodict)
         return Settings(data)
+
+    def __eq__(self, other: Any) -> bool:
+        if isinstance(other, Settings):
+            return self.__data == other.__data
+        if isinstance(other, Mapping):
+            return self.__data == other
+
+        return False
 
 
 class SettingsError(Exception):

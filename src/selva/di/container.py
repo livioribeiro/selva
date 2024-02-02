@@ -1,6 +1,6 @@
 import asyncio
 import inspect
-from collections.abc import AsyncGenerator, Awaitable, Generator, Iterable
+from collections.abc import AsyncGenerator, Awaitable, Callable, Generator, Iterable
 from types import FunctionType, ModuleType
 from typing import Any, Type, TypeVar
 
@@ -8,7 +8,7 @@ from loguru import logger
 
 from selva._util.maybe_async import maybe_async
 from selva._util.package_scan import scan_packages
-from selva.di.decorator import DI_SERVICE_ATTRIBUTE
+from selva.di.decorator import DI_ATTRIBUTE_SERVICE, DI_ATTRIBUTE_HOOK
 from selva.di.error import (
     DependencyLoopError,
     ServiceNotFoundError,
@@ -28,6 +28,7 @@ class Container:
         self.store: dict[tuple[type, str | None], Any] = {}
         self.finalizers: list[Awaitable] = []
         self.interceptors: list[Type[Interceptor]] = []
+        self.hooks: list[Callable[[Container], None | Awaitable]] = []
 
     def register(
         self, service: InjectableType, *, provides: type = None, name: str = None
@@ -35,7 +36,7 @@ class Container:
         self._register_service_spec(service, provides, name)
 
     def service(self, service: type):
-        service_info = getattr(service, DI_SERVICE_ATTRIBUTE, None)
+        service_info = getattr(service, DI_ATTRIBUTE_SERVICE, None)
 
         if not service_info:
             raise ServiceWithoutDecoratorError(service)
@@ -86,12 +87,17 @@ class Container:
         logger.trace("interceptor registered: {}", interceptor.__qualname__)
 
     def scan(self, *packages: str | ModuleType):
-        def predicate(item: Any):
-            return hasattr(item, DI_SERVICE_ATTRIBUTE)
+        def predicate_services(item: Any):
+            return hasattr(item, DI_ATTRIBUTE_SERVICE)
 
-        for service in scan_packages(packages, predicate):
-            provides, name = getattr(service, DI_SERVICE_ATTRIBUTE)
+        def predicate_hooks(item: Any):
+            return getattr(item, DI_ATTRIBUTE_HOOK, False)
+
+        for service in scan_packages(packages, predicate_services):
+            provides, name = getattr(service, DI_ATTRIBUTE_SERVICE)
             self.register(service, provides=provides, name=name)
+
+        self.hooks = list(scan_packages(packages, predicate_hooks))
 
     def has(self, service: type) -> bool:
         definition = self.registry.get(service)
@@ -231,3 +237,7 @@ class Container:
             await finalizer
 
         self.finalizers.clear()
+
+    async def run_hooks(self):
+        for hook in self.hooks:
+            await maybe_async(hook, self)

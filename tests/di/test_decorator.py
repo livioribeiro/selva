@@ -1,7 +1,7 @@
 import inspect
 from typing import Annotated
 
-from selva.di.decorator import DI_SERVICE_ATTRIBUTE, service
+from selva.di.decorator import DI_ATTRIBUTE_SERVICE, service
 from selva.di.inject import Inject
 from selva.di.service.model import ServiceInfo
 
@@ -11,7 +11,7 @@ def test_decorator():
     class Service:
         pass
 
-    assert getattr(Service, DI_SERVICE_ATTRIBUTE) == ServiceInfo(None, None)
+    assert getattr(Service, DI_ATTRIBUTE_SERVICE) == ServiceInfo(None, None)
 
 
 def test_decorator_with_dependency_annotation():
