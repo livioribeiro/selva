@@ -6,10 +6,9 @@ from typing import Annotated, TypeVar, dataclass_transform
 from selva.di.inject import Inject
 from selva.di.service.model import InjectableType, ServiceInfo
 
-__all__ = ("service", "hook", "DI_ATTRIBUTE_SERVICE", "DI_ATTRIBUTE_HOOK")
+__all__ = ("service", "DI_ATTRIBUTE_SERVICE")
 
 DI_ATTRIBUTE_SERVICE = "__selva_di_service__"
-DI_ATTRIBUTE_HOOK = "__selva_di_hook__"
 
 T = TypeVar("T")
 
@@ -82,16 +81,3 @@ def service(
         return inner_injectable
 
     return inner(injectable) if injectable else inner
-
-
-def hook(callback):
-    def inner(inner_callback):
-        assert inspect.isfunction(inner_callback), "callback must be a function"
-
-        sig = inspect.signature(inner_callback)
-        assert len(sig.parameters) == 1, "callback must have 1 argument"
-
-        setattr(inner_callback, DI_ATTRIBUTE_HOOK, True)
-        return inner_callback
-
-    return inner(callback) if callback else inner

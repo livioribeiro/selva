@@ -6,7 +6,7 @@ from functools import cache
 from pathlib import Path
 from typing import Any
 
-import strictyaml
+from ruamel.yaml import YAML
 from loguru import logger
 
 from selva.configuration.defaults import default_settings
@@ -67,6 +67,12 @@ class Settings(Mapping):
 
         return False
 
+    def __str__(self):
+        return str(self.__data)
+
+    def __repr__(self):
+        return repr(self.__data)
+
 
 class SettingsError(Exception):
     def __init__(self, path: Path):
@@ -111,9 +117,10 @@ def get_settings_for_profile(profile: str = None) -> dict[str, Any]:
     settings_file_path = settings_file_path.absolute()
 
     try:
-        settings_yaml = settings_file_path.read_text("utf-8")
+        # settings_yaml = settings_file_path.read_text("utf-8")
         logger.debug("settings loaded from {}", settings_file_path)
-        return strictyaml.dirty_load(settings_yaml, allow_flow_style=True).data or {}
+        yaml = YAML(typ='safe')
+        return yaml.load(settings_file_path) or {}
     except FileNotFoundError:
         if profile:
             logger.warning(

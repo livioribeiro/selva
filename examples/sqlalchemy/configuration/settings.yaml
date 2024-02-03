@@ -10,11 +10,9 @@ data:
       database: ":memory:"
 #      query:
     other:
-      #      url: "sqlite+aiosqlite:///:memory:"
-      drivername: sqlite+aiosqlite
-      #      username:
-      #      password:
-      #      host:
-      #      port:
-      database: ":memory:"
-    #      query:
+      url: "postgresql+asyncpg://localhost:5432/teste"
+      username: postgres
+      password: postgres
+      params:
+        pool_recycle: 3600
+        echo: true

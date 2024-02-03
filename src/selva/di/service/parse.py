@@ -50,7 +50,7 @@ def _get_injectable_params(hint) -> tuple[type, Any] | None:
     return arg_type, arg_meta
 
 
-def _get_service_signature(service: InjectableType) -> Iterable[str, type, Any]:
+def _get_service_signature(service: InjectableType) -> Iterable[tuple[str, type, Any]]:
     if inspect.isclass(service):
         for name, hint in typing.get_type_hints(service, include_extras=True).items():
             if params := _get_injectable_params(hint):
@@ -59,8 +59,11 @@ def _get_service_signature(service: InjectableType) -> Iterable[str, type, Any]:
     elif inspect.isfunction(service):
         for name, param in inspect.signature(service).parameters.items():
             hint = param.annotation
-            value = param.default
-            yield name, hint, value
+            if params := _get_injectable_params(hint):
+                arg_type, arg_meta = params
+                yield name, arg_type, arg_meta
+            else:
+                yield name, hint, None
     else:
         raise InvalidServiceTypeError(service)
 

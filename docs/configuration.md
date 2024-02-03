@@ -1,8 +1,8 @@
 # Configuration
 
 Settings in Selva are handled through YAML files.
-Internally it uses [strictyaml](https://pypi.org/project/strictyaml/) to parse the
-yaml files in order to do the parsing in a safe and predictable way.
+Internally it uses [ruamel.yaml](https://yaml.readthedocs.io),
+so it supports YAML 1.2.
 
 Settings files are located by default in the `configuration` directory with the
 base name `settings.yaml`:
@@ -46,9 +46,8 @@ assert settings.config == "value"
 
 ### Typed settings
 
-Since `strictyaml` is used to parse the yaml files, all values `str`s. However, we
-can use `pydantic` and Selva dependency injection system to provide access to the
-settings in a typed manner:
+Configuration loaded from are all `dict`s. However, we can use `pydantic` and Selva
+dependency injection system to provide access to settings in a more typed manner:
 
 === "application.py"
 
