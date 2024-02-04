@@ -107,6 +107,10 @@ class Selva:
             if _is_controller(impl):
                 self.router.route(impl)
 
+    async def _run_hooks(self):
+        modules = [self.settings.application] + self.modules
+        await run_hooks(modules, self.di, self.settings)
+
     async def _initialize_middleware(self):
         middleware = self.settings.middleware
         if len(middleware) == 0:
@@ -127,9 +131,7 @@ class Selva:
             self.handler = chain
 
     async def _lifespan_startup(self):
-        modules = [self.settings.application] + self.modules
-        await run_hooks(modules, self.di, self.settings)
-
+        await self._run_hooks()
         await self._initialize_middleware()
 
     async def _lifespan_shutdown(self):
