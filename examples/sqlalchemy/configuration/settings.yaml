@@ -1,18 +1,16 @@
 data:
   sqlalchemy:
     default:
-#      url: "sqlite+aiosqlite:///:memory:"
       drivername: sqlite+aiosqlite
-#      username:
-#      password:
-#      host:
-#      port:
       database: ":memory:"
-#      query:
+      options:
+        echo: true
+
     other:
-      url: "postgresql+asyncpg://localhost:5432/teste"
+      url: "postgresql+psycopg://localhost:5432/teste"
       username: postgres
       password: postgres
-      params:
+      options:
+        pool_size: 10
         pool_recycle: 3600
         echo: true

@@ -25,8 +25,8 @@ class Controller:
     @get("other")
     async def other(self, request):
         async with self.other_sessionmaker() as session:
-            result = await session.execute(text("select 1"))
-            print(result.scalar())
+            result = await session.stream_scalars(text("select 1"))
+            print(await result.first())
             await session.commit()
 
         await respond_text(request.response, "Hello World!")

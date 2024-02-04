@@ -5,13 +5,13 @@ from sqlalchemy import text
 
 from selva.configuration.defaults import default_settings
 from selva.configuration.settings import Settings
-from selva.data.sqlalchemy import make_engine_service
+from selva.data.sqlalchemy.service import make_engine_service
 
 
 async def _test_engine_service(settings: Settings):
-    engine_service = make_engine_service("default")
-    engine_service_agen = engine_service(settings)
-    engine = await anext(engine_service_agen)
+    engine_service = make_engine_service("default")(settings)
+    engine = await anext(engine_service)
+
     async with engine.connect() as conn:
         result = await conn.execute(text("select 1"))
         assert result.scalar() == 1
@@ -98,3 +98,24 @@ async def test_postgres_make_engine_service_with_url_components():
     })
 
     await _test_engine_service(settings)
+
+
+@pytest.mark.skipif(find_spec("psycopg") is None, reason="psycopg not present")
+async def test_postgres_make_engine_service_with_url_and_options():
+    settings = Settings(default_settings | {
+        "data": {
+            "sqlalchemy": {
+                "default": {
+                    "url": "postgresql+psycopg://postgres:postgres@localhost:5432/postgres",
+                    "options": {
+                        "pool_size": 1,
+                        "echo_pool": True,
+                    }
+                },
+            },
+        },
+    })
+
+    engine_service = make_engine_service("default")(settings)
+    engine = await anext(engine_service)
+    assert engine is not None

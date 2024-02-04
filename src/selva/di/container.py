@@ -89,16 +89,12 @@ class Container:
         def predicate_services(item: Any):
             return hasattr(item, DI_ATTRIBUTE_SERVICE)
 
-
-
         for service in scan_packages(packages, predicate_services):
             provides, name = getattr(service, DI_ATTRIBUTE_SERVICE)
             self.register(service, provides=provides, name=name)
 
-
-
-    def has(self, service: type) -> bool:
-        definition = self.registry.get(service)
+    def has(self, service: type, name: str = None) -> bool:
+        definition = self.registry.get(service, name=name)
         return definition is not None
 
     def iter_service(

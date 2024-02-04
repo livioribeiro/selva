@@ -57,6 +57,6 @@ class DottedPath(Generic[T]):
             ),
             serialization=core_schema.plain_serializer_function_ser_schema(
                 lambda instance: f"{instance.__module__}.{instance.__qualname__}",
-                when_used="unless-none",
+                when_used="json-unless-none",
             ),
         )

@@ -29,7 +29,7 @@ packages = [
 [tool.poetry.dependencies]
 python = "^3.11"
 asgikit = "^0.6"
-pydantic = "^2.5"
+pydantic = "^2.6"
 loguru = "^0.7"
 python-dotenv = "^1.0"
 "ruamel.yaml" = "^0.18"
