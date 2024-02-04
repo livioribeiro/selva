@@ -71,13 +71,10 @@ class Selva:
 
         self.handler = self._process_request
 
-        self.modules = copy(self.settings.modules)
+        self.modules = copy(self.settings.modules) + ["selva.contrib"]
 
         if find_spec("jinja2") is not None:
             self.modules.append("selva.web.templates")
-
-        if find_spec("sqlalchemy") is not None:
-            self.modules.append("selva.data.sqlalchemy")
 
         self._register_modules()
 

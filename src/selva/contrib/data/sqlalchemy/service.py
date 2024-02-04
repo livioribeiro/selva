@@ -3,7 +3,7 @@ from typing import Annotated
 from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker, create_async_engine
 
 from selva.configuration.settings import Settings
-from selva.data.sqlalchemy.settings import SqlAlchemySettings
+from selva.contrib.data.sqlalchemy.settings import SqlAlchemySettings
 from selva.di import Inject
 
 

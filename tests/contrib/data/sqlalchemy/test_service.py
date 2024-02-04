@@ -5,7 +5,7 @@ from sqlalchemy import text
 
 from selva.configuration.defaults import default_settings
 from selva.configuration.settings import Settings
-from selva.data.sqlalchemy.service import make_engine_service
+from selva.contrib.data.sqlalchemy.service import make_engine_service
 
 
 async def _test_engine_service(settings: Settings):
