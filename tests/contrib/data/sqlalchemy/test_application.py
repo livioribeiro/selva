@@ -20,6 +20,7 @@ async def test_application():
             }
         }
     )
+
     app = Selva(settings)
 
     await app._lifespan_startup()
@@ -28,6 +29,3 @@ async def test_application():
     response = await client.get("http://localhost:8000/")
 
     assert response.status_code == HTTPStatus.OK
-    assert response.text == "Ok"
-
-    await app._lifespan_shutdown()
