@@ -7,7 +7,7 @@ data:
         echo: true
 
     other:
-      url: "postgresql+psycopg://localhost:5432/teste"
+      url: "postgresql+psycopg://localhost:5432/test"
       username: postgres
       password: postgres
       options:

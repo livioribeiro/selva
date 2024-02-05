@@ -49,3 +49,6 @@ nav:
   - configuration.md
   - middleware.md
   - logging.md
+  - Extensions:
+    - extensions/overview.md
+    - extensions/sqlalchemy.md
