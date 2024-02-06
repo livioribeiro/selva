@@ -1,5 +1,5 @@
-from collections.abc import Callable
 import inspect
+from collections.abc import Callable
 
 from selva._util.package_scan import scan_packages
 from selva.configuration.settings import Settings

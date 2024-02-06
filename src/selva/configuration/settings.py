@@ -6,8 +6,8 @@ from functools import cache
 from pathlib import Path
 from typing import Any
 
-from ruamel.yaml import YAML
 from loguru import logger
+from ruamel.yaml import YAML
 
 from selva.configuration.defaults import default_settings
 from selva.configuration.environment import (
@@ -119,7 +119,7 @@ def get_settings_for_profile(profile: str = None) -> dict[str, Any]:
     try:
         # settings_yaml = settings_file_path.read_text("utf-8")
         logger.debug("settings loaded from {}", settings_file_path)
-        yaml = YAML(typ='safe')
+        yaml = YAML(typ="safe")
         return yaml.load(settings_file_path) or {}
     except FileNotFoundError:
         if profile:

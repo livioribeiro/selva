@@ -14,8 +14,5 @@ default_settings = {
             "path": "resources/templates",
         },
     },
-    "data": {
-        "sqlalchemy": {
-        }
-    }
+    "data": {"sqlalchemy": {}},
 }
