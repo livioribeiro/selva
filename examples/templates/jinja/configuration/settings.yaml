@@ -1,3 +1,6 @@
+extensions:
+- selva.ext.templates.jinja
+
 templates:
   jinja:
     extensions:

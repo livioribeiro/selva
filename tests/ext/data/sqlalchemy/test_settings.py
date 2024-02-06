@@ -1,6 +1,6 @@
 import pytest
 
-from selva.contrib.data.sqlalchemy.settings import SqlAlchemySettings
+from selva.ext.data.sqlalchemy.settings import SqlAlchemySettings
 
 
 @pytest.mark.parametrize(

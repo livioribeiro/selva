@@ -19,7 +19,6 @@ from selva._util.maybe_async import maybe_async
 from selva.configuration.settings import Settings
 from selva.di.container import Container
 from selva.di.decorator import DI_ATTRIBUTE_SERVICE
-from selva.di.hook import run_hooks
 from selva.web.converter import (
     from_request_impl,
     param_converter_impl,
@@ -71,11 +70,6 @@ class Selva:
 
         self.handler = self._process_request
 
-        self.modules = copy(self.settings.modules) + ["selva.contrib"]
-
-        if find_spec("jinja2") is not None:
-            self.modules.append("selva.web.templates")
-
         self._register_modules()
 
         setup_logger = import_item(self.settings.logging.setup)
@@ -101,15 +95,26 @@ class Selva:
         )
 
         self.di.scan(self.settings.application)
-        self.di.scan(*self.modules)
 
         for _iface, impl, _name in self.di.iter_all_services():
             if _is_controller(impl):
                 self.router.route(impl)
 
-    async def _run_hooks(self):
-        modules = [self.settings.application] + self.modules
-        await run_hooks(modules, self.di, self.settings)
+    async def _initialize_extensions(self):
+        for extension_name in self.settings.extensions:
+            try:
+                extension_module = import_item(extension_name)
+            except ImportError:
+                raise TypeError(f"Extension '{extension_name}' not found")
+
+            try:
+                extension_init = getattr(extension_module, "selva_extension")
+            except AttributeError:
+                raise TypeError(
+                    f"Extension '{extension_name}' is missing the 'selva_extension()' function"
+                )
+
+            await maybe_async(extension_init, self.di, self.settings)
 
     async def _initialize_middleware(self):
         middleware = self.settings.middleware
@@ -131,7 +136,7 @@ class Selva:
             self.handler = chain
 
     async def _lifespan_startup(self):
-        await self._run_hooks()
+        await self._initialize_extensions()
         await self._initialize_middleware()
 
     async def _lifespan_shutdown(self):

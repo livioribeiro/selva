@@ -11,7 +11,8 @@ async def test_application():
     settings = Settings(
         default_settings
         | {
-            "application": "tests.contrib.data.sqlalchemy.application",
+            "application": "tests.ext.data.sqlalchemy.application",
+            "extensions": ["selva.ext.data.sqlalchemy"],
             "data": {
                 "sqlalchemy": {"default": {"url": "sqlite+aiosqlite:///:memory:"}}
             },

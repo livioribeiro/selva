@@ -3,8 +3,8 @@ from typing import Annotated
 from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker, create_async_engine
 
 from selva.configuration.settings import Settings
-from selva.contrib.data.sqlalchemy.settings import SqlAlchemySettings
 from selva.di import Inject
+from selva.ext.data.sqlalchemy.settings import SqlAlchemySettings
 
 
 def make_engine_service(name: str):

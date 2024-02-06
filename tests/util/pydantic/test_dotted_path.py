@@ -8,15 +8,15 @@ class Item:
     pass
 
 
-class TestModel(BaseModel):
+class MyModel(BaseModel):
     item: DottedPath
 
 
 def test_dotted_path():
-    result = TestModel.model_validate({"item": f"{Item.__module__}.{Item.__qualname__}"})
+    result = MyModel.model_validate({"item": f"{Item.__module__}.{Item.__qualname__}"})
     assert result.item is Item
 
 
 def test_invalid_dotted_path():
     with pytest.raises(ValueError):
-        TestModel.model_validate({"item": "invalid.dotted.path"})
+        MyModel.model_validate({"item": "invalid.dotted.path"})

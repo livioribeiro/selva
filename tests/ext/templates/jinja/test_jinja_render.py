@@ -2,7 +2,7 @@ from pathlib import Path
 
 from selva.configuration.defaults import default_settings
 from selva.configuration.settings import Settings
-from selva.web.templates.jinja import JinjaTemplate
+from selva.ext.templates.jinja.service import JinjaTemplate
 
 
 async def test_render_template():

@@ -2,7 +2,7 @@ import jinja2
 import pytest
 from pydantic import ValidationError
 
-from selva.web.templates.jinja import JinjaTemplateSettings
+from selva.ext.templates.jinja.settings import JinjaTemplateSettings
 
 
 class MyUndefined(jinja2.Undefined):
