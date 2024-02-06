@@ -1,17 +1,18 @@
 from collections.abc import Callable
 from types import ModuleType
-from typing import Any, Annotated, Literal, Self, List, Tuple
+from typing import Annotated, Literal, Self
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from sqlalchemy import URL, make_url
 
-from selva._util.import_item import import_item
 from selva._util.pydantic import DottedPath
 
 
-# https://docs.sqlalchemy.org/en/20/core/connections.html#sqlalchemy.engine.Connection.execution_options
 class SqlAlchemyExecutionOptions(BaseModel):
-    model_config = ConfigDict(arbitrary_types_allowed=True, extra="allow")
+    """SQLAlchemy execution options.
+
+    Defined in https://docs.sqlalchemy.org/en/20/core/connections.html#sqlalchemy.engine.Connection.execution_options
+    """
 
     logging_token: Annotated[str, Field(default=None)]
     isolation_level: Annotated[str, Field(default=None)]
@@ -23,11 +24,13 @@ class SqlAlchemyExecutionOptions(BaseModel):
     schema_translate_map: Annotated[dict[str, str], Field(default=None)]
 
 
-# https://docs.sqlalchemy.org/en/20/core/engines.html#sqlalchemy.create_engine
 class SqlAlchemyOptions(BaseModel):
-    model_config = ConfigDict(arbitrary_types_allowed=True, extra="allow")
+    """SQLAlchemy options
 
-    connect_args: Annotated[dict, Field(default=None)]
+    Defined in https://docs.sqlalchemy.org/en/20/core/engines.html#sqlalchemy.create_engine
+    """
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
     creator: Annotated[DottedPath[Callable], Field(default=None)]
     echo: Annotated[bool, Field(default=None)]
     echo_pool: Annotated[bool, Field(default=None)]
@@ -54,13 +57,14 @@ class SqlAlchemyOptions(BaseModel):
     pool_reset_on_return: Annotated[Literal["rollback", "commit"], Field(default=None)]
     pool_timeout: Annotated[int, Field(default=None)]
     pool_use_lifo: Annotated[bool, Field(default=None)]
-    pool_events: Annotated[list[tuple[DottedPath[Callable], str]], Field(default=None)]
     plugins: Annotated[list[str], Field(default=None)]
     query_cache_size: Annotated[int, Field(default=None)]
     use_insertmanyvalues: Annotated[bool, Field(default=None)]
 
 
 class SqlAlchemySettings(BaseModel):
+    """Settings for a SQLAlchemy connection defined in a settings file."""
+
     url: Annotated[str, Field(default=None)]
     username: Annotated[str, Field(default=None)]
     password: Annotated[str, Field(default=None)]
