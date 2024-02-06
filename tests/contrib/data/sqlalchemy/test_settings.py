@@ -18,7 +18,7 @@ from selva.contrib.data.sqlalchemy.settings import SqlAlchemySettings
         "database",
         "host_port",
         "host_port_database",
-    ]
+    ],
 )
 def test_sqlalchemy_settings_mutually_exclusive_properties(values: dict):
     with pytest.raises(ValueError):

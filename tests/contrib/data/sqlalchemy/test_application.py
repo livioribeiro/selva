@@ -9,15 +9,12 @@ from selva.web.application import Selva
 
 async def test_application():
     settings = Settings(
-        default_settings | {
+        default_settings
+        | {
             "application": "tests.contrib.data.sqlalchemy.application",
             "data": {
-                "sqlalchemy": {
-                    "default": {
-                        "url": "sqlite+aiosqlite:///:memory:"
-                    }
-                }
-            }
+                "sqlalchemy": {"default": {"url": "sqlite+aiosqlite:///:memory:"}}
+            },
         }
     )
 

@@ -1,9 +1,9 @@
 from typing import Annotated
 
+from asgikit.responses import respond_text
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
-from asgikit.responses import respond_text
 from selva.di import Inject
 from selva.web import controller, get
 
