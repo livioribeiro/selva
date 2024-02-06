@@ -1,5 +1,3 @@
-from typing import Annotated
-
 import pytest
 from pydantic import BaseModel
 
