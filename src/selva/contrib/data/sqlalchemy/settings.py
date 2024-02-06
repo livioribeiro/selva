@@ -21,7 +21,7 @@ class SqlAlchemyExecutionOptions(BaseModel):
     max_row_buffer: Annotated[int, Field(default=None)]
     yield_per: Annotated[int, Field(default=None)]
     insertmanyvalues_page_size: Annotated[int, Field(default=None)]
-    schema_translate_map: Annotated[dict[str, str], Field(default=None)]
+    schema_translate_map: Annotated[dict[str | None, str], Field(default=None)]
 
 
 class SqlAlchemyOptions(BaseModel):
@@ -30,7 +30,6 @@ class SqlAlchemyOptions(BaseModel):
     Defined in https://docs.sqlalchemy.org/en/20/core/engines.html#sqlalchemy.create_engine
     """
 
-    creator: Annotated[DottedPath[Callable], Field(default=None)]
     echo: Annotated[bool, Field(default=None)]
     echo_pool: Annotated[bool, Field(default=None)]
     enable_from_linting: Annotated[bool, Field(default=None)]

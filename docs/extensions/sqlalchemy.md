@@ -99,8 +99,11 @@ Using environment variables to configure the connections:
 
 ## Connection Options
 
-It is possible to pass options to the SQLAlchemy connection. One notable option
-is connection pool settings. The available options managed by Selva are:
+Selva offers several options to configure SQLAlchemy. If you need more control over
+the SQLAlchemy services, you can create your own `engine` and `sessionmaker` outside
+of the DI context.
+
+The available options are shown below:
 
 ```yaml
 data:
@@ -108,22 +111,21 @@ data:
     default:
       url: ""
       options: # (1)
-        creator: ""
         echo: false
         echo_pool: false
         enable_from_linting: false
         hide_parameters: false
         insertmanyvalues_page_size: 1
         isolation_level: ""
-        json_deserializer: "json.loads"
-        json_serializer: "json.dumps"
+        json_deserializer: "json.loads" # dotted path to the json deserialization function
+        json_serializer: "json.dumps" # dotted path to the json serialization function
         label_length: 1
         logging_name: ""
         max_identifier_length: 1
         max_overflow: 1
         module: "psycopg"
         paramstyle: "qmark" # or "numeric", "named", "format", "pyformat"
-        poolclass: "sqlalchemy.pool.Pool"
+        poolclass: "sqlalchemy.pool.Pool" # dotted path to the pool class
         pool_logging_name: ""
         pool_pre_ping: false
         pool_size: 1
@@ -145,8 +147,8 @@ data:
           yield_per: 1
           insertmanyvalues_page_size: 1
           schema_translate_map:
-            key: "value"
-            other_key: "other value"
+            null: "my_schema"
+            some_schema: "other_schema"
 ```
 
 1.  `options` values are described in [`sqlalchemy.create_engine`](https://docs.sqlalchemy.org/en/20/core/engines.html#sqlalchemy.create_engine)
