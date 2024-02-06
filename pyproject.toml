@@ -29,14 +29,16 @@ packages = [
 [tool.poetry.dependencies]
 python = "^3.11"
 asgikit = "^0.6"
-pydantic = "^2.5"
+pydantic = "^2.6"
 loguru = "^0.7"
 python-dotenv = "^1.0"
-strictyaml = "^1.7"
+"ruamel.yaml" = "^0.18"
 jinja2 = { version = "^3.1", optional = true }
+SQLAlchemy = { version = "^2.0", optional = true }
 
 [tool.poetry.extras]
 jinja = ["jinja2"]
+sqlalchemy = ["SQLAlchemy"]
 
 [tool.poetry.group.dev]
 optional = true
@@ -53,6 +55,7 @@ pytest-asyncio = "^0.21"
 pytest-cov = "^4.1"
 coverage = { version = "^7.3", extras = ["toml"] }
 httpx = "^0.25"
+aiosqlite = "0.19"
 
 [tool.poetry.group.lint]
 optional = true

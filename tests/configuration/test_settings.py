@@ -18,7 +18,7 @@ def test_get_settings(monkeypatch):
     monkeypatch.chdir(Path(__file__).parent / "base")
 
     result = _get_settings_nocache()
-    assert result.data == default_settings | {
+    assert result == default_settings | {
         "prop": "value",
         "list": ["1", "2", "3"],
         "dict": Settings(
@@ -40,7 +40,7 @@ def test_get_settings_with_profile(monkeypatch, profile):
     monkeypatch.setenv("SELVA_PROFILE", profile)
 
     result = _get_settings_nocache()
-    assert result.data == default_settings | {
+    assert result == default_settings | {
         "name": "application",
         "environment": profile,
     }
@@ -77,7 +77,7 @@ def test_configure_settings_dir(monkeypatch):
     )
 
     result = _get_settings_nocache()
-    assert result.data == default_settings | {
+    assert result == default_settings | {
         "prop": "value",
         "list": ["1", "2", "3"],
         "dict": Settings(
@@ -98,7 +98,7 @@ def test_configure_settings_file(monkeypatch):
     )
 
     result = _get_settings_nocache()
-    assert result.data == default_settings | {
+    assert result == default_settings | {
         "prop": "value",
         "list": ["1", "2", "3"],
         "dict": Settings(
@@ -122,7 +122,7 @@ def test_configure_settings_dir_and_file(monkeypatch):
     )
 
     result = _get_settings_nocache()
-    assert result.data == default_settings | {
+    assert result == default_settings | {
         "prop": "value",
         "list": ["1", "2", "3"],
         "dict": Settings(
@@ -145,7 +145,7 @@ def test_configure_settings_file_with_profile(monkeypatch):
     monkeypatch.setenv("SELVA_PROFILE", "prd")
 
     result = _get_settings_nocache()
-    assert result.data == default_settings | {
+    assert result == default_settings | {
         "environment": "prd",
         "prop": "value",
         "list": ["1", "2", "3"],
@@ -169,7 +169,7 @@ def test_configure_env_setttings(monkeypatch, env):
     monkeypatch.setenv("SELVA_PROFILE", env)
 
     result = _get_settings_nocache()
-    assert result.data == default_settings | {
+    assert result == default_settings | {
         "name": "application",
         "environment": env,
     }
@@ -183,12 +183,12 @@ def test_override_settings(monkeypatch, env):
     monkeypatch.chdir(Path(__file__).parent / "override")
 
     result = _get_settings_nocache()
-    assert result.data == default_settings | {"value": "base"}
+    assert result == default_settings | {"value": "base"}
 
     monkeypatch.setenv("SELVA_PROFILE", env)
 
     result = _get_settings_nocache()
-    assert result.data == default_settings | {"value": env}
+    assert result == default_settings | {"value": env}
 
 
 def test_settings_class(monkeypatch):

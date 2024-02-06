@@ -22,11 +22,11 @@ class DottedPath(Generic[T]):
         else:
             item_tp = typing.get_args(source_type)[0]
 
-        item_schema = handler.generate_schema(item_tp)
+        item_schema = handler.generate_schema(Any)
 
         def validate_from_str(
             value: str, function_handler: ValidatorFunctionWrapHandler
-        ) -> DottedPath[item_tp]:
+        ) -> item_tp:
             try:
                 item = import_item(value)
             except ImportError as e:
@@ -57,6 +57,6 @@ class DottedPath(Generic[T]):
             ),
             serialization=core_schema.plain_serializer_function_ser_schema(
                 lambda instance: f"{instance.__module__}.{instance.__qualname__}",
-                when_used="unless-none",
+                when_used="json-unless-none",
             ),
         )

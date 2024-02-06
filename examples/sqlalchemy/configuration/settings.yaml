@@ -1,0 +1,16 @@
+data:
+  sqlalchemy:
+    default:
+      drivername: sqlite+aiosqlite
+      database: ":memory:"
+      options:
+        echo: true
+
+    other:
+      url: "postgresql+psycopg://localhost:5432/test"
+      username: postgres
+      password: postgres
+      options:
+        pool_size: 10
+        pool_recycle: 3600
+        echo: true

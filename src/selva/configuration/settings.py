@@ -1,13 +1,13 @@
 import copy
 import os
-from collections import UserDict
+from collections.abc import Mapping
 from copy import deepcopy
 from functools import cache
 from pathlib import Path
 from typing import Any
 
-import strictyaml
 from loguru import logger
+from ruamel.yaml import YAML
 
 from selva.configuration.defaults import default_settings
 from selva.configuration.environment import (
@@ -26,26 +26,52 @@ DEFAULT_SETTINGS_FILE = "settings.yaml"
 SELVA_PROFILE = "SELVA_PROFILE"
 
 
-class Settings(UserDict):
+class Settings(Mapping):
     def __init__(self, data: dict):
         for key, value in data.items():
             if isinstance(value, dict):
                 data[key] = Settings(value)
 
-        super().__init__(data)
+        self.__data = data
+
+    def __len__(self) -> int:
+        return len(self.__data)
+
+    def __iter__(self):
+        return iter(self.__data)
+
+    def __contains__(self, key: str):
+        return key in self.__data
+
+    def __getitem__(self, key: str):
+        return self.__data[key]
 
     def __getattr__(self, item: str):
         try:
-            return self.data[item]
+            return self.__data[item]
         except KeyError:
             raise AttributeError(item)
 
     def __copy__(self):
-        return Settings(copy.copy(self.data))
+        return Settings(copy.copy(self.__data))
 
     def __deepcopy__(self, memodict):
-        data = copy.deepcopy(self.data, memodict)
+        data = copy.deepcopy(self.__data, memodict)
         return Settings(data)
+
+    def __eq__(self, other: Any) -> bool:
+        if isinstance(other, Settings):
+            return self.__data == other.__data
+        if isinstance(other, Mapping):
+            return self.__data == other
+
+        return False
+
+    def __str__(self):
+        return str(self.__data)
+
+    def __repr__(self):
+        return repr(self.__data)
 
 
 class SettingsError(Exception):
@@ -91,9 +117,10 @@ def get_settings_for_profile(profile: str = None) -> dict[str, Any]:
     settings_file_path = settings_file_path.absolute()
 
     try:
-        settings_yaml = settings_file_path.read_text("utf-8")
+        # settings_yaml = settings_file_path.read_text("utf-8")
         logger.debug("settings loaded from {}", settings_file_path)
-        return strictyaml.dirty_load(settings_yaml, allow_flow_style=True).data or {}
+        yaml = YAML(typ="safe")
+        return yaml.load(settings_file_path) or {}
     except FileNotFoundError:
         if profile:
             logger.warning(

@@ -1,5 +1,3 @@
-from typing import Annotated
-
 import pytest
 from pydantic import BaseModel
 
@@ -11,14 +9,14 @@ class Item:
 
 
 class TestModel(BaseModel):
-    item: Annotated[type, DottedPath]
+    item: DottedPath
 
 
 def test_dotted_path():
-    result = TestModel(item=f"{Item.__module__}.{Item.__qualname__}")
+    result = TestModel.model_validate({"item": f"{Item.__module__}.{Item.__qualname__}"})
     assert result.item is Item
 
 
 def test_invalid_dotted_path():
     with pytest.raises(ValueError):
-        TestModel(item="invalid.dotted.path")
+        TestModel.model_validate({"item": "invalid.dotted.path"})

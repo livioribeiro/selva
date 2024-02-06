@@ -6,9 +6,9 @@ from typing import Annotated, TypeVar, dataclass_transform
 from selva.di.inject import Inject
 from selva.di.service.model import InjectableType, ServiceInfo
 
-__all__ = ("service", "DI_SERVICE_ATTRIBUTE")
+__all__ = ("service", "DI_ATTRIBUTE_SERVICE")
 
-DI_SERVICE_ATTRIBUTE = "__selva_di_service__"
+DI_ATTRIBUTE_SERVICE = "__selva_di_service__"
 
 T = TypeVar("T")
 
@@ -34,20 +34,20 @@ def service(
     outside the dependency injection context
     """
 
-    def inner(injectable: InjectableType) -> T:
-        setattr(injectable, DI_SERVICE_ATTRIBUTE, ServiceInfo(provides, name))
+    def inner(inner_injectable: InjectableType) -> T:
+        setattr(inner_injectable, DI_ATTRIBUTE_SERVICE, ServiceInfo(provides, name))
 
-        if inspect.isclass(injectable):
+        if inspect.isclass(inner_injectable):
             dependencies = [
                 dependency
                 for dependency, annotation in inspect.get_annotations(
-                    injectable
+                    inner_injectable
                 ).items()
                 if _is_inject(annotation)
             ]
 
             # save a reference to the original constructor
-            original_init = getattr(injectable, "__init__", None)
+            original_init = getattr(inner_injectable, "__init__", None)
 
             def init(self, *args, **kwargs):
                 """Generated init method for service
@@ -76,8 +76,8 @@ def service(
                 for k, v in values.items():
                     setattr(self, k, v)
 
-            setattr(injectable, "__init__", init)
+            setattr(inner_injectable, "__init__", init)
 
-        return injectable
+        return inner_injectable
 
     return inner(injectable) if injectable else inner

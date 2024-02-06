@@ -8,7 +8,7 @@ from loguru import logger
 
 from selva._util.maybe_async import maybe_async
 from selva._util.package_scan import scan_packages
-from selva.di.decorator import DI_SERVICE_ATTRIBUTE
+from selva.di.decorator import DI_ATTRIBUTE_SERVICE
 from selva.di.error import (
     DependencyLoopError,
     ServiceNotFoundError,
@@ -35,7 +35,7 @@ class Container:
         self._register_service_spec(service, provides, name)
 
     def service(self, service: type):
-        service_info = getattr(service, DI_SERVICE_ATTRIBUTE, None)
+        service_info = getattr(service, DI_ATTRIBUTE_SERVICE, None)
 
         if not service_info:
             raise ServiceWithoutDecoratorError(service)
@@ -86,15 +86,15 @@ class Container:
         logger.trace("interceptor registered: {}", interceptor.__qualname__)
 
     def scan(self, *packages: str | ModuleType):
-        def predicate(item: Any):
-            return hasattr(item, DI_SERVICE_ATTRIBUTE)
+        def predicate_services(item: Any):
+            return hasattr(item, DI_ATTRIBUTE_SERVICE)
 
-        for service in scan_packages(packages, predicate):
-            provides, name = getattr(service, DI_SERVICE_ATTRIBUTE)
+        for service in scan_packages(packages, predicate_services):
+            provides, name = getattr(service, DI_ATTRIBUTE_SERVICE)
             self.register(service, provides=provides, name=name)
 
-    def has(self, service: type) -> bool:
-        definition = self.registry.get(service)
+    def has(self, service: type, name: str = None) -> bool:
+        definition = self.registry.get(service, name=name)
         return definition is not None
 
     def iter_service(
@@ -226,7 +226,7 @@ class Container:
             )
             await maybe_async(interceptor.intercept, instance, service_type)
 
-    async def run_finalizers(self):
+    async def _run_finalizers(self):
         for finalizer in reversed(self.finalizers):
             await finalizer
 
