@@ -96,3 +96,58 @@ Using environment variables to configure the connections:
           username: "${DATABASE_USERNAME}"
           password: "${DATABASE_PASSWORD}"
     ```
+
+## Connection Options
+
+It is possible to pass options to the SQLAlchemy connection. One notable option
+is connection pool settings. The available options managed by Selva are:
+
+```yaml
+data:
+  sqlalchemy:
+    default:
+      url: ""
+      options: # (1)
+        creator: ""
+        echo: false
+        echo_pool: false
+        enable_from_linting: false
+        hide_parameters: false
+        insertmanyvalues_page_size: 1
+        isolation_level: ""
+        json_deserializer: "json.loads"
+        json_serializer: "json.dumps"
+        label_length: 1
+        logging_name: ""
+        max_identifier_length: 1
+        max_overflow: 1
+        module: "psycopg"
+        paramstyle: "qmark" # or "numeric", "named", "format", "pyformat"
+        poolclass: "sqlalchemy.pool.Pool"
+        pool_logging_name: ""
+        pool_pre_ping: false
+        pool_size: 1
+        pool_recycle: 3600
+        pool_reset_on_return: "rollback" # or "commit"
+        pool_timeout: 1
+        pool_use_lifo: false
+        plugins:
+          - "plugin1"
+          - "plugin2"
+        query_cache_size: 1
+        use_insertmanyvalues: false
+        execution_options: # (2)
+          logging_token: ""
+          isolation_level: ""
+          no_parameters: false
+          stream_results: false
+          max_row_buffer: 1
+          yield_per: 1
+          insertmanyvalues_page_size: 1
+          schema_translate_map:
+            key: "value"
+            other_key: "other value"
+```
+
+1.  `options` values are described in [`sqlalchemy.create_engine`](https://docs.sqlalchemy.org/en/20/core/engines.html#sqlalchemy.create_engine)
+2.  `execution_options` values are describe in [`qlalchemy.engine.Connection.execution_options`](https://docs.sqlalchemy.org/en/20/core/connections.html#sqlalchemy.engine.Connection.execution_options)

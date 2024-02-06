@@ -2,7 +2,7 @@ from collections.abc import Callable
 from types import ModuleType
 from typing import Annotated, Literal, Self
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, Field, model_validator
 from sqlalchemy import URL, make_url
 
 from selva._util.pydantic import DottedPath
@@ -29,7 +29,6 @@ class SqlAlchemyOptions(BaseModel):
 
     Defined in https://docs.sqlalchemy.org/en/20/core/engines.html#sqlalchemy.create_engine
     """
-    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     creator: Annotated[DottedPath[Callable], Field(default=None)]
     echo: Annotated[bool, Field(default=None)]
