@@ -10,7 +10,7 @@ injection context.
 Install SQLAlchemy python package and the database driver:
 
 ```shell
-pip install sqlalchemy aiosqlite aiomysql psycopg oracledb
+pip install selva[sqlalchemy] aiosqlite aiomysql psycopg oracledb
 ```
 
 Define the configuration properties for the database:
@@ -32,8 +32,8 @@ Define the configuration properties for the database:
           url: "oracle+oracledb_async://user:pass@localhost/?service_name=XEPDB1"
     ```
     
-    1.  "default" connection will be registered without name
-    2.  Will be registered as "postgres"
+    1.  "default" connection will be registered without a name
+    2.  Will be registered with the name "postgres"
 
 === "application/service.py"
     ```python
@@ -111,6 +111,8 @@ data:
     default:
       url: ""
       options: # (1)
+        connect_args:
+          arg: value
         echo: false
         echo_pool: false
         enable_from_linting: false
