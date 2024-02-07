@@ -1,6 +1,6 @@
 from collections.abc import Callable
 from types import ModuleType
-from typing import Annotated, Literal, Self
+from typing import Annotated, Any, Literal, Self
 
 from pydantic import BaseModel, Field, model_validator
 from sqlalchemy import URL, make_url
@@ -30,6 +30,7 @@ class SqlAlchemyOptions(BaseModel):
     Defined in https://docs.sqlalchemy.org/en/20/core/engines.html#sqlalchemy.create_engine
     """
 
+    connect_args: Annotated[dict[str, Any], Field(default=None)]
     echo: Annotated[bool, Field(default=None)]
     echo_pool: Annotated[bool, Field(default=None)]
     enable_from_linting: Annotated[bool, Field(default=None)]

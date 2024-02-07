@@ -21,10 +21,10 @@ class JinjaTemplate(Template):
             self.settings.templates.jinja
         )
 
-        kwargs = jinja_settings.model_dump(exclude_none=True)
+        kwargs = jinja_settings.model_dump(exclude_unset=True)
 
         if "loader" not in kwargs:
-            templates_path = Path(self.settings.templates.jinja.path).absolute()
+            templates_path = [Path(p).absolute() for p in self.settings.templates.paths]
             kwargs["loader"] = FileSystemLoader(templates_path)
 
         if "autoescape" not in kwargs:

@@ -11,9 +11,8 @@ default_settings = {
     },
     "templates": {
         "backend": None,
-        "jinja": {
-            "path": "resources/templates",
-        },
+        "paths": ["resources/templates"],
+        "jinja": {},
     },
     "data": {"sqlalchemy": {}},
 }

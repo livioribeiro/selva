@@ -12,7 +12,7 @@ settings = Settings(
     | {
         "application": "tests.ext.templates.jinja.application",
         "extensions": ["selva.ext.templates.jinja"],
-        "templates": {"jinja": {"path": path}},
+        "templates": default_settings["templates"] | {"paths": [path]},
     }
 )
 

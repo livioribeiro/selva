@@ -1,7 +1,3 @@
-from http import HTTPStatus
-
-from httpx import AsyncClient
-
 from selva.configuration.defaults import default_settings
 from selva.configuration.settings import Settings
 from selva.web.application import Selva

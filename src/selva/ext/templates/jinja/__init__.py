@@ -1,12 +1,18 @@
 from selva.configuration.settings import Settings
 from selva.di.container import Container
+from selva.web.templates import Template
+
+from loguru import logger
 
 
 def selva_extension(container: Container, settings: Settings):
-    backends = [key for key in settings.templates if key != "backend"]
-    if backends != ["jinja"] and settings.templates.backend != "jinja":
+    backend = settings.templates.backend
+
+    if backend and backend != __package__:
         return
 
-    from . import service
+    if not backend and container.has(Template):
+        raise ValueError("Template backend already registered. Please define `templates.backend` property")
 
+    from . import service
     container.scan(service)
