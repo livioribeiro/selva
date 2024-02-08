@@ -39,5 +39,5 @@ jobs:
       - run: pip install asyncpg
       - run: poetry install --with test --extras jinja --extras sqlalchemy --no-interaction
       - env:
-          POSTGRES_URL: postgresql+asyncpg://postgres:postgres@postgres:5342/${{ POSTGRES_DB }}
+          POSTGRES_URL: postgresql+asyncpg://postgres:postgres@postgres:5342/${{ env.POSTGRES_DB }}
         run: poetry run pytest
