@@ -24,13 +24,11 @@ class DefautDBService:
 
     async def db_version(self) -> str:
         async with self.sessionmaker() as session:
-            result = await session.execute(text("SELECT sqlite_version()"))
-            return result.scalar()
+            return await session.scalar(text("SELECT sqlite_version()"))
 
     async def get_model(self) -> MyModel:
         async with self.sessionmaker() as session:
-            result = await session.execute(select(MyModel))
-            return result.scalar()
+            return await session.scalar(select(MyModel).limit(1))
 
 
 @service
@@ -39,5 +37,4 @@ class OtherDBService:
 
     async def db_version(self) -> str:
         async with self.sessionmaker() as session:
-            result = await session.execute(text("SELECT version()"))
-            return result.scalar()
+            return await session.scalar(text("SELECT version()"))
