@@ -9,21 +9,35 @@ on:
       - pyproject.toml
       - 'src/**'
       - 'tests/**'
+  pull_request:
+    branches:
+      - main
+
+env:
+  POSTGRES_DB: test_db
 
 jobs:
   test:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        version:
-          - "3.11"
-          - "3.12"
+        version: ["3.11", "3.12"]
+    container: python:${{ matrix.version }}
+    services:
+      postgres:
+        image: postgres:16.1-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v4
-        with:
-          python-version: ${{ matrix.version }}
-      - run: pip install pipx
-      - run: pipx install poetry
+      - run: pip install pipx && pipx install poetry
+      - run: pip install asyncpg
       - run: poetry install --with test --extras jinja --extras sqlalchemy --no-interaction
-      - run: poetry run pytest
+      - env:
+          POSTGRES_URL: postgresql+asyncpg://postgres:postgres@postgres:5342/${{ POSTGRES_DB }}
+        run: poetry run pytest

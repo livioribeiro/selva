@@ -3,8 +3,6 @@ from typing import Annotated, Optional
 from selva.di.container import Container
 from selva.di.inject import Inject
 
-from .fixtures import ioc
-
 
 class DependentService:
     pass

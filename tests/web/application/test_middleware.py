@@ -9,7 +9,7 @@ from selva.web.middleware import Middleware
 
 
 @service
-class TestMiddleware(Middleware):
+class MyMiddleware(Middleware):
     async def __call__(self, call, request):
         send = request.asgi.send
 
@@ -26,8 +26,8 @@ async def test_middleware():
     settings = Settings(
         default_settings
         | {
-            "application": "tests.web.application.application",
-            "middleware": ["tests.web.application.test_middleware.TestMiddleware"],
+            "application": f"{__package__}.application",
+            "middleware": [f"{__package__}.test_middleware.MyMiddleware"],
         }
     )
     app = Selva(settings)

@@ -1,6 +1,6 @@
 default_settings = {
     "application": "application",
-    "modules": [],
+    "extensions": [],
     "middleware": [],
     "logging": {
         "setup": "selva.logging.setup.setup_logger",
@@ -10,9 +10,9 @@ default_settings = {
         "disable": [],
     },
     "templates": {
-        "jinja": {
-            "path": "resources/templates",
-        },
+        "backend": None,
+        "paths": ["resources/templates"],
+        "jinja": {},
     },
     "data": {"sqlalchemy": {}},
 }

@@ -1,7 +1,5 @@
 from selva.di.container import Container
 
-from .fixtures import ioc
-
 
 class Service:
     pass

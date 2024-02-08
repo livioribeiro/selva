@@ -50,23 +50,24 @@ uvicorn = { version = "^0.23", extras = ["standard"] }
 optional = true
 
 [tool.poetry.group.test.dependencies]
-pytest = "^7.4"
-pytest-asyncio = "^0.21"
-pytest-cov = "^4.1"
-coverage = { version = "^7.3", extras = ["toml"] }
-httpx = "^0.25"
-aiosqlite = "0.19"
+pytest = "^8"
+# TODO: remove "allow-prereleases" once pytest-asyncio supports pytest 8
+pytest-asyncio = { version = "^0.23", allow-prereleases = true }
+pytest-cov = "^4"
+coverage = { version = "^7", extras = ["toml"] }
+httpx = "^0.26"
+aiosqlite = "^0.19"
 
 [tool.poetry.group.lint]
 optional = true
 
 [tool.poetry.group.lint.dependencies]
 pylint = "^3.0"
-black = "^23.10"
-isort = "^5.12"
-flake8 = "^6.1"
-mypy = "^1.6"
-ruff = "^0.1"
+black = "^24.1"
+isort = "^5.13"
+flake8 = "^7.0"
+mypy = "^1.8"
+ruff = "^0.2"
 
 [tool.poetry.group.docs]
 optional = true
@@ -91,7 +92,7 @@ ignore_missing_imports = true
 
 [tool.black]
 line-length = 88
-target-version = ['py310']
+target-version = ["py311", "py312"]
 extend-exclude = "^/tests/configuration/invalid_settings/configuration/settings\\.py"
 
 [build-system]

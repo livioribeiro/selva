@@ -117,8 +117,7 @@ def get_settings_for_profile(profile: str = None) -> dict[str, Any]:
     settings_file_path = settings_file_path.absolute()
 
     try:
-        # settings_yaml = settings_file_path.read_text("utf-8")
-        logger.debug("settings loaded from {}", settings_file_path)
+        logger.info("settings loaded from {}", settings_file_path)
         yaml = YAML(typ="safe")
         return yaml.load(settings_file_path) or {}
     except FileNotFoundError:

@@ -1,5 +1,4 @@
 import logging
-import os
 from pathlib import Path
 
 import pytest
@@ -259,7 +258,7 @@ def test_non_existent_env_var_should_fail(monkeypatch):
 
     with pytest.raises(
         ValueError,
-        match=f"DOES_NOT_EXIST environment variable is not defined and does not contain a default value",
+        match="DOES_NOT_EXIST environment variable is not defined and does not contain a default value",
     ):
         _get_settings_nocache()
 

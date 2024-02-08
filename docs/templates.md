@@ -1,12 +1,12 @@
-Selva offers support for Jinja templates.
+# Templates
 
-To use templates, first install the `jinja` extra:
+Selva offers support for rendering html responses from templates.
 
-```shell
-pip install selva[jinja]
-```
+## Usage
 
-Template files are located in the `resources/templates directory`:
+First install the [Jinja extension](./extensions/jinja.md).
+
+By default, template files are located in the `resources/templates directory`:
 
 ```
 project/
@@ -67,40 +67,45 @@ the result.
 
 ## Configuration
 
-Jinja can be configured through the `settings.yaml`. For exmaple, to activate extensions:
+Selva offers configuration options for templates.
 
 ```yaml
 templates:
-  jinja:
-    extensions:
-      - jinja2.ext.i18n
-      - jinja2.ext.debug
+  backend: "jinja" # (1)
+  paths: # (2)
+    ["resources/templates"]
 ```
 
-Full settings list:
+1.  If there are more extensions that provide templates, the backend property can
+    be used to choose which one to use.
+2.  Paths that will be used to look for templates.
 
-```yaml
-templates:
-  jinja:
-    block_start_string:
-    block_end_string:
-    variable_start_string:
-    variable_end_string:
-    comment_start_string:
-    comment_end_string:
-    line_statement_prefix:
-    line_comment_prefix:
-    trim_blocks:
-    lstrip_blocks:
-    newline_sequence:
-    keep_trailing_newline:
-    extensions:
-    optimized:
-    undefined:
-    finalize:
-    autoescape:
-    loader:
-    cache_size:
-    auto_reload:
-    bytecode_cache:
-```
+## Extensions providing templates
+
+If you are writing an extension that provides a `selva.web.templates.Template` implementation,
+make sure to check whether the value of configuration property `templates.backend`
+matches with your extension's `__package__` or no other implementation has been
+registered yet.
+
+For example, the function `selva_extension` in your extension could be implemented
+like the following:
+
+=== "my/extension/__init__.py"
+
+    ```python
+    from selva.configuration.settings import Settings
+    from selva.di.container import Container
+    from selva.web.templates import Template
+
+
+    def selva_extension(container: Container, settings: Settings):
+        backend = settings.templates.backend
+
+        if backend and backend != __package__:
+            return
+    
+        if not backend and container.has(Template):
+            return
+
+        # ...
+    ```
