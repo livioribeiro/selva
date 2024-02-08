@@ -18,19 +18,19 @@ Then activate the extension:
       - selva.ext.templates.jinja
     ```
 
+You can view the template usage [in the templates section](../templates.md).
+
 ## Configuration
 
 Jinja can be configured through the `settings.yaml`. For example, to activate extensions:
 
-=== "configuration/settings.yaml"
-
-    ```yaml
-    templates:
-      jinja:
-        extensions:
-          - jinja2.ext.i18n
-          - jinja2.ext.debug
-    ```
+```yaml
+templates:
+  jinja:
+    extensions:
+      - jinja2.ext.i18n
+      - jinja2.ext.debug
+```
 
 Full list of settings:
 
