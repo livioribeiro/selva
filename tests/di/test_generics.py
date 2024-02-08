@@ -6,8 +6,6 @@ from selva.di.container import Container
 from selva.di.error import TypeVarInGenericServiceError
 from selva.di.inject import Inject
 
-from .fixtures import ioc
-
 T = TypeVar("T")
 
 

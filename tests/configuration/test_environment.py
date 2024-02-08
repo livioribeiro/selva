@@ -1,5 +1,3 @@
-import pytest
-
 from selva.configuration.environment import (
     parse_settings_from_env,
     replace_variables_recursive,

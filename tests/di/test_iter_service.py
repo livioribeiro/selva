@@ -3,8 +3,6 @@ import pytest
 from selva.di.container import Container
 from selva.di.error import ServiceNotFoundError
 
-from .fixtures import ioc
-
 
 class Interface:
     pass

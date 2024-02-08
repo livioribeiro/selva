@@ -10,7 +10,7 @@ path = str(Path(__file__).parent.absolute())
 settings = Settings(
     default_settings
     | {
-        "application": "tests.ext.templates.jinja.application",
+        "application": f"{__package__}.application",
         "extensions": ["selva.ext.templates.jinja"],
         "templates": default_settings["templates"] | {"paths": [path]},
     }

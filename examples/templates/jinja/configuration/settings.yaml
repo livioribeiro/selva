@@ -3,6 +3,7 @@ extensions:
 
 templates:
   jinja:
+    optimized: true
     extensions:
       - jinja2.ext.i18n
       - jinja2.ext.debug

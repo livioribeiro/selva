@@ -2,7 +2,7 @@ import os
 from importlib.util import find_spec
 
 import pytest
-from sqlalchemy import text, make_url
+from sqlalchemy import make_url, text
 
 from selva.configuration.defaults import default_settings
 from selva.configuration.settings import Settings
@@ -100,9 +100,9 @@ async def test_make_engine_service_with_options():
     )
 
     engine_service = make_engine_service("default")(settings)
-    engine = await anext(engine_service)
-    assert engine.echo is True
-    assert engine.pool.echo is True
+    async for engine in engine_service:
+        assert engine.echo is True
+        assert engine.pool.echo is True
 
 
 async def test_make_engine_service_with_execution_options():
@@ -114,9 +114,7 @@ async def test_make_engine_service_with_execution_options():
                     "default": {
                         "url": POSTGRES_URL,
                         "options": {
-                            "execution_options": {
-                                "isolation_level": "READ COMMITTED"
-                            },
+                            "execution_options": {"isolation_level": "READ COMMITTED"},
                         },
                     },
                 },

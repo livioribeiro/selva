@@ -9,7 +9,7 @@ from selva.web.application import Selva
 
 async def test_application():
     settings = Settings(
-        default_settings | {"application": "tests.web.application.application"}
+        default_settings | {"application": f"{__package__}.application"}
     )
     app = Selva(settings)
 
@@ -20,7 +20,7 @@ async def test_application():
 
 async def test_not_found():
     settings = Settings(
-        default_settings | {"application": "tests.web.application.application"}
+        default_settings | {"application": f"{__package__}.application"}
     )
     app = Selva(settings)
 

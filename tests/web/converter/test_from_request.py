@@ -55,6 +55,6 @@ async def test_pydantic_model_list_from_request():
 
     result = await converter.from_request(context, list[Model], "name", None)
 
-    assert type(result) == list
+    assert isinstance(result, list)
     assert result[0].field == "value1"
     assert result[1].field == "value2"

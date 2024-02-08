@@ -19,7 +19,6 @@ class PydanticModelFromRequest:
         _metadata=None,
     ) -> PydanticModel:
         if request.method not in (HTTPMethod.POST, HTTPMethod.PUT, HTTPMethod.PATCH):
-            # TODO: improve error
             raise TypeError(
                 "Pydantic model parameter on method that does not accept body"
             )
@@ -48,7 +47,6 @@ class PydanticModelListFromRequest:
         _metadata=None,
     ) -> list[PydanticModel]:
         if request.method not in (HTTPMethod.POST, HTTPMethod.PUT, HTTPMethod.PATCH):
-            # TODO: improve error
             raise TypeError("Pydantic parameter on method that does not accept body")
 
         if "application/json" in request.content_type:

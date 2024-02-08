@@ -1,7 +1,5 @@
 from selva.di.container import Container
 
-from .fixtures import ioc
-
 
 async def test_scan_package_by_module(ioc: Container):
     from .services import scan_package as module

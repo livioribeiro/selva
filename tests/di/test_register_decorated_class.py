@@ -1,8 +1,6 @@
 from selva.di.container import Container
 from selva.di.decorator import service
 
-from .fixtures import ioc
-
 
 @service
 class Service:

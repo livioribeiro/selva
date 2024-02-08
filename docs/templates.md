@@ -71,7 +71,7 @@ Selva offers configuration options for templates.
 
 ```yaml
 templates:
-  backend: "selva.ext.templates.jinja" # (1)
+  backend: "jinja" # (1)
   paths: # (2)
     ["resources/templates"]
 ```
@@ -79,3 +79,33 @@ templates:
 1.  If there are more extensions that provide templates, the backend property can
     be used to choose which one to use.
 2.  Paths that will be used to look for templates.
+
+## Extensions providing templates
+
+If you are writing an extension that provides a `selva.web.templates.Template` implementation,
+make sure to check whether the value of configuration property `templates.backend`
+matches with your extension's `__package__` or no other implementation has been
+registered yet.
+
+For example, the function `selva_extension` in your extension could be implemented
+like the following:
+
+=== "my/extension/__init__.py"
+
+    ```python
+    from selva.configuration.settings import Settings
+    from selva.di.container import Container
+    from selva.web.templates import Template
+
+
+    def selva_extension(container: Container, settings: Settings):
+        backend = settings.templates.backend
+
+        if backend and backend != __package__:
+            return
+    
+        if not backend and container.has(Template):
+            return
+
+        # ...
+    ```

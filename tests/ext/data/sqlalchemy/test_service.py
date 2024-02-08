@@ -10,13 +10,12 @@ from selva.ext.data.sqlalchemy.service import (
 
 async def _test_engine_service(settings: Settings):
     engine_service = make_engine_service("default")(settings)
-    engine = await anext(engine_service)
+    async for engine in engine_service:
+        async with engine.connect() as conn:
+            result = await conn.execute(text("select 1"))
+            assert result.scalar() == 1
 
-    async with engine.connect() as conn:
-        result = await conn.execute(text("select 1"))
-        assert result.scalar() == 1
-
-    await engine.dispose()
+        await engine.dispose()
 
 
 async def test_make_engine_service_with_url():
@@ -73,9 +72,9 @@ async def test_make_engine_service_with_options():
     )
 
     engine_service = make_engine_service("default")(settings)
-    engine = await anext(engine_service)
-    assert engine.echo is True
-    assert engine.pool.echo is True
+    async for engine in engine_service:
+        assert engine.echo is True
+        assert engine.pool.echo is True
 
 
 async def test_make_engine_service_with_execution_options():
@@ -98,10 +97,32 @@ async def test_make_engine_service_with_execution_options():
     )
 
     engine_service = make_engine_service("default")
-    engine = await anext(engine_service(settings))
-    sessionmaker_service = make_sessionmaker_service("default")
-    sessionmaker = await sessionmaker_service(engine)
+    async for engine in engine_service(settings):
+        sessionmaker_service = make_sessionmaker_service("default")
+        sessionmaker = await sessionmaker_service(engine)
 
-    async with sessionmaker() as session:
-        result = await session.execute(text("select 1"))
-        assert result.context.execution_options["isolation_level"] == "READ UNCOMMITTED"
+        async with sessionmaker() as session:
+            result = await session.execute(text("select 1"))
+            assert (
+                result.context.execution_options["isolation_level"]
+                == "READ UNCOMMITTED"
+            )
+
+
+async def test_make_engine_service_alternative_name():
+    settings = Settings(
+        default_settings
+        | {
+            "data": {
+                "sqlalchemy": {
+                    "other": {
+                        "url": "sqlite+aiosqlite:///:memory:",
+                    },
+                },
+            },
+        }
+    )
+
+    engine_service = make_engine_service("other")(settings)
+    async for engine in engine_service:
+        assert engine is not None

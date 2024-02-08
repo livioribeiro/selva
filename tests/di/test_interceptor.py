@@ -2,8 +2,6 @@ from typing import Any
 
 from selva.di.container import Container
 
-from .fixtures import ioc
-
 
 class TestInterceptor:
     async def intercept(self, instance: Any, _service_type: type):

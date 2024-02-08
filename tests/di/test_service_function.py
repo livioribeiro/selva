@@ -3,8 +3,6 @@ import pytest
 from selva.di.container import Container
 from selva.di.error import FactoryMissingReturnTypeError, ServiceAlreadyRegisteredError
 
-from .fixtures import ioc
-
 
 class Service1:
     pass

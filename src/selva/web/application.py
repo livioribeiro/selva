@@ -184,8 +184,8 @@ class Selva:
                 ):
                     logger.trace(
                         "Handling exception with handler {}.{}",
-                        handler.__module__,
-                        handler.__qualname__,
+                        handler.__class__.__module__,
+                        handler.__class__.__qualname__,
                     )
                     await handler.handle_exception(request, err)
                 else:

@@ -1,5 +1,6 @@
 from http import HTTPStatus
 
+import pytest
 from httpx import AsyncClient
 
 from selva.configuration.defaults import default_settings
@@ -7,15 +8,21 @@ from selva.configuration.settings import Settings
 from selva.web.application import Selva
 
 
-async def test_application():
+@pytest.mark.parametrize(
+    "application,database",
+    [
+        ("application", "default"),
+        ("application_named", "other"),
+    ],
+    ids=["default", "named"],
+)
+async def test_application(application: str, database: str):
     settings = Settings(
         default_settings
         | {
-            "application": "tests.ext.data.sqlalchemy.application",
+            "application": f"{__package__}.{application}",
             "extensions": ["selva.ext.data.sqlalchemy"],
-            "data": {
-                "sqlalchemy": {"default": {"url": "sqlite+aiosqlite:///:memory:"}}
-            },
+            "data": {"sqlalchemy": {database: {"url": "sqlite+aiosqlite:///:memory:"}}},
         }
     )
 

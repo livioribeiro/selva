@@ -3,8 +3,6 @@ import pytest
 from selva.di.container import Container
 from selva.di.error import NonInjectableTypeError
 
-from .fixtures import ioc
-
 
 def test_non_injectable_type_should_fail(ioc: Container):
     obj = ()
