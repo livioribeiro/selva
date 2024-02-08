@@ -13,9 +13,19 @@ Install SQLAlchemy python package and the database driver:
 pip install selva[sqlalchemy] aiosqlite aiomysql psycopg oracledb
 ```
 
+Activate SQLAlchemy extension:
+
+=== "configuration/settings.yaml"
+
+    ```yaml
+    extensions:
+      - selva.ext.data.sqlalchemy
+    ```
+
 Define the configuration properties for the database:
 
 === "configuration/settings.yaml"
+
     ```yaml
     data:
       sqlalchemy:
