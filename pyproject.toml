@@ -57,6 +57,7 @@ pytest-cov = "^4"
 coverage = { version = "^7", extras = ["toml"] }
 httpx = "^0.26"
 aiosqlite = "^0.19"
+asyncpg = "^0.29"
 
 [tool.poetry.group.lint]
 optional = true
