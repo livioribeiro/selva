@@ -13,9 +13,6 @@ on:
     branches:
       - main
 
-env:
-  POSTGRES_DB: test_db
-
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -28,16 +25,31 @@ jobs:
         image: postgres:16.1-alpine
         env:
           POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: ${{ env.POSTGRES_DB }}
+          POSTGRES_DB: test
         options: >-
           --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: bitnami/redis:7.2.4
+        env:
+          REDIS_PASSWORD: password
+        options: >-
+          --health-cmd "redis-cli ping"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
     steps:
       - uses: actions/checkout@v4
       - run: pip install poetry
-      - run: poetry install --with test --extras jinja --extras sqlalchemy --no-interaction
+      - run: poetry install
+          --with test
+          --extras jinja
+          --extras sqlalchemy
+          --extras redis
+          --no-interaction
       - env:
-          POSTGRES_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/${{ env.POSTGRES_DB }}
+          POSTGRES_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/test
+          REDIS_URL: redis://default:password@redis:6379/0
         run: poetry run pytest

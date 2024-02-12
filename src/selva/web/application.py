@@ -7,7 +7,7 @@ from uuid import uuid4
 
 from asgikit.errors.websocket import WebSocketDisconnectError, WebSocketError
 from asgikit.requests import Request
-from asgikit.responses import respond_status
+from asgikit.responses import respond_status, respond_text
 from asgikit.websockets import WebSocket
 from loguru import logger
 
@@ -211,9 +211,11 @@ class Selva:
                     return
 
                 await respond_status(response, err.status)
-        except Exception:
+        except Exception as err:
             logger.exception("Error processing request")
-            await respond_status(request.response, HTTPStatus.INTERNAL_SERVER_ERROR)
+            await respond_text(
+                request.response, str(err), status=HTTPStatus.INTERNAL_SERVER_ERROR
+            )
 
     async def _process_request(self, request: Request):
         method = request.method

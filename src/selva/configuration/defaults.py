@@ -14,5 +14,8 @@ default_settings = {
         "paths": ["resources/templates"],
         "jinja": {},
     },
-    "data": {"sqlalchemy": {}},
+    "data": {
+        "redis": {},
+        "sqlalchemy": {},
+    },
 }
