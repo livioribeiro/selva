@@ -2,7 +2,7 @@ import itertools
 
 import pytest
 
-from selva.ext.data.redis.settings import BackoffSchema, RedisSettings
+from selva.ext.data.redis.settings import BackoffSchema, RedisOptions, RedisSettings
 
 
 @pytest.mark.parametrize(
@@ -22,19 +22,9 @@ from selva.ext.data.redis.settings import BackoffSchema, RedisSettings
         "host_port_db",
     ],
 )
-def test_redis_settings_mutually_exclusive_connection_properties(values: dict):
+def test_mutually_exclusive_connection_properties(values: dict):
     with pytest.raises(ValueError):
         RedisSettings.model_validate({"url": "url"} | values)
-
-
-# INPUTS = [
-#      {"no_backoff": None},
-#      {"constant": {"backoff": 1}},
-#      {"exponential": {"cap": 1, "base": 1}},
-#      {"full_jitter": {"cap": 1, "base": 1}},
-#      {"equal_jitter": {"cap": 1, "base": 1}},
-#      {"decorrelated_jitter": {"cap": 1, "base": 1}},
-# ]
 
 
 @pytest.mark.parametrize(
@@ -54,6 +44,11 @@ def test_redis_settings_mutually_exclusive_connection_properties(values: dict):
         )
     ],
 )
-def test_redis_settings_mutually_exclusive_retry_properties(values: dict):
+def test_mutually_exclusive_retry_properties(values: dict):
     with pytest.raises(ValueError):
         BackoffSchema.model_validate(values)
+
+
+def test_invalid_encode_errors_property():
+    with pytest.raises(ValueError):
+        RedisOptions.model_validate({"encoding_errors": "invalid"})

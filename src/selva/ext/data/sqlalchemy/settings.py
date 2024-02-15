@@ -2,7 +2,7 @@ from collections.abc import Callable
 from types import ModuleType
 from typing import Any, Literal, Self
 
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, ConfigDict, model_validator
 from sqlalchemy import URL, make_url
 
 from selva._util.pydantic import DottedPath
@@ -13,6 +13,8 @@ class SqlAlchemyExecutionOptions(BaseModel):
 
     Defined in https://docs.sqlalchemy.org/en/20/core/connections.html#sqlalchemy.engine.Connection.execution_options
     """
+
+    model_config = ConfigDict(extra="forbid")
 
     logging_token: str = None
     isolation_level: str = None
@@ -29,6 +31,8 @@ class SqlAlchemyOptions(BaseModel):
 
     Defined in https://docs.sqlalchemy.org/en/20/core/engines.html#sqlalchemy.create_engine
     """
+
+    model_config = ConfigDict(extra="forbid")
 
     connect_args: dict[str, Any] = None
     echo: bool = None
@@ -61,6 +65,8 @@ class SqlAlchemyOptions(BaseModel):
 
 class SqlAlchemySettings(BaseModel):
     """Settings for a SQLAlchemy connection defined in a settings file."""
+
+    model_config = ConfigDict(extra="forbid")
 
     url: str = None
     username: str = None

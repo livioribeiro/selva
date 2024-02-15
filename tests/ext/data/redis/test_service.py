@@ -42,6 +42,7 @@ async def test_make_service_with_url():
     await _test_engine_service(settings)
 
 
+@pytest.mark.skipif(PARSED_URL.password is None, reason="url without password")
 async def test_make_service_with_url_username_password():
     settings = Settings(
         default_settings
@@ -62,18 +63,24 @@ async def test_make_service_with_url_username_password():
 
 
 async def test_make_service_with_url_components():
+    params = {
+        "host": PARSED_URL.hostname,
+        "port": PARSED_URL.port,
+        "db": int(PARSED_URL.path.strip("/")),
+    }
+
+    if (username := PARSED_URL.username) and (password := PARSED_URL.password):
+        params |= {
+            "username": username,
+            "password": password,
+        }
+
     settings = Settings(
         default_settings
         | {
             "data": {
                 "redis": {
-                    "default": {
-                        "host": PARSED_URL.hostname,
-                        "port": PARSED_URL.port,
-                        "db": int(PARSED_URL.path.strip("/")),
-                        "username": PARSED_URL.username,
-                        "password": PARSED_URL.password,
-                    },
+                    "default": params,
                 },
             },
         }

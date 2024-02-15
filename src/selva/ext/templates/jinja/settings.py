@@ -8,7 +8,7 @@ from selva._util.pydantic import DottedPath
 
 
 class JinjaTemplateSettings(BaseModel):
-    model_config = ConfigDict(arbitrary_types_allowed=True)
+    model_config = ConfigDict(extra="forbid")
 
     block_start_string: str = None
     block_end_string: str = None

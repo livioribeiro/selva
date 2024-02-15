@@ -1,24 +1,28 @@
-from collections.abc import Callable
 from types import NoneType
-from typing import Self, Type
+from typing import Self, Type, Literal
 
-from pydantic import BaseModel, model_serializer, model_validator
+from pydantic import BaseModel, ConfigDict, model_serializer, model_validator
 from redis import RedisError
-from redis.credentials import CredentialProvider
 
 from selva._util.pydantic import DottedPath
 
 
 class ConstantBackoffSchema(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     backoff: int
 
 
 class ExponentialBackoffSchema(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     cap: int = None
     base: int = None
 
 
 class BackoffSchema(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     no_backoff: NoneType = None
     constant: ConstantBackoffSchema = None
     exponential: ExponentialBackoffSchema = None
@@ -35,19 +39,23 @@ class BackoffSchema(BaseModel):
 
 
 class RetrySchema(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     backoff: BackoffSchema
     retries: int
     supported_errors: tuple[DottedPath[Type[RedisError]], ...] = None
 
 
 class RedisOptions(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     socket_timeout: float = None
     socket_connect_timeout: float = None
     socket_keepalive: bool = None
     socket_keepalive_options: dict[int, int | bytes] = None
     unix_socket_path: str = None
     encoding: str = None
-    encoding_errors: str = None
+    encoding_errors: Literal["strict", "ignore", "replace"] = None
     decode_responses: bool = None
     retry_on_timeout: bool = None
     retry_on_error: list = None
@@ -66,12 +74,12 @@ class RedisOptions(BaseModel):
     lib_version: str = None
     retry: RetrySchema = None
     auto_close_connection_pool: bool = None
-    redis_connect_func: DottedPath[Callable] = None
-    credential_provider: DottedPath[CredentialProvider] = None
     protocol: int = None
 
 
 class RedisSettings(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     url: str = None
     host: str = None
     port: int = None
