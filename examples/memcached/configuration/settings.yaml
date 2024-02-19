@@ -1,0 +1,12 @@
+extensions:
+  - selva.ext.data.memcached
+
+data:
+  memcached:
+    default:
+      address:
+        - "localhost"
+        - "localhost:11212"
+      options:
+        cluster_events:
+        - application.service.MyClusterEvents

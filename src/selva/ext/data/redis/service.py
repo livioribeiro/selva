@@ -11,9 +11,8 @@ from redis.backoff import (
 from redis.retry import Retry
 
 from selva.configuration.settings import Settings
-from selva.ext.data.redis.settings import RedisSettings
 
-from .settings import BackoffSchema, RetrySchema
+from .settings import RedisSettings, BackoffSchema, RetrySchema
 
 
 def build_backoff(data: BackoffSchema) -> AbstractBackoff:
