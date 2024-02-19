@@ -1,8 +1,8 @@
 from collections.abc import Callable
 from types import ModuleType
-from typing import Annotated, Any, Literal, Self
+from typing import Any, Literal, Self
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, ConfigDict, model_validator
 from sqlalchemy import URL, make_url
 
 from selva._util.pydantic import DottedPath
@@ -14,14 +14,16 @@ class SqlAlchemyExecutionOptions(BaseModel):
     Defined in https://docs.sqlalchemy.org/en/20/core/connections.html#sqlalchemy.engine.Connection.execution_options
     """
 
-    logging_token: Annotated[str, Field(default=None)]
-    isolation_level: Annotated[str, Field(default=None)]
-    no_parameters: Annotated[bool, Field(default=None)]
-    stream_results: Annotated[bool, Field(default=None)]
-    max_row_buffer: Annotated[int, Field(default=None)]
-    yield_per: Annotated[int, Field(default=None)]
-    insertmanyvalues_page_size: Annotated[int, Field(default=None)]
-    schema_translate_map: Annotated[dict[str | None, str], Field(default=None)]
+    model_config = ConfigDict(extra="forbid")
+
+    logging_token: str = None
+    isolation_level: str = None
+    no_parameters: bool = None
+    stream_results: bool = None
+    max_row_buffer: int = None
+    yield_per: int = None
+    insertmanyvalues_page_size: int = None
+    schema_translate_map: dict[str | None, str] = None
 
 
 class SqlAlchemyOptions(BaseModel):
@@ -30,49 +32,51 @@ class SqlAlchemyOptions(BaseModel):
     Defined in https://docs.sqlalchemy.org/en/20/core/engines.html#sqlalchemy.create_engine
     """
 
-    connect_args: Annotated[dict[str, Any], Field(default=None)]
-    echo: Annotated[bool, Field(default=None)]
-    echo_pool: Annotated[bool, Field(default=None)]
-    enable_from_linting: Annotated[bool, Field(default=None)]
-    execution_options: Annotated[SqlAlchemyExecutionOptions, Field(default=None)]
-    hide_parameters: Annotated[bool, Field(default=None)]
-    insertmanyvalues_page_size: Annotated[int, Field(default=None)]
-    isolation_level: Annotated[str, Field(default=None)]
-    json_deserializer: Annotated[DottedPath[Callable], Field(default=None)]
-    json_serializer: Annotated[DottedPath[Callable], Field(default=None)]
-    label_length: Annotated[int, Field(default=None)]
-    logging_name: Annotated[str, Field(default=None)]
-    max_identifier_length: Annotated[int, Field(default=None)]
-    max_overflow: Annotated[int, Field(default=None)]
-    module: Annotated[DottedPath[ModuleType], Field(default=None)]
-    paramstyle: Annotated[
-        Literal["qmark", "numeric", "named", "format", "pyformat"], Field(default=None)
-    ]
-    poolclass: Annotated[DottedPath, Field(default=None)]
-    pool_logging_name: Annotated[str, Field(default=None)]
-    pool_pre_ping: Annotated[bool, Field(default=None)]
-    pool_size: Annotated[int, Field(default=None)]
-    pool_recycle: Annotated[int, Field(default=None)]
-    pool_reset_on_return: Annotated[Literal["rollback", "commit"], Field(default=None)]
-    pool_timeout: Annotated[int, Field(default=None)]
-    pool_use_lifo: Annotated[bool, Field(default=None)]
-    plugins: Annotated[list[str], Field(default=None)]
-    query_cache_size: Annotated[int, Field(default=None)]
-    use_insertmanyvalues: Annotated[bool, Field(default=None)]
+    model_config = ConfigDict(extra="forbid")
+
+    connect_args: dict[str, Any] = None
+    echo: bool = None
+    echo_pool: bool = None
+    enable_from_linting: bool = None
+    execution_options: SqlAlchemyExecutionOptions = None
+    hide_parameters: bool = None
+    insertmanyvalues_page_size: int = None
+    isolation_level: str = None
+    json_deserializer: DottedPath[Callable] = None
+    json_serializer: DottedPath[Callable] = None
+    label_length: int = None
+    logging_name: str = None
+    max_identifier_length: int = None
+    max_overflow: int = None
+    module: DottedPath[ModuleType] = None
+    paramstyle: Literal["qmark", "numeric", "named", "format", "pyformat"] = None
+    poolclass: DottedPath = None
+    pool_logging_name: str = None
+    pool_pre_ping: bool = None
+    pool_size: int = None
+    pool_recycle: int = None
+    pool_reset_on_return: Literal["rollback", "commit"] = None
+    pool_timeout: int = None
+    pool_use_lifo: bool = None
+    plugins: list[str] = None
+    query_cache_size: int = None
+    use_insertmanyvalues: bool = None
 
 
 class SqlAlchemySettings(BaseModel):
     """Settings for a SQLAlchemy connection defined in a settings file."""
 
-    url: Annotated[str, Field(default=None)]
-    username: Annotated[str, Field(default=None)]
-    password: Annotated[str, Field(default=None)]
-    drivername: Annotated[str, Field(default=None)]
-    host: Annotated[str, Field(default=None)]
-    port: Annotated[int, Field(default=None)]
-    database: Annotated[str, Field(default=None)]
-    query: Annotated[dict[str, str], Field(default=None)]
-    options: Annotated[SqlAlchemyOptions, Field(default=None)]
+    model_config = ConfigDict(extra="forbid")
+
+    url: str = None
+    username: str = None
+    password: str = None
+    drivername: str = None
+    host: str = None
+    port: int = None
+    database: str = None
+    query: dict[str, str] = None
+    options: SqlAlchemyOptions = None
 
     @model_validator(mode="after")
     def validate(self) -> Self:

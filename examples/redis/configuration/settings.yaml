@@ -1,0 +1,16 @@
+extensions:
+  - selva.ext.data.redis
+
+data:
+  redis:
+    default:
+      host: "localhost"
+      options:
+        retry:
+          retries: 1
+          backoff:
+            constant:
+              backoff: 1
+
+    other:
+      url: "redis://localhost:6379/1"

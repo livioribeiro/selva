@@ -1,6 +1,6 @@
 # Jinja
 
-This extension offers support for Jinja templates.
+This extension provides support for Jinja templates.
 
 ## Usage
 

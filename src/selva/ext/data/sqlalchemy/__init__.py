@@ -2,10 +2,8 @@ from importlib.util import find_spec
 
 from selva.configuration.settings import Settings
 from selva.di.container import Container
-from selva.ext.data.sqlalchemy.service import (
-    make_engine_service,
-    make_sessionmaker_service,
-)
+
+from .service import make_engine_service, make_sessionmaker_service
 
 
 def selva_extension(container: Container, settings: Settings):

@@ -52,4 +52,5 @@ nav:
   - Extensions:
     - extensions/overview.md
     - extensions/sqlalchemy.md
+    - extensions/redis.md
     - extensions/jinja.md

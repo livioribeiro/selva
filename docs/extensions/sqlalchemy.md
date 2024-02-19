@@ -6,7 +6,7 @@ injection context.
 
 ## Usage
 
-Install SQLAlchemy python package and the database driver:
+Install SQLAlchemy extra and a database driver that supports async:
 
 ```shell
 pip install selva[sqlalchemy] aiosqlite asyncpg aiomysql oracledb
@@ -53,12 +53,13 @@ class MyService:
     # default service
     sessionmaker: Annotated[async_sessionmaker, Inject]
 
+    # named services
     sessionmaker_postgres: Annotated[async_sessionmaker, Inject(name="postgres")]
     sessionmaker_mysql: Annotated[async_sessionmaker, Inject(name="mysql")]
     sessionmaker_oracle: Annotated[async_sessionmaker, Inject(name="oracle")]
 ```
 
-Database connection can also be defined with username and password separated from
+Database connections can also be defined with username and password separated from
 the url, or even with individual components:
 
 ```yaml
