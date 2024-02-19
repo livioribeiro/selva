@@ -112,23 +112,25 @@ the url, or even with individual components:
 === "application/controller.py"
 
     ```python
+    from typing import Annotated
+    
     from redis.asyncio import Redis
-
+    
     from asgikit.responses import respond_json
-
+    
     from selva.di import Inject
     from selva.web import controller, get
-
-
+    
+    
     @controller
     class Controller:
         redis: Annotated[Redis, Inject]
-
-        async def initialize():
-            await self.redis.set("number", 0, nx=True)
+    
+        async def initialize(self):
+            await self.redis.set("number", 0, nx=True, ex=60)
     
         @get
-        async def index(request):
+        async def index(self, request):
             number = await self.redis.incr("number")
             await respond_json(request.response, {"number": number})
     ```
@@ -188,8 +190,8 @@ data:
         protocol: 3
         retry:
           retries: 1
-          supported_errors: []
-          backoff: # (2)
+          supported_errors: [] # (2)
+          backoff: # (3)
             no_backoff:
             constant:
               backoff: 1
@@ -208,4 +210,5 @@ data:
 ```
 
 1.  `options` values are described in [`redis.asyncio.Redis`](https://redis.readthedocs.io/en/stable/connections.html#async-client).
-2.  Only one option in `backoff` should be filled.
+2.  Dotted path to python classes.
+3.  Only one option in `backoff` should be set.
