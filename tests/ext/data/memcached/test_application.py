@@ -8,10 +8,10 @@ from selva.configuration.defaults import default_settings
 from selva.configuration.settings import Settings
 from selva.web.application import Selva
 
-REDIS_URL = os.environ.get("REDIS_URL")
+MEMCACHED_ADDR = os.environ.get("MEMCACHED_ADDR")
 
 
-@pytest.mark.skipif(REDIS_URL is None, reason="REDIS_URL not set")
+@pytest.mark.skipif(MEMCACHED_ADDR is None, reason="MEMCACHED_ADDR not set")
 @pytest.mark.parametrize(
     "application,database",
     [
@@ -25,8 +25,8 @@ async def test_application(application: str, database: str):
         default_settings
         | {
             "application": f"{__package__}.{application}",
-            "extensions": ["selva.ext.data.redis"],
-            "data": {"redis": {database: {"url": REDIS_URL}}},
+            "extensions": ["selva.ext.data.memcached"],
+            "data": {"memcached": {database: {"address": MEMCACHED_ADDR}}},
         }
     )
 

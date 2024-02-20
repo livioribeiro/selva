@@ -15,16 +15,14 @@ def parse_memcahced_hostaddress(address: str) -> MemcachedHostAddress:
             return MemcachedHostAddress(host, port)
 
 
-def build_memcached_hostaddress(address: str | list[str]) -> list[MemcachedHostAddress]:
-    if isinstance(address, str):
-        address = [address]
-
-    return [parse_memcahced_hostaddress(addr) for addr in address]
+def build_memcached_hostaddress(address: str) -> list[MemcachedHostAddress]:
+    return [parse_memcahced_hostaddress(addr) for addr in address.split(",")]
 
 
-async def make_service(name: str, container: Container):
+def make_service(name: str):
     async def memcached_service(
         settings: Settings,
+        di: Container,
     ) -> Client:
         memcached_settings = MemcachedSettings.model_validate(
             dict(settings.data.memcached[name])
@@ -33,11 +31,8 @@ async def make_service(name: str, container: Container):
         if options := memcached_settings.options:
             memcached_options = options.model_dump(exclude_unset=True)
 
-            if events := options.cluster_events:
-                cluster_events = [
-                    await container.create(cluster_event) for cluster_event in events
-                ]
-                options.cluster_events = cluster_events
+            if cluster_events := options.cluster_events:
+                memcached_options["cluster_events"] = await di.create(cluster_events)
 
         else:
             memcached_options = {}

@@ -1,15 +1,25 @@
 from typing import Annotated
 
-from emcache import Client, ClusterEvents, MemcachedHostAddress, ClusterManagment
+from emcache import (
+    Client,
+    ClusterEvents,
+    ClusterManagment,
+    MemcachedHostAddress,
+    NotFoundCommandError,
+)
 
-from selva.di import service, Inject
+from selva.di import Inject, service
 
 
 class MyClusterEvents(ClusterEvents):
-    def on_node_healthy(self, cluster_managment: ClusterManagment, host: MemcachedHostAddress):
+    async def on_node_healthy(
+        self, cluster_managment: ClusterManagment, host: MemcachedHostAddress
+    ):
         print(f"Healthy: {host.address}:{host.port}")
 
-    def on_node_unhealthy(self, cluster_managment: ClusterManagment, host: MemcachedHostAddress):
+    async def on_node_unhealthy(
+        self, cluster_managment: ClusterManagment, host: MemcachedHostAddress
+    ):
         print(f"Unhealthy: {host.address}:{host.port}")
 
 
@@ -17,10 +27,11 @@ class MyClusterEvents(ClusterEvents):
 class MemcachedService:
     memcached: Annotated[Client, Inject]
 
-    async def initialize(self):
-        await self.memcached.set(b"number", b"0")
-
     async def get_incr(self) -> int:
-        value = await self.memcached.increment(b"number", 1)
-        return int(value)
+        try:
+            value = await self.memcached.increment(b"number", 1)
+        except NotFoundCommandError:
+            await self.memcached.add(b"number", b"0")
+            value = await self.memcached.increment(b"number", 1)
 
+        return int(value)

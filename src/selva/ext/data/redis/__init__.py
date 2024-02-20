@@ -8,7 +8,7 @@ from .service import make_service
 
 def selva_extension(container: Container, settings: Settings):
     if find_spec("redis") is None:
-        return
+        raise ModuleNotFoundError("Missing 'redis'. Install 'selva' with 'redis' extra.")
 
     for name in settings.data.redis:
         service_name = name if name != "default" else None

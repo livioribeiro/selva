@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Type
 
 from emcache import ClusterEvents
 from pydantic import BaseModel, ConfigDict
@@ -14,7 +14,7 @@ class MemcachedOptions(BaseModel):
     min_connections: int = None
     purge_unused_connections_after: float = None
     connection_timeout: float = None
-    cluster_events: list[DottedPath[ClusterEvents]] = None
+    cluster_events: DottedPath[Type[ClusterEvents]] = None
     purge_unhealthy_nodes: bool = None
     autobatching: bool = None
     autobatching_max_keys: bool = None
@@ -29,5 +29,5 @@ class MemcachedOptions(BaseModel):
 class MemcachedSettings(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    address: str | list[str]
+    address: str
     options: MemcachedOptions = None

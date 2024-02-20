@@ -1,6 +1,7 @@
 from typing import Annotated
 
 from asgikit.responses import respond_json
+
 from selva.di import Inject
 from selva.web import controller, get
 

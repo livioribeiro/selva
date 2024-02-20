@@ -15,6 +15,7 @@ default_settings = {
         "jinja": {},
     },
     "data": {
+        "memcached": {},
         "redis": {},
         "sqlalchemy": {},
     },

@@ -12,7 +12,7 @@ from redis.retry import Retry
 
 from selva.configuration.settings import Settings
 
-from .settings import RedisSettings, BackoffSchema, RetrySchema
+from .settings import BackoffSchema, RedisSettings, RetrySchema
 
 
 def build_backoff(data: BackoffSchema) -> AbstractBackoff:

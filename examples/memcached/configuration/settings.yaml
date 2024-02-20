@@ -4,9 +4,6 @@ extensions:
 data:
   memcached:
     default:
-      address:
-        - "localhost"
-        - "localhost:11212"
+      address: "localhost:11211"
       options:
-        cluster_events:
-        - application.service.MyClusterEvents
+        cluster_events: application.service.MyClusterEvents
