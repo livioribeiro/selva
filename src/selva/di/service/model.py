@@ -8,6 +8,7 @@ InjectableType = type | FunctionType
 class ServiceInfo(NamedTuple):
     provides: type | None
     name: str | None
+    startup: bool = False
 
 
 class ServiceDependency(NamedTuple):

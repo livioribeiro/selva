@@ -134,6 +134,7 @@ class Selva:
             self.handler = chain
 
     async def _lifespan_startup(self):
+        await self.di._run_startup()
         await self._initialize_extensions()
         await self._initialize_middleware()
 

@@ -27,12 +27,18 @@ class Container:
         self.registry = ServiceRegistry()
         self.store: dict[tuple[type, str | None], Any] = {}
         self.finalizers: list[Awaitable] = []
+        self.startup: list[tuple[Type, str | None]] = []
         self.interceptors: list[Type[Interceptor]] = []
 
     def register(
-        self, service: InjectableType, *, provides: type = None, name: str = None
+        self,
+        service: InjectableType,
+        *,
+        provides: type = None,
+        name: str = None,
+        startup: bool = False,
     ):
-        self._register_service_spec(service, provides, name)
+        self._register_service_spec(service, provides, name, startup)
 
     def service(self, service: type):
         service_info = getattr(service, DI_ATTRIBUTE_SERVICE, None)
@@ -40,16 +46,18 @@ class Container:
         if not service_info:
             raise ServiceWithoutDecoratorError(service)
 
-        provides, name = service_info
-        self._register_service_spec(service, provides, name)
+        self._register_service_spec(service, *service_info)
 
     def _register_service_spec(
-        self, service: type, provides: type | None, name: str | None
+        self, service: type, provides: type | None, name: str | None, startup: bool
     ):
         service_spec = parse_service_spec(service, provides, name)
         provided_service = service_spec.provides
 
         self.registry[provided_service, name] = service_spec
+
+        if startup:
+            self.startup.append((service_spec.provides, name))
 
         if provides:
             logger.trace(
@@ -90,8 +98,7 @@ class Container:
             return hasattr(item, DI_ATTRIBUTE_SERVICE)
 
         for service in scan_packages(packages, predicate_services):
-            provides, name = getattr(service, DI_ATTRIBUTE_SERVICE)
-            self.register(service, provides=provides, name=name)
+            self.service(service)
 
     def has(self, service: type, name: str = None) -> bool:
         definition = self.registry.get(service, name=name)
@@ -225,6 +232,10 @@ class Container:
                 Interceptor, name=f"{cls.__module__}.{cls.__qualname__}"
             )
             await maybe_async(interceptor.intercept, instance, service_type)
+
+    async def _run_startup(self):
+        for service, name in self.startup:
+            await self.get(service, name=name)
 
     async def _run_finalizers(self):
         for finalizer in reversed(self.finalizers):
