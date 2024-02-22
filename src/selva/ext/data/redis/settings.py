@@ -1,5 +1,5 @@
 from types import NoneType
-from typing import Self, Type, Literal
+from typing import Literal, Self, Type
 
 from pydantic import BaseModel, ConfigDict, model_serializer, model_validator
 from redis import RedisError
