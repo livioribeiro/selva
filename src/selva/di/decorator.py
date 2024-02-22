@@ -26,7 +26,12 @@ def _is_inject(value) -> bool:
 
 @dataclass_transform(eq_default=False)
 def service(
-    injectable: T = None, /, *, provides: type = None, name: str = None
+    injectable: T = None,
+    /,
+    *,
+    provides: type = None,
+    name: str = None,
+    startup: bool = False,
 ) -> T | Callable[[T], T]:
     """Declare a class or function as a service
 
@@ -35,7 +40,9 @@ def service(
     """
 
     def inner(inner_injectable: InjectableType) -> T:
-        setattr(inner_injectable, DI_ATTRIBUTE_SERVICE, ServiceInfo(provides, name))
+        setattr(
+            inner_injectable, DI_ATTRIBUTE_SERVICE, ServiceInfo(provides, name, startup)
+        )
 
         if inspect.isclass(inner_injectable):
             dependencies = [
