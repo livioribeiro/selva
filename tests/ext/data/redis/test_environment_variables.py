@@ -17,7 +17,7 @@ pytestmark = [
 ]
 
 
-async def test_redis_url_from_environment_variables(monkeypatch):
+async def test_url_from_environment_variables(monkeypatch):
     monkeypatch.setenv("SELVA__DATA__REDIS__DEFAULT__URL", REDIS_URL)
     settings = _get_settings_nocache()
 
@@ -31,7 +31,7 @@ async def test_redis_url_from_environment_variables(monkeypatch):
         assert connection_kwargs.get("password") == PARSED_URL.password
 
 
-async def test_redis_url_username_password_from_environment_variables(monkeypatch):
+async def test_url_username_password_from_environment_variables(monkeypatch):
     url = f"redis://{PARSED_URL.hostname}:{PARSED_URL.port}/{PARSED_URL.path}"
     username = PARSED_URL.username
     password = PARSED_URL.password
@@ -51,7 +51,7 @@ async def test_redis_url_username_password_from_environment_variables(monkeypatc
         assert connection_kwargs.get("password") == PARSED_URL.password
 
 
-async def test_redis_url_components_from_environment_variables(monkeypatch):
+async def test_url_components_from_environment_variables(monkeypatch):
     host = PARSED_URL.hostname
     port = str(PARSED_URL.port)
     database = PARSED_URL.path.strip("/")
