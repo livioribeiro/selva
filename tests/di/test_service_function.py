@@ -1,22 +1,29 @@
+from typing import Annotated
+
 import pytest
 
 from selva.di.container import Container
+from selva.di.decorator import service
+from selva.di.inject import Inject
 from selva.di.error import FactoryMissingReturnTypeError, ServiceAlreadyRegisteredError
 
 
+@service
 class Service1:
     pass
 
 
+@service
 async def service1_factory() -> Service1:
     return Service1()
 
 
+@service
 class Service2:
-    def __init__(self, service1: Service1):
-        self.service1 = service1
+    service1: Annotated[Service1, Inject]
 
 
+@service
 async def service2_factory(service1: Service1) -> Service2:
     return Service2(service1)
 
@@ -25,10 +32,12 @@ class Interface:
     pass
 
 
+@service(provides=Interface)
 class Implementation(Interface):
     pass
 
 
+@service
 async def interface_factory() -> Interface:
     return Implementation()
 
@@ -41,31 +50,32 @@ def test_has_service(ioc: Container):
 async def test_service_with_provided_interface(ioc: Container):
     ioc.register(interface_factory)
 
-    service = await ioc.get(Interface)
-    assert isinstance(service, Implementation)
+    instance = await ioc.get(Interface)
+    assert isinstance(instance, Implementation)
 
 
 async def test_inject_singleton(ioc: Container):
     ioc.register(service1_factory)
     ioc.register(service2_factory)
 
-    service = await ioc.get(Service2)
-    assert isinstance(service, Service2)
-    assert isinstance(service.service1, Service1)
+    instance = await ioc.get(Service2)
+    assert isinstance(instance, Service2)
+    assert isinstance(instance.service1, Service1)
 
-    other_service = await ioc.get(Service2)
-    assert other_service is service
-    assert other_service.service1 is service.service1
+    other_instance = await ioc.get(Service2)
+    assert other_instance is instance
+    assert other_instance.service1 is instance.service1
 
 
 async def test_interface_implementation(ioc: Container):
     ioc.register(interface_factory)
 
-    service = await ioc.get(Interface)
-    assert isinstance(service, Implementation)
+    instance = await ioc.get(Interface)
+    assert isinstance(instance, Implementation)
 
 
 def test_factory_function_without_return_type_should_fail(ioc: Container):
+    @service
     async def service_factory():
         pass
 
@@ -74,21 +84,27 @@ def test_factory_function_without_return_type_should_fail(ioc: Container):
 
 
 def test_provides_option_should_log_warning(ioc: Container, caplog):
-    ioc.register(interface_factory, provides=Interface)
+    @service(provides=Interface)
+    async def factory() -> Interface:
+        pass
+
+    ioc.register(factory)
     assert "option 'provides' on a factory function has no effect" in caplog.text
 
 
 async def test_sync_factory(ioc: Container):
+    @service
     def sync_factory() -> Service1:
         return Service1()
 
     ioc.register(sync_factory)
 
-    service = await ioc.get(Service1)
-    assert isinstance(service, Service1)
+    instance = await ioc.get(Service1)
+    assert isinstance(instance, Service1)
 
 
 async def test_register_a_service_twice_should_fail(ioc: Container):
+    @service
     async def duplicate_factory() -> Service1:
         pass
 

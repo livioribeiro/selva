@@ -6,6 +6,7 @@ from typing import Annotated, Any, Optional, TypeVar, Union
 
 from loguru import logger
 
+from selva.di.decorator import DI_ATTRIBUTE_SERVICE
 from selva.di.error import (
     FactoryMissingReturnTypeError,
     InvalidServiceTypeError,
@@ -113,6 +114,7 @@ def parse_service_spec(
     injectable: InjectableType,
     provides: type = None,
     name: str = None,
+    resource: bool = False
 ) -> ServiceSpec:
     if inspect.isclass(injectable):
         provided_service, initializer, finalizer = _parse_definition_class(
@@ -144,4 +146,5 @@ def parse_service_spec(
         dependencies=dependencies,
         initializer=initializer,
         finalizer=finalizer,
+        resource=resource,
     )

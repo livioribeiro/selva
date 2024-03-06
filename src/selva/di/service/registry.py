@@ -12,6 +12,10 @@ class ServiceRecord:
     def __init__(self):
         self.providers: dict[str | None, ServiceSpec] = {}
 
+    @property
+    def resource(self):
+        return any(p.resource for p in self.providers.values())
+
     def add(self, service: ServiceSpec, name: str = None):
         if name in self.providers:
             raise ServiceAlreadyRegisteredError(service.provides, name)
@@ -53,9 +57,10 @@ class ServiceRegistry:
         self.services: dict[type, ServiceRecord] = defaultdict(ServiceRecord)
 
     def get(self, key: type, name: str = None) -> ServiceSpec | None:
-        if (key, name) not in self:
+        try:
+            return self[key, name]
+        except ServiceNotFoundError:
             return None
-        return self[key, name]
 
     def __getitem__(self, key: type | tuple[type, str]):
         inner_key, name = _get_key_with_name(key)

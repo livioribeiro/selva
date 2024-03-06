@@ -1,21 +1,26 @@
 from typing import Annotated
 
 from selva.di.container import Container
+from selva.di.decorator import service
 from selva.di.inject import Inject
 
 
+@service
 class Service1:
     pass
 
 
+@service
 def service1_factory() -> Service1:
     return Service1()
 
 
+@service
 class Service2:
     service1: Annotated[Service1, Inject]
 
 
+@service
 def service2_factory(service1: Service1) -> Service2:
     service = Service2()
     setattr(service, "service1", service1)
