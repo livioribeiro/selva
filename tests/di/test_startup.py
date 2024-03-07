@@ -1,6 +1,7 @@
 import pytest
 
-from selva.di import service, Container
+from selva.di.container import Container
+from selva.di.decorator import service
 
 
 @pytest.fixture
@@ -24,12 +25,12 @@ def service_factory(service_class):
 
 
 async def test_startup_class(ioc: Container, service_class):
-    ioc.register(service_class, startup=True)
+    ioc.register(service(service_class, startup=True))
     await ioc._run_startup()
     assert service_class.startup_called
 
 
 async def test_startup_factory(ioc: Container, service_class, service_factory):
-    ioc.register(service_factory, startup=True)
+    ioc.register(service(service_factory, startup=True))
     await ioc._run_startup()
     assert service_class.startup_called

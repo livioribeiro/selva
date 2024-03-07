@@ -19,7 +19,7 @@ async def test_application():
     )
 
     app = Selva(settings)
-    app.di.service(Service)
+    app.di.register(Service)
 
     await app._lifespan_startup()
 

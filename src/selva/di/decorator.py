@@ -4,12 +4,11 @@ from collections.abc import Callable
 from typing import Annotated, TypeVar, dataclass_transform
 
 from selva.di.inject import Inject
-from selva.di.service.model import InjectableType, ResourceInfo, ServiceInfo
+from selva.di.service.model import InjectableType, ServiceInfo
 
-__all__ = ("service", "DI_ATTRIBUTE_SERVICE", "DI_ATTRIBUTE_RESOURCE")
+__all__ = ("resource", "service", "DI_ATTRIBUTE_SERVICE")
 
 DI_ATTRIBUTE_SERVICE = "__selva_di_service__"
-DI_ATTRIBUTE_RESOURCE = "__selva_di_resource__"
 
 T = TypeVar("T")
 
@@ -114,7 +113,7 @@ def resource(
     """
 
     def inner(inner_injectable) -> T:
-        return _service(inner_injectable, DI_ATTRIBUTE_RESOURCE, ResourceInfo(provides, name))
+        return _service(inner_injectable, DI_ATTRIBUTE_SERVICE, ServiceInfo(provides, name, resource=True))
 
     return inner(injectable) if injectable else inner
 

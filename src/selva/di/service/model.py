@@ -5,15 +5,11 @@ from typing import NamedTuple
 InjectableType = type | FunctionType
 
 
-class ResourceInfo(NamedTuple):
-    provides: type | None
-    name: str | None
-
-
 class ServiceInfo(NamedTuple):
     provides: type | None
     name: str | None
     startup: bool = False
+    resource: bool = False
 
 
 class ServiceDependency(NamedTuple):
@@ -25,7 +21,7 @@ class ServiceDependency(NamedTuple):
 class ServiceSpec(NamedTuple):
     service: type
     provides: type
-    factory: FunctionType
+    factory: FunctionType | None
     name: str | None
     dependencies: list[tuple[str, ServiceDependency]]
     initializer: Callable = None

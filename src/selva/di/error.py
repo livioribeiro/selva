@@ -74,3 +74,11 @@ class ServiceWithoutDecoratorError(DependencyInjectionError):
             f"service {service.__module__}.{service.__qualname__}"
             " must be decorated with @service"
         )
+
+
+class ServiceWithResourceDependencyError(DependencyInjectionError):
+    def __init__(self, service: InjectableType, resource_dependencies: list[type]):
+        super().__init__(
+            f"service {service.__module__}.{service.__qualname__}"
+            f" depends on resources: {', '.join(f'{d.__module__}.{d.__qualname__}' for d in resource_dependencies)}"
+        )

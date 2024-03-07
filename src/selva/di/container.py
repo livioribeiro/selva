@@ -1,29 +1,35 @@
 import asyncio
 import inspect
+from collections import defaultdict
 from collections.abc import AsyncGenerator, Awaitable, Generator, Iterable
 from types import FunctionType, ModuleType
 from typing import Any, Type, TypeVar
-
-from asgikit.requests import Request
 
 from loguru import logger
 
 from selva._util.maybe_async import maybe_async
 from selva._util.package_scan import scan_packages
-from selva.di.decorator import DI_ATTRIBUTE_SERVICE, DI_ATTRIBUTE_RESOURCE, service
+from selva.di.decorator import DI_ATTRIBUTE_SERVICE, service as service_decorator
 from selva.di.error import (
     DependencyLoopError,
     ServiceNotFoundError,
     ServiceWithoutDecoratorError,
-    NonInjectableTypeError
+    NonInjectableTypeError,
+    ServiceWithResourceDependencyError,
 )
-from selva.di.inspect import is_service, is_resource
+from selva.di.inspect import is_resource
 from selva.di.interceptor import Interceptor
-from selva.di.service.model import InjectableType, ResourceInfo, ServiceDependency, ServiceInfo, ServiceSpec
+from selva.di.service.model import InjectableType, ServiceDependency, ServiceInfo, ServiceSpec
 from selva.di.service.parse import get_dependencies, parse_service_spec
 from selva.di.service.registry import ServiceRegistry
 
 T = TypeVar("T")
+
+
+def _check_resource_dependency(service_spec: ServiceSpec, dependencies: dict[str, Any]):
+    resource_dependencies = [type(d) for d in dependencies.values() if is_resource(d)]
+    if not service_spec.resource and resource_dependencies:
+        raise ServiceWithResourceDependencyError(service_spec.service, resource_dependencies)
 
 
 class Container:
@@ -33,24 +39,21 @@ class Container:
         self.finalizers: list[Awaitable] = []
         self.startup: list[tuple[Type, str | None]] = []
         self.interceptors: list[Type[Interceptor]] = []
-        self.resource_registry = ServiceRegistry()
-        self.resource_finalizers: dict[Request, list[Awaitable]] = {}
+        self.resource_finalizers: dict[int, list[Awaitable]] = defaultdict(list)
 
     def register(self, injectable: InjectableType):
-        if service_info := getattr(injectable, DI_ATTRIBUTE_SERVICE, None):
-            self._register_service_spec(injectable, service_info)
-        elif resource_info := getattr(injectable, DI_ATTRIBUTE_RESOURCE, None):
-            self._register_resource_spec(injectable, resource_info)
-        elif inspect.isfunction(injectable) or inspect.isclass(injectable):
-            raise ServiceWithoutDecoratorError(injectable)
-        else:
-            raise NonInjectableTypeError(injectable)
+        service_info = getattr(injectable, DI_ATTRIBUTE_SERVICE, None)
 
-    def _register_service_spec(
-        self, injectable: InjectableType, info: ServiceInfo
-    ):
-        provides, name, startup = info
-        service_spec = parse_service_spec(injectable, provides, name)
+        if not service_info:
+            if inspect.isfunction(injectable) or inspect.isclass(injectable):
+                raise ServiceWithoutDecoratorError(injectable)
+            else:
+                raise NonInjectableTypeError(injectable)
+
+        kind = "resource" if service_info.resource else "service"
+
+        provides, name, startup, resource = service_info
+        service_spec = parse_service_spec(injectable, provides, name, resource=resource)
         provided_service = service_spec.provides
 
         self.registry[provided_service, name] = service_spec
@@ -60,7 +63,8 @@ class Container:
 
         if provides:
             logger.trace(
-                "service registered: {}.{}; provides={}.{} name={}",
+                "{} registered: {}.{}; provides={}.{} name={}",
+                kind,
                 injectable.__module__,
                 injectable.__qualname__,
                 provides.__module__,
@@ -69,33 +73,8 @@ class Container:
             )
         else:
             logger.trace(
-                "service registered: {}.{}; name={}",
-                injectable.__module__,
-                injectable.__qualname__,
-                name or "",
-            )
-
-    def _register_resource_spec(
-        self, injectable: InjectableType, info: ResourceInfo
-    ):
-        provides, name = info
-        resource_spec = parse_service_spec(injectable, provides, name, True)
-        provided_resource = resource_spec.provides
-
-        self.resource_registry[provided_resource, name] = resource_spec
-
-        if provides:
-            logger.trace(
-                "resource registered: {}.{}; provideds={}.{} name={}",
-                injectable.__module__,
-                injectable.__qualname__,
-                provides.__module__,
-                provides.__qualname__,
-                name or "",
-            )
-        else:
-            logger.trace(
-                "resource registered: {}.{}; name={}",
+                "{} registered: {}.{}; name={}",
+                kind,
                 injectable.__module__,
                 injectable.__qualname__,
                 name or "",
@@ -110,7 +89,7 @@ class Container:
 
     def interceptor(self, interceptor: Type[Interceptor]):
         self.register(
-            service(
+            service_decorator(
                 interceptor,
                 provides=Interceptor,
                 name=f"{interceptor.__module__}.{interceptor.__qualname__}",
@@ -141,21 +120,21 @@ class Container:
         for name, definition in record.providers.items():
             yield definition.service, name
 
-    def iter_all_services(
-        self,
-    ) -> Iterable[tuple[type, type | FunctionType | None, str | None]]:
+    def iter_all_services(self) -> Iterable[tuple[type, type | FunctionType | None, str | None]]:
         for interface, record in self.registry.services.items():
             for name, definition in record.providers.items():
                 yield interface, definition.service, name
 
-    async def get(self, service_type: T, *, name: str = None, optional=False) -> T:
+    async def get(self, service_type: T, *, name: str = None, optional=False, context: Any = None) -> T:
         dependency = ServiceDependency(service_type, name=name, optional=optional)
-        return await self._get(dependency)
+        return await self._get(dependency, context=context)
 
     async def create(self, service_type: type) -> Any:
-        instance = service()
+        assert inspect.isclass(service_type)
+        instance = service_type()
+
         for name, dep_spec in get_dependencies(service_type):
-            dependency = await self._get(dep_spec)
+            dependency = await self._get(dep_spec, context=None)
             setattr(instance, name, dependency)
 
         return instance
@@ -170,6 +149,7 @@ class Container:
     async def _get(
         self,
         dependency: ServiceDependency,
+        context: Any,
         stack: list = None,
     ) -> Any | None:
         service_type, name = dependency.service, dependency.name
@@ -179,7 +159,7 @@ class Container:
             return instance
 
         try:
-            service_spec = self.registry.get(service_type, name) or self.resource_registry.get(service_type, name)
+            service_spec = self.registry.get(service_type, name)
             if not service_spec:
                 raise ServiceNotFoundError(service_type, name)
         except ServiceNotFoundError:
@@ -193,14 +173,20 @@ class Container:
             raise DependencyLoopError(stack + [service_type])
 
         stack.append(service_type)
-        instance = await self._create_service(service_spec, stack)
+        instance = await self._create_service(service_spec, context, stack)
         stack.pop()
 
         return instance
 
+    async def _get_dependent_services(self, service_spec: ServiceSpec, context: Any, stack: list) -> dict[str, Any]:
+        deps = await asyncio.gather(*[self._get(d, context, stack) for _, d in service_spec.dependencies])
+        names = [n for n, _ in service_spec.dependencies]
+        return dict(zip(names, deps))
+
     async def _create_service(
         self,
         service_spec: ServiceSpec,
+        context: Any,
         stack: list[type],
     ) -> Any:
         name = service_spec.name
@@ -210,20 +196,18 @@ class Container:
             return instance
 
         if factory := service_spec.factory:
-            dependencies = {
-                name: await self._get(dep, stack)
-                for name, dep in service_spec.dependencies
-            }
+            dependencies = await self._get_dependent_services(service_spec, context, stack)
+            _check_resource_dependency(service_spec, dependencies)
 
             instance = await maybe_async(factory, **dependencies)
             if inspect.isgenerator(instance):
                 generator = instance
                 instance = await asyncio.to_thread(next, generator)
-                self._setup_generator_finalizer(generator)
+                self._setup_generator_finalizer(generator, context)
             elif inspect.isasyncgen(instance):
                 generator = instance
                 instance = await anext(generator)
-                self._setup_asyncgen_finalizer(generator)
+                self._setup_asyncgen_finalizer(generator, context)
 
             # if the service is not a resource, cache it
             if not service_spec.resource:
@@ -235,32 +219,34 @@ class Container:
             if not service_spec.resource:
                 self.store[service_spec.provides, name] = instance
 
-            for name, dep_service in service_spec.dependencies:
-                dependency = await self._get(dep_service, stack)
-                setattr(instance, name, dependency)
+            dependencies = await self._get_dependent_services(service_spec, context, stack)
+            _check_resource_dependency(service_spec, dependencies)
 
-            await self._run_initializer(service_spec, instance)
-            self._setup_finalizer(service_spec, instance)
+            for name, dep_service in dependencies.items():
+                setattr(instance, name, dep_service)
+
+            if initializer := service_spec.initializer:
+                await maybe_async(initializer, instance)
+
+            self._setup_finalizer(service_spec, instance, context)
 
         if service_spec.provides is not Interceptor:
             await self._run_interceptors(instance, service_spec.provides)
 
         return instance
 
-    @staticmethod
-    async def _run_initializer(service_spec: ServiceSpec, instance: Any):
-        if initializer := service_spec.initializer:
-            await maybe_async(initializer, instance)
-
-    def _setup_finalizer(self, service_spec: ServiceSpec, instance: Any):
+    def _setup_finalizer(self, service_spec: ServiceSpec, instance: Any, context: Any = None):
         if finalizer := service_spec.finalizer:
-            self.finalizers.append(maybe_async(finalizer, instance))
+            finalizer_list = self.resource_finalizers[id(context)] if context else self.finalizers
+            finalizer_list.append(maybe_async(finalizer, instance))
 
-    def _setup_generator_finalizer(self, gen: Generator):
-        self.finalizers.append(asyncio.to_thread(next, gen, None))
+    def _setup_generator_finalizer(self, gen: Generator, context: Any = None):
+        finalizer_list = self.resource_finalizers[id(context)] if context else self.finalizers
+        finalizer_list.append(asyncio.to_thread(next, gen, None))
 
-    def _setup_asyncgen_finalizer(self, gen: AsyncGenerator):
-        self.finalizers.append(anext(gen, None))
+    def _setup_asyncgen_finalizer(self, gen: AsyncGenerator, context: Any = None):
+        finalizer_list = self.resource_finalizers[id(context)] if context else self.finalizers
+        finalizer_list.append(anext(gen, None))
 
     async def _run_interceptors(self, instance: Any, service_type: type):
         for cls in self.interceptors:
@@ -273,13 +259,13 @@ class Container:
         for service, name in self.startup:
             await self.get(service, name=name)
 
-    async def _run_finalizers(self, request: Request = None):
-        if request:
-            finalizers = self.resource_finalizers[request]
-        else:
-            finalizers = self.finalizers
+    async def _run_finalizers(self, context: Any = None):
+        finalizers_list = self.resource_finalizers[id(context)] if context else self.finalizers
 
-        for finalizer in reversed(finalizers):
+        for finalizer in reversed(finalizers_list):
             await finalizer
 
-        finalizers.clear()
+        if context:
+            del self.resource_finalizers[id(context)]
+        else:
+            finalizers_list.clear()

@@ -53,8 +53,7 @@ optional = true
 
 [tool.poetry.group.test.dependencies]
 pytest = "^8"
-# TODO: remove "allow-prereleases" once pytest-asyncio supports pytest 8
-pytest-asyncio = { version = "^0.23", allow-prereleases = true }
+pytest-asyncio = "^0.23"
 pytest-cov = "^4"
 coverage = { version = "^7", extras = ["toml"] }
 httpx = "^0.26"

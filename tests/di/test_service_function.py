@@ -8,7 +8,6 @@ from selva.di.inject import Inject
 from selva.di.error import FactoryMissingReturnTypeError, ServiceAlreadyRegisteredError
 
 
-@service
 class Service1:
     pass
 
@@ -18,9 +17,9 @@ async def service1_factory() -> Service1:
     return Service1()
 
 
-@service
 class Service2:
-    service1: Annotated[Service1, Inject]
+    def __init__(self, service1: Service1):
+        self.service1 = service1
 
 
 @service
@@ -32,7 +31,6 @@ class Interface:
     pass
 
 
-@service(provides=Interface)
 class Implementation(Interface):
     pass
 
