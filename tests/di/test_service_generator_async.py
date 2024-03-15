@@ -1,5 +1,3 @@
-from typing import Annotated
-
 import pytest
 
 from selva.di.container import Container

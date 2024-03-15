@@ -12,10 +12,6 @@ class ServiceRecord:
     def __init__(self):
         self.providers: dict[str | None, ServiceSpec] = {}
 
-    @property
-    def resource(self):
-        return any(p.resource for p in self.providers.values())
-
     def add(self, service: ServiceSpec, name: str = None):
         if name in self.providers:
             raise ServiceAlreadyRegisteredError(service.provides, name)

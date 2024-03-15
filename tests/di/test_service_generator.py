@@ -1,9 +1,7 @@
-from typing import Annotated
-
 import pytest
 
 from selva.di.container import Container
-from selva.di.decorator import service, Inject
+from selva.di.decorator import service
 from selva.di.error import FactoryMissingReturnTypeError
 
 

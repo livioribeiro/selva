@@ -13,7 +13,8 @@ async def test_application():
             Service.startup_called = True
 
     settings = Settings(
-        default_settings | {
+        default_settings
+        | {
             "application": f"{__package__}.application",
         }
     )

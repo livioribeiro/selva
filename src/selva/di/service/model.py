@@ -9,7 +9,6 @@ class ServiceInfo(NamedTuple):
     provides: type | None
     name: str | None
     startup: bool = False
-    resource: bool = False
 
 
 class ServiceDependency(NamedTuple):
@@ -26,4 +25,3 @@ class ServiceSpec(NamedTuple):
     dependencies: list[tuple[str, ServiceDependency]]
     initializer: Callable = None
     finalizer: Callable = None
-    resource: bool = False

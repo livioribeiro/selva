@@ -6,7 +6,7 @@ from typing import Annotated, TypeVar, dataclass_transform
 from selva.di.inject import Inject
 from selva.di.service.model import InjectableType, ServiceInfo
 
-__all__ = ("resource", "service", "DI_ATTRIBUTE_SERVICE")
+__all__ = ("service", "DI_ATTRIBUTE_SERVICE")
 
 DI_ATTRIBUTE_SERVICE = "__selva_di_service__"
 
@@ -29,16 +29,12 @@ def _service(
     attribute_name: str,
     attribute_value,
 ) -> InjectableType:
-    setattr(
-        injectable, attribute_name, attribute_value
-    )
+    setattr(injectable, attribute_name, attribute_value)
 
     if inspect.isclass(injectable):
         dependencies = [
             dependency
-            for dependency, annotation in inspect.get_annotations(
-                injectable
-            ).items()
+            for dependency, annotation in inspect.get_annotations(injectable).items()
             if _is_inject(annotation)
         ]
 
@@ -93,26 +89,8 @@ def service(
     """
 
     def inner(inner_injectable) -> T:
-        return _service(inner_injectable, DI_ATTRIBUTE_SERVICE, ServiceInfo(provides, name, startup))
-
-    return inner(injectable) if injectable else inner
-
-
-@dataclass_transform(eq_default=False)
-def resource(
-    injectable: Callable[[], T] = None,
-    /,
-    *,
-    provides: type = None,
-    name: str = None,
-) -> T | Callable[[T], T]:
-    """Declare a class or function as a resource
-
-    For classes, a constructor will be generated to help create instances
-    outside the dependency injection context
-    """
-
-    def inner(inner_injectable) -> T:
-        return _service(inner_injectable, DI_ATTRIBUTE_SERVICE, ServiceInfo(provides, name, resource=True))
+        return _service(
+            inner_injectable, DI_ATTRIBUTE_SERVICE, ServiceInfo(provides, name, startup)
+        )
 
     return inner(injectable) if injectable else inner
