@@ -100,7 +100,7 @@ def service(
 
 @dataclass_transform(eq_default=False)
 def resource(
-    injectable: T = None,
+    injectable: Callable[[], T] = None,
     /,
     *,
     provides: type = None,
@@ -116,4 +116,3 @@ def resource(
         return _service(inner_injectable, DI_ATTRIBUTE_SERVICE, ServiceInfo(provides, name, resource=True))
 
     return inner(injectable) if injectable else inner
-

@@ -1,9 +1,11 @@
 import asyncio
+import functools
 import inspect
 from collections import defaultdict
 from collections.abc import AsyncGenerator, Awaitable, Generator, Iterable
 from types import FunctionType, ModuleType
 from typing import Any, Type, TypeVar
+from weakref import WeakKeyDictionary
 
 from loguru import logger
 
@@ -17,7 +19,7 @@ from selva.di.error import (
     NonInjectableTypeError,
     ServiceWithResourceDependencyError,
 )
-from selva.di.inspect import is_resource
+from selva.di.inspect import is_resource, is_service
 from selva.di.interceptor import Interceptor
 from selva.di.service.model import InjectableType, ServiceDependency, ServiceInfo, ServiceSpec
 from selva.di.service.parse import get_dependencies, parse_service_spec
@@ -39,6 +41,7 @@ class Container:
         self.finalizers: list[Awaitable] = []
         self.startup: list[tuple[Type, str | None]] = []
         self.interceptors: list[Type[Interceptor]] = []
+        self.resource_store: dict[Any, dict[tuple[type, str | None], Any]] = defaultdict(dict)
         self.resource_finalizers: dict[int, list[Awaitable]] = defaultdict(list)
 
     def register(self, injectable: InjectableType):
@@ -139,9 +142,9 @@ class Container:
 
         return instance
 
-    def _get_from_cache(self, service_type: type, name: str | None) -> Any | None:
-        # try getting service from store
-        if instance := self.store.get((service_type, name)):
+    def _get_from_cache(self, service_type: type, name: str | None, context: Any = None) -> Any | None:
+        store = self.resource_store[id(context)] if context else self.store
+        if instance := store.get((service_type, name)):
             return instance
 
         return None
@@ -155,7 +158,7 @@ class Container:
         service_type, name = dependency.service, dependency.name
 
         # check if service exists in cache
-        if instance := self._get_from_cache(service_type, name):
+        if instance := self._get_from_cache(service_type, name, context):
             return instance
 
         try:
@@ -192,7 +195,7 @@ class Container:
         name = service_spec.name
 
         # check if service exists in cache
-        if instance := self._get_from_cache(service_spec.provides, name):
+        if instance := self._get_from_cache(service_spec.provides, name, context):
             return instance
 
         if factory := service_spec.factory:
@@ -209,14 +212,16 @@ class Container:
                 instance = await anext(generator)
                 self._setup_asyncgen_finalizer(generator, context)
 
-            # if the service is not a resource, cache it
-            if not service_spec.resource:
+            if service_spec.resource:
+                self.resource_store[id(context)][service_spec.provides, name] = instance
+            else:
                 self.store[service_spec.provides, name] = instance
         else:
             instance = service_spec.service()
 
-            # if the service is not a resource, cache it
-            if not service_spec.resource:
+            if service_spec.resource:
+                self.resource_store[id(context)][service_spec.provides, name] = instance
+            else:
                 self.store[service_spec.provides, name] = instance
 
             dependencies = await self._get_dependent_services(service_spec, context, stack)
@@ -233,6 +238,7 @@ class Container:
         if service_spec.provides is not Interceptor:
             await self._run_interceptors(instance, service_spec.provides)
 
+        self._setup_resources(instance)
         return instance
 
     def _setup_finalizer(self, service_spec: ServiceSpec, instance: Any, context: Any = None):
@@ -267,5 +273,30 @@ class Container:
 
         if context:
             del self.resource_finalizers[id(context)]
+            del self.resource_store[id(context)]
         else:
             finalizers_list.clear()
+
+    def _setup_resources(self, instance: Any):
+        for method_name, method in inspect.getmembers(instance, lambda m: inspect.ismethod(m)):
+            signature = inspect.signature(method)
+
+            for param_name, param in signature.parameters.items():
+                if param.default is not ...:
+                    continue
+
+                if not is_resource(param.annotation):
+                    continue
+
+                assert inspect.iscoroutinefunction(method)
+
+                ioc = self
+
+                @functools.wraps(method)
+                async def wrapper(*args, **kwargs):
+                    resource_instance = await ioc.get(param.annotation)
+                    kwargs[param_name] = resource_instance
+
+                    return await method.__call__(*args, **kwargs)
+
+                setattr(instance, method_name, wrapper)
