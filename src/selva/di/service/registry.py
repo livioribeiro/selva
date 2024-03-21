@@ -53,9 +53,10 @@ class ServiceRegistry:
         self.services: dict[type, ServiceRecord] = defaultdict(ServiceRecord)
 
     def get(self, key: type, name: str = None) -> ServiceSpec | None:
-        if (key, name) not in self:
+        try:
+            return self[key, name]
+        except ServiceNotFoundError:
             return None
-        return self[key, name]
 
     def __getitem__(self, key: type | tuple[type, str]):
         inner_key, name = _get_key_with_name(key)

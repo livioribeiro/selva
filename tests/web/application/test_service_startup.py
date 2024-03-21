@@ -13,13 +13,14 @@ async def test_application():
             Service.startup_called = True
 
     settings = Settings(
-        default_settings | {
+        default_settings
+        | {
             "application": f"{__package__}.application",
         }
     )
 
     app = Selva(settings)
-    app.di.service(Service)
+    app.di.register(Service)
 
     await app._lifespan_startup()
 

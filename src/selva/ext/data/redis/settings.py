@@ -101,7 +101,7 @@ class RedisSettings(BaseModel):
     def serializer(self):
         data = {
             field: getattr(self, field)
-            for field in self.model_fields_set
+            for field in set(self.model_fields_set)
             if field != "options"
         }
 
