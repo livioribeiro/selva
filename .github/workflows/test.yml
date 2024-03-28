@@ -50,6 +50,6 @@ jobs:
           --extras redis
           --no-interaction
       - env:
-          POSTGRES_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/test
+          POSTGRES_URL: postgresql+psycopg://postgres:postgres@postgres:5432/test
           REDIS_URL: redis://default:password@redis:6379/0
         run: poetry run pytest

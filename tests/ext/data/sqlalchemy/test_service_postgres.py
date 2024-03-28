@@ -17,7 +17,7 @@ POSTGRES_URL = os.getenv("POSTGRES_URL")
 
 pytestmark = [
     pytest.mark.skipif(POSTGRES_URL is None, reason="POSTGRES_URL not defined"),
-    pytest.mark.skipif(find_spec("asyncpg") is None, reason="asyncpg not present"),
+    pytest.mark.skipif(find_spec("psycopg") is None, reason="psycopg not present"),
 ]
 
 SA_DB_URL = make_url(POSTGRES_URL) if POSTGRES_URL else None
@@ -47,7 +47,7 @@ async def test_make_engine_service_with_url_username_password():
             "data": {
                 "sqlalchemy": {
                     "default": {
-                        "url": f"postgresql+asyncpg://{SA_DB_URL.host}:{SA_DB_URL.port}/{SA_DB_URL.database}",
+                        "url": f"postgresql+psycopg://{SA_DB_URL.host}:{SA_DB_URL.port}/{SA_DB_URL.database}",
                         "username": SA_DB_URL.username,
                         "password": SA_DB_URL.password,
                     },
@@ -66,7 +66,7 @@ async def test_make_engine_service_with_url_components():
             "data": {
                 "sqlalchemy": {
                     "default": {
-                        "drivername": "postgresql+asyncpg",
+                        "drivername": "postgresql+psycopg",
                         "host": SA_DB_URL.host,
                         "port": SA_DB_URL.port,
                         "database": SA_DB_URL.database,
