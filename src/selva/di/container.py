@@ -169,11 +169,10 @@ class Container:
     async def _get_dependent_services(
         self, service_spec: ServiceSpec, stack: list
     ) -> dict[str, Any]:
-        deps = await asyncio.gather(
-            *[self._get(d, stack) for _, d in service_spec.dependencies]
-        )
-        names = [n for n, _ in service_spec.dependencies]
-        return dict(zip(names, deps))
+        return {
+            name: await self._get(dep, stack)
+            for name, dep in service_spec.dependencies
+        }
 
     async def _create_service(
         self,
