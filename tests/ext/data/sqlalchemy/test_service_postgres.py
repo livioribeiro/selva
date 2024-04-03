@@ -3,13 +3,11 @@ from importlib.util import find_spec
 
 import pytest
 from sqlalchemy import make_url, text
+from sqlalchemy.ext.asyncio import create_async_engine
 
 from selva.configuration.defaults import default_settings
 from selva.configuration.settings import Settings
-from selva.ext.data.sqlalchemy.service import (
-    make_engine_service,
-    make_sessionmaker_service,
-)
+from selva.ext.data.sqlalchemy.service import make_engine_service, sessionmaker_service
 
 from .test_service import _test_engine_service
 
@@ -122,11 +120,19 @@ async def test_make_engine_service_with_execution_options():
         }
     )
 
-    engine_service = make_engine_service("default")
-    engine = await anext(engine_service(settings))
-    sessionmaker_service = make_sessionmaker_service("default")
-    sessionmaker = await sessionmaker_service(engine)
+    async for engine in make_engine_service("default")(settings):
+        async with engine.connect() as conn:
+            result = await conn.execute(text("select 1"))
+            isolation_level = result.context.execution_options["isolation_level"]
+            assert isolation_level == "READ COMMITTED"
 
+
+async def test_sessionmaker_service():
+    engine = create_async_engine(POSTGRES_URL)
+
+    sessionmaker = await sessionmaker_service({"default": engine})
     async with sessionmaker() as session:
         result = await session.execute(text("select 1"))
-        assert result.context.execution_options["isolation_level"] == "READ COMMITTED"
+        assert result.scalar() == 1
+
+    await engine.dispose()

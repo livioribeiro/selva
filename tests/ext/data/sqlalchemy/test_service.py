@@ -1,10 +1,13 @@
 from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 
 from selva.configuration.defaults import default_settings
 from selva.configuration.settings import Settings
+from selva.di.container import Container
 from selva.ext.data.sqlalchemy.service import (
+    engine_dict_service,
     make_engine_service,
-    make_sessionmaker_service,
+    sessionmaker_service,
 )
 
 
@@ -96,17 +99,13 @@ async def test_make_engine_service_with_execution_options():
         }
     )
 
-    engine_service = make_engine_service("default")
-    async for engine in engine_service(settings):
-        sessionmaker_service = make_sessionmaker_service("default")
-        sessionmaker = await sessionmaker_service(engine)
+    async for engine in make_engine_service("default")(settings):
+        async with engine.connect() as conn:
+            result = await conn.execute(text("select 1"))
+            isolation_level = result.context.execution_options["isolation_level"]
+            assert isolation_level == "READ UNCOMMITTED"
 
-        async with sessionmaker() as session:
-            result = await session.execute(text("select 1"))
-            assert (
-                result.context.execution_options["isolation_level"]
-                == "READ UNCOMMITTED"
-            )
+        await engine.dispose()
 
 
 async def test_make_engine_service_alternative_name():
@@ -126,3 +125,47 @@ async def test_make_engine_service_alternative_name():
     engine_service = make_engine_service("other")(settings)
     async for engine in engine_service:
         assert engine is not None
+        await engine.dispose()
+
+
+async def test_sessionmaker_service():
+    engine = create_async_engine("sqlite+aiosqlite:///:memory:")
+
+    sessionmaker = await sessionmaker_service({"default": engine})
+    async with sessionmaker() as session:
+        result = await session.execute(text("select 1"))
+        assert result.scalar() == 1
+
+    await engine.dispose()
+
+
+async def test_engine_dict_service():
+    ioc = Container()
+
+    settings = Settings(
+        default_settings
+        | {
+            "data": {
+                "sqlalchemy": {
+                    "default": {
+                        "url": "sqlite+aiosqlite:///:memory:",
+                    },
+                    "other": {
+                        "url": "sqlite+aiosqlite:///:memory:",
+                    },
+                },
+            },
+        }
+    )
+
+    ioc.define(Settings, settings)
+    ioc.define(AsyncEngine, create_async_engine(settings.data.sqlalchemy.default.url))
+    ioc.define(
+        AsyncEngine,
+        create_async_engine(settings.data.sqlalchemy.other.url),
+        name="other",
+    )
+
+    engines = await engine_dict_service(ioc, settings)
+
+    assert set(engines.keys()) == {"default", "other"}

@@ -33,4 +33,4 @@ async def test_application(application: str, database: str):
     client = AsyncClient(app=app)
     response = await client.get("http://localhost:8000/")
 
-    assert response.status_code == HTTPStatus.OK
+    assert response.status_code == HTTPStatus.OK, response.text

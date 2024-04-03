@@ -3,7 +3,7 @@ from typing import Annotated
 from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker, create_async_engine
 
 from selva.configuration.settings import Settings
-from selva.di import Inject
+from selva.di import Container, Inject
 from selva.ext.data.sqlalchemy.settings import SqlAlchemySettings
 
 
@@ -26,10 +26,16 @@ def make_engine_service(name: str):
     return engine_service
 
 
-def make_sessionmaker_service(name: str):
-    async def sessionmaker_service(
-        engine: Annotated[AsyncEngine, Inject(name=name)],
-    ) -> async_sessionmaker:
-        return async_sessionmaker(bind=engine)
+async def engine_dict_service(
+    di: Container, settings: Settings
+) -> dict[str, AsyncEngine]:
+    return {
+        db: await di.get(AsyncEngine, name=db if db != "default" else None)
+        for db in settings.data.sqlalchemy
+    }
 
-    return sessionmaker_service
+
+async def sessionmaker_service(engines: dict[str, AsyncEngine]) -> async_sessionmaker:
+    default = engines.pop("default", None)
+
+    return async_sessionmaker(bind=default, binds=engines, expire_on_commit=False)
