@@ -1,7 +1,10 @@
 import pytest
 
 from selva.web.routing.decorator import controller, get
-from selva.web.routing.exception import ControllerWithoutDecoratorError, DuplicateRouteError
+from selva.web.routing.exception import (
+    ControllerWithoutDecoratorError,
+    DuplicateRouteError,
+)
 from selva.web.routing.router import Router
 
 

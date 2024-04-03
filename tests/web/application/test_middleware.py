@@ -5,11 +5,10 @@ from selva.configuration import Settings
 from selva.configuration.defaults import default_settings
 from selva.di import service
 from selva.web.application import Selva
-from selva.web.middleware import Middleware
 
 
 @service
-class MyMiddleware(Middleware):
+class MyMiddleware:
     async def __call__(self, call, request):
         send = request.asgi.send
 
@@ -31,6 +30,7 @@ async def test_middleware():
         }
     )
     app = Selva(settings)
+    app.di.register(MyMiddleware)
     await app._lifespan_startup()
 
     client = AsyncClient(app=app)

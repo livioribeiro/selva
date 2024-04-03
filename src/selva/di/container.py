@@ -1,6 +1,5 @@
 import asyncio
 import inspect
-from collections import defaultdict
 from collections.abc import AsyncGenerator, Awaitable, Generator, Iterable
 from types import FunctionType, ModuleType
 from typing import Any, Type, TypeVar
@@ -115,21 +114,13 @@ class Container:
             for name, definition in record.providers.items():
                 yield interface, definition.service, name
 
-    async def get(self, service_type: T, *, name: str = None, optional=False) -> T:
+    async def get(
+        self, service_type: Type[T], *, name: str = None, optional=False
+    ) -> T:
         dependency = ServiceDependency(service_type, name=name, optional=optional)
         return await self._get(dependency)
 
-    async def create(self, service_type: type) -> Any:
-        assert inspect.isclass(service_type)
-        instance = service_type()
-
-        for name, dep_spec in get_dependencies(service_type):
-            dependency = await self._get(dep_spec)
-            setattr(instance, name, dependency)
-
-        return instance
-
-    def _get_from_cache(self, service_type: type, name: str | None) -> Any | None:
+    def _get_from_cache(self, service_type: Type[T], name: str | None) -> T | None:
         if instance := self.store.get((service_type, name)):
             return instance
 
@@ -170,8 +161,7 @@ class Container:
         self, service_spec: ServiceSpec, stack: list
     ) -> dict[str, Any]:
         return {
-            name: await self._get(dep, stack)
-            for name, dep in service_spec.dependencies
+            name: await self._get(dep, stack) for name, dep in service_spec.dependencies
         }
 
     async def _create_service(

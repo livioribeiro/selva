@@ -124,7 +124,7 @@ class Selva:
             )
 
         for cls in reversed(middleware):
-            mid = await self.di.create(cls)
+            mid = await self.di.get(cls)
             chain = functools.partial(mid, self.handler)
             self.handler = chain
 
@@ -206,7 +206,7 @@ class Selva:
                     logger.error("Response is finished")
                     return
 
-                await respond_status(response, err.status)
+                await respond_text(response, str(err), status=err.status)
         except Exception as err:
             logger.exception("Error processing request")
             await respond_text(
