@@ -3,17 +3,24 @@ extensions:
 
 data:
   sqlalchemy:
-    default:
-      drivername: sqlite+aiosqlite
-      database: ":memory:"
+    session:
       options:
-        echo: true
-
-    other:
-      url: "postgresql+psycopg://localhost:5432/test"
-      username: postgres
-      password: postgres
-      options:
-        pool_size: 10
-        pool_recycle: 3600
-        echo: true
+        class: sqlalchemy.ext.asyncio.AsyncSession
+        expire_on_commit: false
+      binds:
+        application.model.Base: default
+        application.model.OtherBase: other
+    connections:
+      default:
+        drivername: sqlite+aiosqlite
+        database: ":memory:"
+        options:
+          echo: true
+      other:
+        url: "postgresql+psycopg://localhost:5432/test"
+        username: postgres
+        password: postgres
+        options:
+          pool_size: 10
+          pool_recycle: 3600
+          echo: true

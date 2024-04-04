@@ -1,6 +1,6 @@
 import pytest
 
-from selva.ext.data.sqlalchemy.settings import SqlAlchemySettings
+from selva.ext.data.sqlalchemy.settings import SqlAlchemyEngineSettings
 
 
 @pytest.mark.parametrize(
@@ -22,4 +22,4 @@ from selva.ext.data.sqlalchemy.settings import SqlAlchemySettings
 )
 def test_sqlalchemy_settings_mutually_exclusive_properties(values: dict):
     with pytest.raises(ValueError):
-        SqlAlchemySettings.model_validate({"url": "url"} | values)
+        SqlAlchemyEngineSettings.model_validate({"url": "url"} | values)

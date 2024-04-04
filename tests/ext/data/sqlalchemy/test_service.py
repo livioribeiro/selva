@@ -27,8 +27,10 @@ async def test_make_engine_service_with_url():
         | {
             "data": {
                 "sqlalchemy": {
-                    "default": {
-                        "url": "sqlite+aiosqlite:///:memory:",
+                    "connections": {
+                        "default": {
+                            "url": "sqlite+aiosqlite:///:memory:",
+                        },
                     },
                 },
             },
@@ -44,9 +46,11 @@ async def test_make_engine_service_with_url_components():
         | {
             "data": {
                 "sqlalchemy": {
-                    "default": {
-                        "drivername": "sqlite+aiosqlite",
-                        "database": ":memory:",
+                    "connections": {
+                        "default": {
+                            "drivername": "sqlite+aiosqlite",
+                            "database": ":memory:",
+                        },
                     },
                 },
             },
@@ -62,11 +66,13 @@ async def test_make_engine_service_with_options():
         | {
             "data": {
                 "sqlalchemy": {
-                    "default": {
-                        "url": "sqlite+aiosqlite:///:memory:",
-                        "options": {
-                            "echo": True,
-                            "echo_pool": True,
+                    "connections": {
+                        "default": {
+                            "url": "sqlite+aiosqlite:///:memory:",
+                            "options": {
+                                "echo": True,
+                                "echo_pool": True,
+                            },
                         },
                     },
                 },
@@ -86,11 +92,13 @@ async def test_make_engine_service_with_execution_options():
         | {
             "data": {
                 "sqlalchemy": {
-                    "default": {
-                        "url": "sqlite+aiosqlite:///:memory:",
-                        "options": {
-                            "execution_options": {
-                                "isolation_level": "READ UNCOMMITTED"
+                    "connections": {
+                        "default": {
+                            "url": "sqlite+aiosqlite:///:memory:",
+                            "options": {
+                                "execution_options": {
+                                    "isolation_level": "READ UNCOMMITTED"
+                                },
                             },
                         },
                     },
@@ -114,8 +122,10 @@ async def test_make_engine_service_alternative_name():
         | {
             "data": {
                 "sqlalchemy": {
-                    "other": {
-                        "url": "sqlite+aiosqlite:///:memory:",
+                    "connections": {
+                        "other": {
+                            "url": "sqlite+aiosqlite:///:memory:",
+                        },
                     },
                 },
             },
@@ -129,9 +139,24 @@ async def test_make_engine_service_alternative_name():
 
 
 async def test_sessionmaker_service():
-    engine = create_async_engine("sqlite+aiosqlite:///:memory:")
+    settings = Settings(
+        default_settings
+        | {
+            "data": {
+                "sqlalchemy": {
+                    "connections": {
+                        "default": {
+                            "url": "sqlite+aiosqlite:///:memory:",
+                        },
+                    },
+                },
+            },
+        }
+    )
 
-    sessionmaker = await sessionmaker_service({"default": engine})
+    engine = create_async_engine(settings.data.sqlalchemy.connections.default.url)
+
+    sessionmaker = await sessionmaker_service({"default": engine}, settings)
     async with sessionmaker() as session:
         result = await session.execute(text("select 1"))
         assert result.scalar() == 1
@@ -147,11 +172,13 @@ async def test_engine_dict_service():
         | {
             "data": {
                 "sqlalchemy": {
-                    "default": {
-                        "url": "sqlite+aiosqlite:///:memory:",
-                    },
-                    "other": {
-                        "url": "sqlite+aiosqlite:///:memory:",
+                    "connections": {
+                        "default": {
+                            "url": "sqlite+aiosqlite:///:memory:",
+                        },
+                        "other": {
+                            "url": "sqlite+aiosqlite:///:memory:",
+                        },
                     },
                 },
             },
@@ -159,10 +186,13 @@ async def test_engine_dict_service():
     )
 
     ioc.define(Settings, settings)
-    ioc.define(AsyncEngine, create_async_engine(settings.data.sqlalchemy.default.url))
     ioc.define(
         AsyncEngine,
-        create_async_engine(settings.data.sqlalchemy.other.url),
+        create_async_engine(settings.data.sqlalchemy.connections.default.url),
+    )
+    ioc.define(
+        AsyncEngine,
+        create_async_engine(settings.data.sqlalchemy.connections.other.url),
         name="other",
     )
 

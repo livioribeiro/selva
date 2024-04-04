@@ -40,23 +40,23 @@ data:
 4.  Connection registered with name "mysql"
 5.  Connection registered with name "oracle"
 
-And inject the `async_sessionmaker` services:
+And inject the `AsyncEngine` services:
 
 ```python
 from typing import Annotated
-from sqlalchemy.ext.asyncio import async_sessionmaker
+from sqlalchemy.ext.asyncio import AsyncEngine
 from selva.di import service, Inject
 
 
 @service
 class MyService:
     # default service
-    sessionmaker: Annotated[async_sessionmaker, Inject]
+    engine: Annotated[AsyncEngine, Inject]
 
     # named services
-    sessionmaker_postgres: Annotated[async_sessionmaker, Inject(name="postgres")]
-    sessionmaker_mysql: Annotated[async_sessionmaker, Inject(name="mysql")]
-    sessionmaker_oracle: Annotated[async_sessionmaker, Inject(name="oracle")]
+    engine_postgres: Annotated[AsyncEngine, Inject(name="postgres")]
+    engine_mysql: Annotated[AsyncEngine, Inject(name="mysql")]
+    engine_oracle: Annotated[AsyncEngine, Inject(name="oracle")]
 ```
 
 Database connections can also be defined with username and password separated from
@@ -216,51 +216,68 @@ The available options are shown below:
 ```yaml
 data:
   sqlalchemy:
-    default:
-      url: ""
+    session:
       options: # (1)
-        connect_args: # (2)
-          arg: value
-        echo: false
-        echo_pool: false
-        enable_from_linting: false
-        hide_parameters: false
-        insertmanyvalues_page_size: 1
-        isolation_level: ""
-        json_deserializer: "json.loads" # dotted path to the json deserialization function
-        json_serializer: "json.dumps" # dotted path to the json serialization function
-        label_length: 1
-        logging_name: ""
-        max_identifier_length: 1
-        max_overflow: 1
-        module: ""
-        paramstyle: "qmark" # or "numeric", "named", "format", "pyformat"
-        poolclass: "sqlalchemy.pool.Pool" # dotted path to the pool class
-        pool_logging_name: ""
-        pool_pre_ping: false
-        pool_size: 1
-        pool_recycle: 3600
-        pool_reset_on_return: "rollback" # or "commit"
-        pool_timeout: 1
-        pool_use_lifo: false
-        plugins:
-          - "plugin1"
-          - "plugin2"
-        query_cache_size: 1
-        use_insertmanyvalues: false
-        execution_options: # (3)
-          logging_token: ""
-          isolation_level: ""
-          no_parameters: false
-          stream_results: false
-          max_row_buffer: 1
-          yield_per: 1
+        class: sqlalchemy.ext.asyncio.AsyncSession
+        autoflush: true
+        expire_on_commit: true
+        autobegin: true
+        twophase: false
+        enable_baked_queries: true
+        info:
+          key: value
+        query_cls: sqlalchemy.orm.query.Query
+        join_transaction_mode: conditional_savepoint
+        close_resets_only: null
+      binds: # (2)
+        application.model.Base: default
+    connections:
+      default:
+        url: ""
+        options: # (3)
+          connect_args: # (4)
+            arg: value
+          echo: false
+          echo_pool: false
+          enable_from_linting: false
+          hide_parameters: false
           insertmanyvalues_page_size: 1
-          schema_translate_map:
-            null: "my_schema"
-            some_schema: "other_schema"
+          isolation_level: ""
+          json_deserializer: "json.loads" # dotted path to the json deserialization function
+          json_serializer: "json.dumps" # dotted path to the json serialization function
+          label_length: 1
+          logging_name: ""
+          max_identifier_length: 1
+          max_overflow: 1
+          module: ""
+          paramstyle: "qmark" # or "numeric", "named", "format", "pyformat"
+          poolclass: "sqlalchemy.pool.Pool" # dotted path to the pool class
+          pool_logging_name: ""
+          pool_pre_ping: false
+          pool_size: 1
+          pool_recycle: 3600
+          pool_reset_on_return: "rollback" # or "commit"
+          pool_timeout: 1
+          pool_use_lifo: false
+          plugins:
+            - "plugin1"
+            - "plugin2"
+          query_cache_size: 1
+          use_insertmanyvalues: false
+          execution_options: # (5)
+            logging_token: ""
+            isolation_level: ""
+            no_parameters: false
+            stream_results: false
+            max_row_buffer: 1
+            yield_per: 1
+            insertmanyvalues_page_size: 1
+            schema_translate_map:
+              null: "my_schema"
+              some_schema: "other_schema"
 ```
-
-1.  `options` values are described in [`sqlalchemy.create_engine`](https://docs.sqlalchemy.org/en/20/core/engines.html#sqlalchemy.create_engine)
-2.  `connect_args` is a map of args to pass to the `connect` function of the underlying driver
-3.  `execution_options` values are describe in [`Sqlalchemy.engine.Connection.execution_options`](https://docs.sqlalchemy.org/en/20/core/connections.html#sqlalchemy.engine.Connection.execution_options)
+1.  values are describe in [`sqlalchemy.orm.Session`](https://docs.sqlalchemy.org/orm/session_api.html#sqlalchemy.orm.Session)
+2.  define dotted paths to subclasses of `sqlalchemy.orm.DeclarativeBase` to bind to an engine defined in `connections`
+3.  values are described in [`sqlalchemy.create_engine`](https://docs.sqlalchemy.org/core/engines.html#sqlalchemy.create_engine)
+4.  `connect_args` is a map of args to pass to the `connect` function of the underlying driver
+5.  `execution_options` values are describe in [`Sqlalchemy.engine.Connection.execution_options`](https://docs.sqlalchemy.org/core/connections.html#sqlalchemy.engine.Connection.execution_options)
