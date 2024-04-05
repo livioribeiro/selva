@@ -13,7 +13,7 @@ SA_DB_URL = make_url(POSTGRES_URL) if POSTGRES_URL else None
 
 async def test_database_url_from_environment_variables(monkeypatch):
     url = "sqlite+aiosqlite:///:memory:"
-    monkeypatch.setenv("SELVA__DATA__SQLALCHEMY__DEFAULT__URL", url)
+    monkeypatch.setenv("SELVA__DATA__SQLALCHEMY__CONNECTIONS__DEFAULT__URL", url)
     settings = _get_settings_nocache()
 
     engine_service = make_engine_service("default")(settings)
@@ -28,9 +28,13 @@ async def test_database_url_username_password_from_environment_variables(monkeyp
     username = SA_DB_URL.username
     password = SA_DB_URL.password
 
-    monkeypatch.setenv("SELVA__DATA__SQLALCHEMY__DEFAULT__URL", url)
-    monkeypatch.setenv("SELVA__DATA__SQLALCHEMY__DEFAULT__USERNAME", username)
-    monkeypatch.setenv("SELVA__DATA__SQLALCHEMY__DEFAULT__PASSWORD", password)
+    monkeypatch.setenv("SELVA__DATA__SQLALCHEMY__CONNECTIONS__DEFAULT__URL", url)
+    monkeypatch.setenv(
+        "SELVA__DATA__SQLALCHEMY__CONNECTIONS__DEFAULT__USERNAME", username
+    )
+    monkeypatch.setenv(
+        "SELVA__DATA__SQLALCHEMY__CONNECTIONS__DEFAULT__PASSWORD", password
+    )
     settings = _get_settings_nocache()
 
     engine_service = make_engine_service("default")(settings)
@@ -48,12 +52,20 @@ async def test_database_url_components_from_environment_variables(monkeypatch):
     username = SA_DB_URL.username
     password = SA_DB_URL.password
 
-    monkeypatch.setenv("SELVA__DATA__SQLALCHEMY__DEFAULT__DRIVERNAME", drivername)
-    monkeypatch.setenv("SELVA__DATA__SQLALCHEMY__DEFAULT__HOST", host)
-    monkeypatch.setenv("SELVA__DATA__SQLALCHEMY__DEFAULT__PORT", port)
-    monkeypatch.setenv("SELVA__DATA__SQLALCHEMY__DEFAULT__DATABASE", database)
-    monkeypatch.setenv("SELVA__DATA__SQLALCHEMY__DEFAULT__USERNAME", username)
-    monkeypatch.setenv("SELVA__DATA__SQLALCHEMY__DEFAULT__PASSWORD", password)
+    monkeypatch.setenv(
+        "SELVA__DATA__SQLALCHEMY__CONNECTIONS__DEFAULT__DRIVERNAME", drivername
+    )
+    monkeypatch.setenv("SELVA__DATA__SQLALCHEMY__CONNECTIONS__DEFAULT__HOST", host)
+    monkeypatch.setenv("SELVA__DATA__SQLALCHEMY__CONNECTIONS__DEFAULT__PORT", port)
+    monkeypatch.setenv(
+        "SELVA__DATA__SQLALCHEMY__CONNECTIONS__DEFAULT__DATABASE", database
+    )
+    monkeypatch.setenv(
+        "SELVA__DATA__SQLALCHEMY__CONNECTIONS__DEFAULT__USERNAME", username
+    )
+    monkeypatch.setenv(
+        "SELVA__DATA__SQLALCHEMY__CONNECTIONS__DEFAULT__PASSWORD", password
+    )
     settings = _get_settings_nocache()
 
     engine_service = make_engine_service("default")(settings)

@@ -25,4 +25,9 @@ class Controller:
     @get("other")
     async def other(self, request):
         db_version = await self.other_db_service.db_version()
-        await respond_json(request.response, {"db_version": db_version})
+        model = await self.other_db_service.get_model()
+        dto = {
+            "id": model.id,
+            "name": model.name,
+        }
+        await respond_json(request.response, {"db_version": db_version,"model": dto})

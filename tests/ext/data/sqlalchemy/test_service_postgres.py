@@ -27,8 +27,10 @@ async def test_make_engine_service_with_url():
         | {
             "data": {
                 "sqlalchemy": {
-                    "default": {
-                        "url": POSTGRES_URL,
+                    "connections": {
+                        "default": {
+                            "url": POSTGRES_URL,
+                        },
                     },
                 },
             },
@@ -44,10 +46,12 @@ async def test_make_engine_service_with_url_username_password():
         | {
             "data": {
                 "sqlalchemy": {
-                    "default": {
-                        "url": f"postgresql+psycopg://{SA_DB_URL.host}:{SA_DB_URL.port}/{SA_DB_URL.database}",
-                        "username": SA_DB_URL.username,
-                        "password": SA_DB_URL.password,
+                    "connections": {
+                        "default": {
+                            "url": f"postgresql+psycopg://{SA_DB_URL.host}:{SA_DB_URL.port}/{SA_DB_URL.database}",
+                            "username": SA_DB_URL.username,
+                            "password": SA_DB_URL.password,
+                        },
                     },
                 },
             },
@@ -63,13 +67,15 @@ async def test_make_engine_service_with_url_components():
         | {
             "data": {
                 "sqlalchemy": {
-                    "default": {
-                        "drivername": "postgresql+psycopg",
-                        "host": SA_DB_URL.host,
-                        "port": SA_DB_URL.port,
-                        "database": SA_DB_URL.database,
-                        "username": SA_DB_URL.username,
-                        "password": SA_DB_URL.password,
+                    "connections": {
+                        "default": {
+                            "drivername": "postgresql+psycopg",
+                            "host": SA_DB_URL.host,
+                            "port": SA_DB_URL.port,
+                            "database": SA_DB_URL.database,
+                            "username": SA_DB_URL.username,
+                            "password": SA_DB_URL.password,
+                        },
                     },
                 },
             },
@@ -85,11 +91,13 @@ async def test_make_engine_service_with_options():
         | {
             "data": {
                 "sqlalchemy": {
-                    "default": {
-                        "url": POSTGRES_URL,
-                        "options": {
-                            "echo": True,
-                            "echo_pool": True,
+                    "connections": {
+                        "default": {
+                            "url": POSTGRES_URL,
+                            "options": {
+                                "echo": True,
+                                "echo_pool": True,
+                            },
                         },
                     },
                 },
@@ -109,10 +117,14 @@ async def test_make_engine_service_with_execution_options():
         | {
             "data": {
                 "sqlalchemy": {
-                    "default": {
-                        "url": POSTGRES_URL,
-                        "options": {
-                            "execution_options": {"isolation_level": "READ COMMITTED"},
+                    "connections": {
+                        "default": {
+                            "url": POSTGRES_URL,
+                            "options": {
+                                "execution_options": {
+                                    "isolation_level": "READ COMMITTED"
+                                },
+                            },
                         },
                     },
                 },
@@ -128,9 +140,24 @@ async def test_make_engine_service_with_execution_options():
 
 
 async def test_sessionmaker_service():
+    settings = Settings(
+        default_settings
+        | {
+            "data": {
+                "sqlalchemy": {
+                    "connections": {
+                        "default": {
+                            "url": POSTGRES_URL,
+                        },
+                    },
+                },
+            },
+        }
+    )
+
     engine = create_async_engine(POSTGRES_URL)
 
-    sessionmaker = await sessionmaker_service({"default": engine})
+    sessionmaker = await sessionmaker_service({"default": engine}, settings)
     async with sessionmaker() as session:
         result = await session.execute(text("select 1"))
         assert result.scalar() == 1

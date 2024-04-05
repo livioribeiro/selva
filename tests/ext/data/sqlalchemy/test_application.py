@@ -22,7 +22,11 @@ async def test_application(application: str, database: str):
         | {
             "application": f"{__package__}.{application}",
             "extensions": ["selva.ext.data.sqlalchemy"],
-            "data": {"sqlalchemy": {database: {"url": "sqlite+aiosqlite:///:memory:"}}},
+            "data": {
+                "sqlalchemy": {
+                    "connections": {database: {"url": "sqlite+aiosqlite:///:memory:"}}
+                }
+            },
         }
     )
 
