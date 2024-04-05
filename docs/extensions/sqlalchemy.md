@@ -1,8 +1,7 @@
 # SQLAlchemy
 
 The SQLAlchemy extension makes it easy to set up database connections, providing
-the classes `AsyncEngine` and `async_sessionmaker` as services in the dependency
-injection context.
+`AsyncEngine` and `async_sessionmaker` as services in the dependency injection context.
 
 ## Usage
 
@@ -12,7 +11,8 @@ Install SQLAlchemy extra and a database driver that supports async:
 pip install selva[sqlalchemy] aiosqlite asyncpg aiomysql oracledb
 ```
 
-Define the configuration properties:
+With database drivers are installed, we can define the connections in the
+configuration file:
 
 ```yaml
 extensions:
@@ -20,18 +20,19 @@ extensions:
 
 data:
   sqlalchemy:
-    default: # (2)
-      url: "sqlite+aiosqlite:///var/db.sqlite3"
+    connections:
+      default: # (2)
+        url: "sqlite+aiosqlite:///var/db.sqlite3"
 
-    postgres: # (3)
-      url: "postgresql+asyncpg://user:pass@localhost/dbname"
+      postgres: # (3)
+        url: "postgresql+asyncpg://user:pass@localhost/dbname"
 
-    mysql: # (4)
-      url: "mysql+aiomysql://user:pass@localhost/dbname"
+      mysql: # (4)
+        url: "mysql+aiomysql://user:pass@localhost/dbname"
 
-    oracle: # (5)
-      url: "oracle+oracledb_async://user:pass@localhost/DBNAME"
-      # or "oracle+oracledb_async://user:pass@localhost/?service_name=DBNAME"
+      oracle: # (5)
+        url: "oracle+oracledb_async://user:pass@localhost/DBNAME"
+        # or "oracle+oracledb_async://user:pass@localhost/?service_name=DBNAME"
 ```
 
 1.  Activate the sqlalchemy extension
@@ -40,7 +41,10 @@ data:
 4.  Connection registered with name "mysql"
 5.  Connection registered with name "oracle"
 
-And inject the `AsyncEngine` services:
+Once we define the connections, we can inject `AsyncEngine` into our services.
+For each connection, an instance of `AsyncEngine` will be registered, the `default`
+connection will be registered wihout a name, and the other will be registered with
+their respective names:
 
 ```python
 from typing import Annotated
@@ -65,30 +69,31 @@ the url, or even with individual components:
 ```yaml
 data:
   sqlalchemy:
-    default:
-      drivername: sqlite+aiosqlite
-      database: "/var/db.sqlite3"
+    connections:
+      default:
+        drivername: sqlite+aiosqlite
+        database: "/var/db.sqlite3"
 
-    postgres: # (1)
-      url: "postgresql+asyncpg://localhost/dbname"
-      username: user
-      password: pass
+      postgres: # (1)
+        url: "postgresql+asyncpg://localhost/dbname"
+        username: user
+        password: pass
 
-    mysql: # (2)
-      drivername: mysql+aiomysql
-      host: localhost
-      port: 3306
-      database: dbname
-      username: user
-      password: pass
+      mysql: # (2)
+        drivername: mysql+aiomysql
+        host: localhost
+        port: 3306
+        database: dbname
+        username: user
+        password: pass
 
-    oracle: # (3)
-      drivername: oracle+oracledb_async
-      host: localhost
-      port: 1521
-      database: DBNAME # (4)
-      username: user
-      password: pass
+      oracle: # (3)
+        drivername: oracle+oracledb_async
+        host: localhost
+        port: 1521
+        database: DBNAME # (4)
+        username: user
+        password: pass
 ```
 
 1.  Username and password separated from the database url
@@ -102,39 +107,79 @@ data:
 
 ## Using environment variables
 
+It is a good pratctice to externalize configuration through environment variables.
+We can either reference the variables in the configuration or use variables with
+the `SELVA__` prefix, for example, `SELVA__DATA__SQLALCHEMY__CONNECTIONS__DEFAULT__URL`.
+
 === "configuration/settings.yaml"
     ```yaml
     data:
       sqlalchemy:
-        default:
-          url: "${DATABASE_URL}" # (1)
+        connections:
+          default:
+            url: "${DATABASE_URL}" # (1)
 
-        other: # (2)
-          url: "${DATABASE_URL}"
-          username: "${DATABASE_USERNAME}"
-          password: "${DATABASE_PASSWORD}"
+          other: # (2)
+            url: "${DATABASE_URL}"
+            username: "${DATABASE_USERNAME}"
+            password: "${DATABASE_PASSWORD}"
     
-        another: # (3)
-          drivername: "${DATABASE_DRIVERNAME}"
-          host: "${DATABASE_HOST}"
-          port: ${DATABASE_PORT}
-          database: "${DATABASE_NAME}"
-          username: "${DATABASE_USERNAME}"
-          password: "${DATABASE_PASSWORD}"
+          another: # (3)
+            drivername: "${DATABASE_DRIVERNAME}"
+            host: "${DATABASE_HOST}"
+            port: ${DATABASE_PORT}
+            database: "${DATABASE_NAME}"
+            username: "${DATABASE_USERNAME}"
+            password: "${DATABASE_PASSWORD}"
     ```
     
     1.  Can be define with just the environment variable `SELVA__DATA__SQLALCHEMY__DEFAULT__URL`
     2.  Can be defined with just the environment variables:
-        - `SELVA__DATA__SQLALCHEMY__OTHER__URL`
-        - `SELVA__DATA__SQLALCHEMY__OTHER__USERNAME`
-        - `SELVA__DATA__SQLALCHEMY__OTHER__PASSWORD`
+        - `SELVA__DATA__SQLALCHEMY__CONNECTIONS__OTHER__URL`
+        - `SELVA__DATA__SQLALCHEMY__CONNECTIONS__OTHER__USERNAME`
+        - `SELVA__DATA__SQLALCHEMY__CONNECTIONS__OTHER__PASSWORD`
     3.  Can be defined with just the environment variables:
-        - `SELVA__DATA__SQLALCHEMY__ANOTHER__DRIVERNAME`
-        - `SELVA__DATA__SQLALCHEMY__ANOTHER__HOST`
-        - `SELVA__DATA__SQLALCHEMY__ANOTHER__PORT`
-        - `SELVA__DATA__SQLALCHEMY__ANOTHER__DATABASE`
-        - `SELVA__DATA__SQLALCHEMY__ANOTHER__USERNAME`
-        - `SELVA__DATA__SQLALCHEMY__ANOTHER__PASSWORD`
+        - `SELVA__DATA__SQLALCHEMY__CONNECTIONS__ANOTHER__DRIVERNAME`
+        - `SELVA__DATA__SQLALCHEMY__CONNECTIONS__ANOTHER__HOST`
+        - `SELVA__DATA__SQLALCHEMY__CONNECTIONS__ANOTHER__PORT`
+        - `SELVA__DATA__SQLALCHEMY__CONNECTIONS__ANOTHER__DATABASE`
+        - `SELVA__DATA__SQLALCHEMY__CONNECTIONS__ANOTHER__USERNAME`
+        - `SELVA__DATA__SQLALCHEMY__CONNECTIONS__ANOTHER__PASSWORD`
+
+## Working with async_sessionmaker
+
+Different from the `AsyncEngine`, Selva only creates a single `async_sessionmaker`.
+We can bind specific subclasses of `DeclarativeBase` through the `data.sqlalchemy.session.binds`
+configuration, otherwise it is bound to just the `default` connection.
+
+=== "application/model.py"
+
+    ```python
+    from sqlalchemy.orm import DeclarativeBase
+    
+    
+    class Base(DeclarativeBase):
+        pass
+    
+    class OtherBase(DeclarativeBase):
+        pass
+    ```
+
+=== "configuration/settings.yaml"
+
+    ```yaml
+    data:
+      sqlalchemy:
+        connections:
+          default:
+            url: "sqlite+aiosqlite://db1.sqlite3"
+          other:
+            url: "sqlite+aiosqlite://db2.sqlite3"
+        session:
+          binds:
+            application.model.Base: default
+            application.model.OtherBase: other
+    ```
 
 ## Example
 
@@ -208,8 +253,8 @@ data:
 ## Configuration options
 
 Selva offers several options to configure SQLAlchemy. If you need more control over
-the SQLAlchemy services, you can create your own `engine` and `sessionmaker` outside
-of the DI context.
+the SQLAlchemy services, you can create your own `AsyncEngine` and `async_sessionmaker`
+outside of the DI context.
 
 The available options are shown below:
 
@@ -231,6 +276,7 @@ data:
         close_resets_only: null
       binds: # (2)
         application.model.Base: default
+        application.model.OtherBase: other
     connections:
       default:
         url: ""
@@ -276,8 +322,9 @@ data:
               null: "my_schema"
               some_schema: "other_schema"
 ```
-1.  values are describe in [`sqlalchemy.orm.Session`](https://docs.sqlalchemy.org/orm/session_api.html#sqlalchemy.orm.Session)
-2.  define dotted paths to subclasses of `sqlalchemy.orm.DeclarativeBase` to bind to an engine defined in `connections`
-3.  values are described in [`sqlalchemy.create_engine`](https://docs.sqlalchemy.org/core/engines.html#sqlalchemy.create_engine)
+
+1.  Values are describe in [`sqlalchemy.orm.Session`](https://docs.sqlalchemy.org/orm/session_api.html#sqlalchemy.orm.Session)
+2.  Binds subclasses of `sqlalchemy.orm.DeclarativeBase` to connection names defined in `connections`
+3.  Values are described in [`sqlalchemy.create_engine`](https://docs.sqlalchemy.org/core/engines.html#sqlalchemy.create_engine)
 4.  `connect_args` is a map of args to pass to the `connect` function of the underlying driver
 5.  `execution_options` values are describe in [`Sqlalchemy.engine.Connection.execution_options`](https://docs.sqlalchemy.org/core/connections.html#sqlalchemy.engine.Connection.execution_options)
