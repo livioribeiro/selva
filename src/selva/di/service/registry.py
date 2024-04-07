@@ -22,15 +22,6 @@ class ServiceRecord:
         if service := self.providers.get(name):
             return service
 
-        if default := self.providers.get(None):
-            message = (
-                f"using default service instead of '{name}'"
-                f" for '{default.provides.__qualname__}'"
-            )
-
-            warnings.warn(message)
-            return default
-
         return None
 
     def __contains__(self, name: str | None) -> bool:

@@ -9,18 +9,13 @@ from selva.di.inject import Inject
 
 
 @service(name="1")
-class DependentService:
+class NamedService:
     pass
 
 
 @service
 class ServiceWithNamedDep:
-    dependent: Annotated[DependentService, Inject(name="1")]
-
-
-@service
-class ServiceWithUnamedDep:
-    dependent: Annotated[DependentService, Inject]
+    dependent: Annotated[NamedService, Inject(name="1")]
 
 
 class Interface:
@@ -38,45 +33,50 @@ class Impl2(Interface):
 
 
 async def test_dependency_with_name(ioc: Container):
-    ioc.register(DependentService)
+    ioc.register(NamedService)
     ioc.register(ServiceWithNamedDep)
 
     instance = await ioc.get(ServiceWithNamedDep)
     dependent = instance.dependent
-    assert isinstance(dependent, DependentService)
+    assert isinstance(dependent, NamedService)
 
 
-async def test_dependency_without_name_should_fail(ioc: Container):
-    ioc.register(DependentService)
-    ioc.register(ServiceWithUnamedDep)
-
-    with pytest.raises(ServiceNotFoundError):
-        await ioc.get(ServiceWithUnamedDep)
-
-
-async def test_default_dependency(ioc: Container):
+async def test_unnamed_dependency_with_named_service_should_fail(ioc: Container):
     @service
     class Service:
         pass
 
     @service
-    class WithNamedDep:
+    class DependentService:
         dependent: Annotated[Service, Inject(name="1")]
 
-    ioc.register(Service)
-    ioc.register(WithNamedDep)
+    ioc.register(NamedService)
+    ioc.register(DependentService)
 
-    with pytest.warns(UserWarning):
-        instance = await ioc.get(WithNamedDep)
+    with pytest.raises(ServiceNotFoundError):
+        await ioc.get(DependentService)
 
-    dependent = instance.dependent
-    assert isinstance(dependent, Service)
+
+async def test_named_dependency_with_unnamed_service_should_fail(ioc: Container):
+    @service(name="1")
+    class Service:
+        pass
+
+    @service
+    class DependentService:
+        dependent: Annotated[Service, Inject]
+
+    ioc.register(NamedService)
+    ioc.register(DependentService)
+
+    with pytest.raises(ServiceNotFoundError):
+        await ioc.get(DependentService)
 
 
 async def test_register_two_services_with_the_same_name_should_fail(ioc: Container):
-    ioc.register(DependentService)
+    ioc.register(NamedService)
     with pytest.raises(ServiceAlreadyRegisteredError):
-        ioc.register(DependentService)
+        ioc.register(NamedService)
 
 
 async def test_dependencies_with_same_interface(ioc: Container):
