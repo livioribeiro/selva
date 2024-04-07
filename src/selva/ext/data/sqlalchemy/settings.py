@@ -1,9 +1,12 @@
 from collections.abc import Callable
 from types import ModuleType
-from typing import Any, Literal, Self
+from typing import Any, Literal, Self, Type
 
-from pydantic import BaseModel, ConfigDict, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 from sqlalchemy import URL, make_url
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm.query import Query
+from sqlalchemy.orm.session import JoinTransactionMode
 
 from selva._util.pydantic import DottedPath
 
@@ -64,7 +67,7 @@ class SqlAlchemyOptions(BaseModel):
     use_insertmanyvalues: bool = None
 
 
-class SqlAlchemySettings(BaseModel):
+class SqlAlchemyEngineSettings(BaseModel):
     """Settings for a SQLAlchemy connection defined in a settings file."""
 
     model_config = ConfigDict(extra="forbid")
@@ -109,3 +112,36 @@ class SqlAlchemySettings(BaseModel):
             )
 
         return url
+
+
+class SqlAlchemySessionOptions(BaseModel):
+    class_: DottedPath[Type[AsyncSession]] = Field(default=None, alias="class")
+    autoflush: bool = (None,)
+    expire_on_commit: bool = (None,)
+    autobegin: bool = (None,)
+    twophase: bool = (None,)
+    enable_baked_queries: bool = (None,)
+    info: dict[str, Any] = (None,)
+    query_cls: DottedPath[Type[Query[Any]]] = (None,)
+    join_transaction_mode: JoinTransactionMode = (None,)
+    close_resets_only: bool = (None,)
+
+
+class SqlAlchemySessionSettings(BaseModel):
+    """Settings for the SQLAlchemy session defined in a settings file."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    options: SqlAlchemySessionOptions = None
+    binds: dict[DottedPath, str] = None
+
+
+class SqlAlchemySettings(BaseModel):
+    """Settings for the SQLAlchemy session defined in a settings file."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    connections: dict[str, SqlAlchemyEngineSettings]
+    session: SqlAlchemySessionSettings = Field(
+        default_factory=SqlAlchemySessionSettings
+    )

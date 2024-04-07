@@ -22,15 +22,6 @@ class ServiceRecord:
         if service := self.providers.get(name):
             return service
 
-        if default := self.providers.get(None):
-            message = (
-                f"using default service instead of '{name}'"
-                f" for '{default.provides.__qualname__}'"
-            )
-
-            warnings.warn(message)
-            return default
-
         return None
 
     def __contains__(self, name: str | None) -> bool:
@@ -53,9 +44,10 @@ class ServiceRegistry:
         self.services: dict[type, ServiceRecord] = defaultdict(ServiceRecord)
 
     def get(self, key: type, name: str = None) -> ServiceSpec | None:
-        if (key, name) not in self:
+        try:
+            return self[key, name]
+        except ServiceNotFoundError:
             return None
-        return self[key, name]
 
     def __getitem__(self, key: type | tuple[type, str]):
         inner_key, name = _get_key_with_name(key)

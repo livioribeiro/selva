@@ -20,7 +20,7 @@ class ServiceDependency(NamedTuple):
 class ServiceSpec(NamedTuple):
     service: type
     provides: type
-    factory: FunctionType
+    factory: FunctionType | None
     name: str | None
     dependencies: list[tuple[str, ServiceDependency]]
     initializer: Callable = None

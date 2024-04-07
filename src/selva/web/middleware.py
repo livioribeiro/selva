@@ -1,16 +1,19 @@
-from abc import ABC, abstractmethod
 from collections.abc import Awaitable, Callable
+from typing import Protocol, runtime_checkable
 
 from asgikit.requests import Request
 
-__all__ = ("Middleware",)
+__all__ = ("Middleware", "CallNext")
 
 
-class Middleware(ABC):
-    @abstractmethod
+CallNext = Callable[[Request], Awaitable]
+
+
+@runtime_checkable
+class Middleware(Protocol):
     async def __call__(
         self,
-        call: Callable[[Request], Awaitable],
+        call_next: CallNext,
         request: Request,
     ):
         raise NotImplementedError()

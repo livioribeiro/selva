@@ -1,13 +1,16 @@
 from typing import Annotated
 
 from selva.di.container import Container
+from selva.di.decorator import service
 from selva.di.inject import Inject
 
 
+@service
 class Service1:
     service2: Annotated["Service2", Inject]
 
 
+@service
 class Service2:
     service1: Annotated[Service1, Inject]
 

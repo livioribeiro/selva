@@ -1,6 +1,7 @@
 import pytest
 
 from selva.di.container import Container
+from selva.di.decorator import service
 from selva.di.error import ServiceNotFoundError
 
 
@@ -8,17 +9,19 @@ class Interface:
     pass
 
 
+@service(provides=Interface, name="impl1")
 class Impl1(Interface):
     pass
 
 
+@service(provides=Interface, name="impl2")
 class Impl2(Interface):
     pass
 
 
 def test_iter_service(ioc: Container):
-    ioc.register(Impl1, provides=Interface, name="impl1")
-    ioc.register(Impl2, provides=Interface, name="impl2")
+    ioc.register(Impl1)
+    ioc.register(Impl2)
 
     services = list(ioc.iter_service(Interface))
 

@@ -30,14 +30,16 @@ in the processing of the request:
     from datetime import datetime
     
     from asgikit.requests import Request
-    from selva.web.middleware import Middleware
+    from selva.di import service
+    from selva.web.middleware import Middleware, CallNext
     from loguru import logger
     
     
+    @service
     class TimingMiddleware(Middleware):
-        async def __call__(self, chain: Callable, request: Request):
+        async def __call__(self, call_next: CallNext, request: Request):
             request_start = datetime.now()
-            await chain(request) # (1)
+            await call_next(request) # (1)
             request_end = datetime.now()
     
             delta = request_end - request_start
@@ -77,20 +79,22 @@ the timings using a service instead of printing to the console:
     ```python
     from collections.abc import Callable
     from datetime import datetime
+    from typing import Annotated
     
     from asgikit.requests import Request
-    from selva.di import Inject
-    from selva.web.middleware import Middleware
+    from selva.di import service, Inject
+    from selva.web.middleware import Middleware, CallNext
     
     from application.service import TimingService
     
     
-    class TimingMiddleware(Middleware):
-        timing_service: TimingService = Inject()
+    @service
+    class TimingMiddleware:
+        timing_service: Annotated[TimingService, Inject]
     
-        async def __call__(self, chain: Callable, request: Request):
+        async def __call__(self, call_next: CallNext, request: Request):
             request_start = datetime.now()
-            await chain(request)
+            await call_next(request)
             request_end = datetime.now()
     
             await self.timing_service.save(request_start, request_end)

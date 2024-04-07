@@ -11,6 +11,10 @@ from selva.web.routing.decorator import (
     ActionInfo,
     ControllerInfo,
 )
+from selva.web.routing.exception import (
+    ControllerWithoutDecoratorError,
+    DuplicateRouteError,
+)
 from selva.web.routing.route import Route, RouteMatch
 
 
@@ -28,12 +32,9 @@ class Router:
         controller_info: ControllerInfo = getattr(
             controller, CONTROLLER_ATTRIBUTE, None
         )
+
         if not controller_info:
-            # TODO: create exception
-            raise ValueError(
-                f"{controller.__module__}.{controller.__qualname__}"
-                " is not annotated with @controller"
-            )
+            raise ControllerWithoutDecoratorError(controller)
 
         path_prefix = controller_info.path
 
@@ -58,21 +59,12 @@ class Router:
             route = Route(method, path, controller, action, route_name)
 
             for current_route in self.routes.values():
-                # skip route if already registered
                 if (
-                    current_route.controller == route.controller
+                    current_route.action != route.action
                     and current_route.method == route.method
-                ):
-                    continue
-
-                if (
-                    current_route.method == route.method
                     and current_route.regex == route.regex
                 ):
-                    # TODO: create exception
-                    raise ValueError(
-                        f"path for {route.name} clashes with {current_route.name}"
-                    )
+                    raise DuplicateRouteError(route.name, current_route.name)
 
             self.routes[route_name] = route
             logger.trace(

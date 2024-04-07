@@ -16,7 +16,6 @@ from selva._util.import_item import import_item
 from selva._util.maybe_async import maybe_async
 from selva.configuration.settings import Settings
 from selva.di.container import Container
-from selva.di.decorator import DI_ATTRIBUTE_SERVICE
 from selva.web.converter import (
     from_request_impl,
     param_converter_impl,
@@ -39,10 +38,6 @@ from selva.web.routing.router import Router
 
 def _is_controller(arg) -> bool:
     return inspect.isclass(arg) and hasattr(arg, CONTROLLER_ATTRIBUTE)
-
-
-def _is_service(arg) -> bool:
-    return hasattr(arg, DI_ATTRIBUTE_SERVICE)
 
 
 def _is_module(arg) -> bool:
@@ -129,7 +124,7 @@ class Selva:
             )
 
         for cls in reversed(middleware):
-            mid = await self.di.create(cls)
+            mid = await self.di.get(cls)
             chain = functools.partial(mid, self.handler)
             self.handler = chain
 
@@ -211,7 +206,7 @@ class Selva:
                     logger.error("Response is finished")
                     return
 
-                await respond_status(response, err.status)
+                await respond_text(response, str(err), status=err.status)
         except Exception as err:
             logger.exception("Error processing request")
             await respond_text(

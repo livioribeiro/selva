@@ -15,7 +15,6 @@ async def test_define_service_not_registered(ioc: Container):
 
 
 async def test_define_service_already_registered(ioc: Container):
-    ioc.register(Service)
     instance = Service()
     ioc.define(Service, instance)
 

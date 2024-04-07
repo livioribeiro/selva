@@ -22,7 +22,11 @@ async def test_application(application: str, database: str):
         | {
             "application": f"{__package__}.{application}",
             "extensions": ["selva.ext.data.sqlalchemy"],
-            "data": {"sqlalchemy": {database: {"url": "sqlite+aiosqlite:///:memory:"}}},
+            "data": {
+                "sqlalchemy": {
+                    "connections": {database: {"url": "sqlite+aiosqlite:///:memory:"}}
+                }
+            },
         }
     )
 
@@ -33,4 +37,4 @@ async def test_application(application: str, database: str):
     client = AsyncClient(app=app)
     response = await client.get("http://localhost:8000/")
 
-    assert response.status_code == HTTPStatus.OK
+    assert response.status_code == HTTPStatus.OK, response.text

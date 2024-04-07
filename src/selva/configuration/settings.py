@@ -26,7 +26,7 @@ DEFAULT_SETTINGS_FILE = "settings.yaml"
 SELVA_PROFILE = "SELVA_PROFILE"
 
 
-class Settings(Mapping):
+class Settings(Mapping[str, Any]):
     def __init__(self, data: dict):
         for key, value in data.items():
             if isinstance(value, dict):

@@ -34,6 +34,8 @@ def build_backoff(data: BackoffSchema) -> AbstractBackoff:
     if value := data.decorrelated_jitter:
         return DecorrelatedJitterBackoff(**value.model_dump(exclude_unset=True))
 
+    raise ValueError("No value defined for 'backoff'")
+
 
 def build_retry(data: RetrySchema):
     kwargs = {
