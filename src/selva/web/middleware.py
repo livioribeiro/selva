@@ -1,12 +1,12 @@
 from collections.abc import Awaitable, Callable
-from typing import Protocol, runtime_checkable
+from typing import Protocol, TypeAlias, runtime_checkable
 
 from asgikit.requests import Request
 
 __all__ = ("Middleware", "CallNext")
 
 
-CallNext = Callable[[Request], Awaitable]
+CallNext: TypeAlias = Callable[[Request], Awaitable]
 
 
 @runtime_checkable
