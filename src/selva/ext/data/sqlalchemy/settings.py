@@ -14,6 +14,7 @@ from selva._util.pydantic import DottedPath
 class SqlAlchemyExecutionOptions(BaseModel):
     """SQLAlchemy execution options.
 
+    # noqa: E501
     Defined in https://docs.sqlalchemy.org/en/20/core/connections.html#sqlalchemy.engine.Connection.execution_options
     """
 

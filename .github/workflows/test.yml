@@ -40,6 +40,13 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+      memcached:
+        image: memcached:1.6.23-alpine
+        options: >-
+          --health-cmd "echo 'stats' | nc 127.0.0.1 11211"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - uses: actions/checkout@v4
       - run: pip install poetry
@@ -48,8 +55,10 @@ jobs:
           --extras jinja
           --extras sqlalchemy
           --extras redis
+          --extras memcached
           --no-interaction
       - env:
           POSTGRES_URL: postgresql+psycopg://postgres:postgres@postgres:5432/test
           REDIS_URL: redis://default:password@redis:6379/0
+          MEMCACHED_ADDR: memcached:11211
         run: poetry run pytest
