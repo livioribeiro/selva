@@ -41,7 +41,22 @@ def test_get_settings_with_profile(monkeypatch, profile):
     result = _get_settings_nocache()
     assert result == default_settings | {
         "name": "application",
-        "environment": profile,
+        "profile": profile,
+    }
+
+
+@pytest.mark.parametrize(
+    ["profile_a", "profile_b"],
+    [["dev", "stg"], ["stg", "prd"], ["prd", "dev"]],
+)
+def test_get_settings_with_multiple_profiles(monkeypatch, profile_a, profile_b):
+    monkeypatch.chdir(Path(__file__).parent / "multiple_profiles")
+    monkeypatch.setenv("SELVA_PROFILE", f"{profile_a}, {profile_b}")
+
+    result = _get_settings_nocache()
+    assert result == default_settings | {
+        f"profile_{profile_a}": True,
+        f"profile_{profile_b}": True,
     }
 
 
@@ -49,9 +64,9 @@ def test_get_settings_with_profile(monkeypatch, profile):
     "profile,expected",
     [
         (None, {"name": "application"}),
-        ("dev", {"environment": "dev"}),
-        ("stg", {"environment": "stg"}),
-        ("prd", {"environment": "prd"}),
+        ("dev", {"profile": "dev"}),
+        ("stg", {"profile": "stg"}),
+        ("prd", {"profile": "prd"}),
     ],
     ids=["None", "dev", "stg", "prd"],
 )
@@ -145,7 +160,7 @@ def test_configure_settings_file_with_profile(monkeypatch):
 
     result = _get_settings_nocache()
     assert result == default_settings | {
-        "environment": "prd",
+        "profile": "prd",
         "prop": "value",
         "list": ["1", "2", "3"],
         "dict": {
@@ -170,7 +185,7 @@ def test_configure_env_setttings(monkeypatch, env):
     result = _get_settings_nocache()
     assert result == default_settings | {
         "name": "application",
-        "environment": env,
+        "profile": env,
     }
 
 
@@ -213,7 +228,7 @@ def test_setttings_class_env(monkeypatch, env):
 
     settings = _get_settings_nocache()
     assert settings["name"] == "application"
-    assert settings["environment"] == env
+    assert settings["profile"] == env
 
 
 def test_no_profile_settings_file_should_log_warning(monkeypatch, caplog):
