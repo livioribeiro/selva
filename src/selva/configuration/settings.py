@@ -92,9 +92,10 @@ def _get_settings_nocache() -> Settings:
     # merge with main settings file (settings.yaml)
     merge_recursive(settings, get_settings_for_profile())
 
-    # merge with environment settings file (settings_$SELVA_PROFILE.yaml)
-    if active_profile := os.getenv(SELVA_PROFILE):
-        merge_recursive(settings, get_settings_for_profile(active_profile))
+    # merge with profile settings files (settings_$SELVA_PROFILE.yaml)
+    if active_profile_list := os.getenv(SELVA_PROFILE):
+        for active_profile in (p.strip() for p in active_profile_list.split(",")):
+            merge_recursive(settings, get_settings_for_profile(active_profile))
 
     # merge with environment variables (SELVA_*)
     from_env_vars = parse_settings_from_env(os.environ)

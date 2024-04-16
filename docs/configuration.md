@@ -97,6 +97,11 @@ As an example, if we define `SELVA_PROFILE=dev`, the file `settings_dev.yaml` wi
 be loaded. If instead we define `SELVA_PROFILE=prod`, then the file `settings_prod.yaml`
 will be loaded.
 
+Multiple profiles can be activated by setting `SELVA_PROFILE` with a comma separated
+list of profiles, for example `SELVA_PROFILE=dev,prod`. The framework will iterate
+over the list and merge the settings found on each one. The precedence is from last
+to first, so settings from one profile overwrite settings from the previous ones.
+
 ## Environment variables
 
 Settings can also be defined with environment variables whose names start with `SELVA__`,
