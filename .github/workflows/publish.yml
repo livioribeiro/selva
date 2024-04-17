@@ -5,6 +5,9 @@ on:
     tags:
       - "v*.*.*"
 
+env:
+  VERSION: ${{ github.ref_name }}
+
 jobs:
   publish:
     runs-on: ubuntu-latest
@@ -17,6 +20,7 @@ jobs:
           python-version: "3.x"
       - run: pip install pipx
       - run: pipx install poetry
+      - run: poetry version ${VERSION#v}
       - run: poetry build
       - name: Publish package distributions to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
