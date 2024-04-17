@@ -14,7 +14,7 @@ class DefautDBService:
     sessionmaker: Annotated[async_sessionmaker, Inject]
 
     async def initialize(self):
-        async with self.engine.begin() as conn:
+        async with self.engine.connect() as conn:
             await conn.run_sync(Base.metadata.create_all)
 
         async with self.sessionmaker() as session:
@@ -37,7 +37,7 @@ class OtherDBService:
     sessionmaker: Annotated[async_sessionmaker, Inject]
 
     async def initialize(self):
-        async with self.engine.begin() as conn:
+        async with self.engine.connect() as conn:
             await conn.run_sync(OtherBase.metadata.create_all)
 
         async with self.sessionmaker() as session:
