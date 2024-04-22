@@ -1,5 +1,6 @@
 import functools
 import inspect
+import traceback
 import typing
 from http import HTTPStatus
 from typing import Any
@@ -178,7 +179,7 @@ class Selva:
                 if handler := await self.di.get(
                     ExceptionHandler[type(err)], optional=True
                 ):
-                    logger.trace(
+                    logger.debug(
                         "Handling exception with handler {}.{}",
                         handler.__class__.__module__,
                         handler.__class__.__qualname__,
@@ -186,31 +187,45 @@ class Selva:
                     await handler.handle_exception(request, err)
                 else:
                     raise
-        except WebSocketException as err:
-            await request.websocket.close(err.code, err.reason)
         except (WebSocketDisconnectError, WebSocketError):
             logger.exception("WebSocket error")
             await request.websocket.close()
+        except WebSocketException as err:
+            await request.websocket.close(err.code, err.reason)
         except HTTPException as err:
             if websocket := request.websocket:
-                logger.error("WebSocket request raise HTTPException")
+                logger.exception("WebSocket request raised HTTPException")
                 await websocket.close()
+                return
+
+            response = request.response
+
+            if cause := err.__cause__:
+                logger.exception(cause)
+                stack_trace = "".join(traceback.format_exception(cause))
             else:
-                response = request.response
-                if response.is_started:
-                    logger.error("Response has already started")
-                    await response.end()
-                    return
+                stack_trace = None
 
-                if response.is_finished:
-                    logger.error("Response is finished")
-                    return
+            if response.is_started:
+                logger.error("Response has already started")
+                await response.end()
+                return
 
-                await respond_text(response, str(err), status=err.status)
-        except Exception as err:
+            if response.is_finished:
+                logger.error("Response is finished")
+                return
+
+            if stack_trace:
+                await respond_text(response, stack_trace, status=err.status)
+            else:
+                await respond_status(response, status=err.status)
+        except Exception:
             logger.exception("Error processing request")
+
             await respond_text(
-                request.response, str(err), status=HTTPStatus.INTERNAL_SERVER_ERROR
+                request.response,
+                traceback.format_exc(),
+                status=HTTPStatus.INTERNAL_SERVER_ERROR,
             )
 
     async def _process_request(self, request: Request):

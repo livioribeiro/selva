@@ -7,7 +7,9 @@ from selva.web.templates import Template
 
 async def selva_extension(container: Container, settings: Settings):
     if find_spec("jinja2") is None:
-        raise ModuleNotFoundError("Missing 'jinja2'. Install 'selva' with 'jinja' extra.")
+        raise ModuleNotFoundError(
+            "Missing 'jinja2'. Install 'selva' with 'jinja' extra."
+        )
 
     backend = settings.templates.backend
 

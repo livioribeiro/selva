@@ -2,7 +2,8 @@ from emcache import Client, MemcachedHostAddress, create_client
 
 from selva.configuration.settings import Settings
 from selva.di.container import Container
-from selva.di.decorator import service as service_decorator, DI_ATTRIBUTE_SERVICE
+from selva.di.decorator import DI_ATTRIBUTE_SERVICE
+from selva.di.decorator import service as service_decorator
 
 from .settings import MemcachedSettings
 
@@ -39,9 +40,13 @@ def make_service(name: str):
                 if not di.has(cluster_events, name=name):
                     di.register(cluster_events)
 
-                cluster_events_service_name = getattr(cluster_events, DI_ATTRIBUTE_SERVICE).name
+                cluster_events_service_name = getattr(
+                    cluster_events, DI_ATTRIBUTE_SERVICE
+                ).name
 
-                memcached_options["cluster_events"] = await di.get(cluster_events, name=cluster_events_service_name)
+                memcached_options["cluster_events"] = await di.get(
+                    cluster_events, name=cluster_events_service_name
+                )
 
         else:
             memcached_options = {}

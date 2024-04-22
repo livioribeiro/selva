@@ -10,7 +10,9 @@ from .service import engine_dict_service, sessionmaker_service
 
 def selva_extension(container: Container, settings: Settings):
     if find_spec("sqlalchemy") is None:
-        raise ModuleNotFoundError("Missing 'sqlalchemy'. Install 'selva' with 'sqlalchemy' extra.")
+        raise ModuleNotFoundError(
+            "Missing 'sqlalchemy'. Install 'selva' with 'sqlalchemy' extra."
+        )
 
     for name in settings.data.sqlalchemy.connections:
         service_name = name if name != "default" else None
