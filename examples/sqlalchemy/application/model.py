@@ -8,7 +8,7 @@ class Base(DeclarativeBase):
 
 class MyModel(Base):
     __tablename__ = 'my_model'
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(length=100))
 
     def __repr__(self):
@@ -21,7 +21,7 @@ class OtherBase(DeclarativeBase):
 
 class OtherModel(OtherBase):
     __tablename__ = 'my_model'
-    id: Mapped[int] = Column(primary_key=True, autoincrement=True)
+    id: Mapped[int] = Column(Integer, primary_key=True, autoincrement=True)
     name: Mapped[str] = Column(String(length=100))
 
     def __repr__(self):
