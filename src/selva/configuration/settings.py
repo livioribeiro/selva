@@ -28,11 +28,18 @@ SELVA_PROFILE = "SELVA_PROFILE"
 
 class Settings(Mapping[str, Any]):
     def __init__(self, data: dict):
+        self._original_data = copy.deepcopy(data)
+        self.__data = data
+
         for key, value in data.items():
             if isinstance(value, dict):
                 data[key] = Settings(value)
 
-        self.__data = data
+    def __getattr__(self, item: str):
+        try:
+            return self.__data[item]
+        except KeyError:
+            raise AttributeError(item)
 
     def __len__(self) -> int:
         return len(self.__data)
@@ -46,24 +53,18 @@ class Settings(Mapping[str, Any]):
     def __getitem__(self, key: str):
         return self.__data[key]
 
-    def __getattr__(self, item: str):
-        try:
-            return self.__data[item]
-        except KeyError:
-            raise AttributeError(item)
-
     def __copy__(self):
-        return Settings(copy.copy(self.__data))
+        return Settings(copy.copy(self._original_data))
 
     def __deepcopy__(self, memodict):
-        data = copy.deepcopy(self.__data, memodict)
+        data = copy.deepcopy(self._original_data, memodict)
         return Settings(data)
 
     def __eq__(self, other: Any) -> bool:
         if isinstance(other, Settings):
-            return self.__data == other.__data
+            return self._original_data == other._original_data
         if isinstance(other, Mapping):
-            return self.__data == other
+            return self._original_data == other
 
         return False
 

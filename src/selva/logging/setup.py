@@ -1,52 +1,24 @@
-import sys
-from functools import cache
+import copy
 
 from loguru import logger
 
+from selva._util.import_item import import_item
 from selva.configuration.settings import Settings
 from selva.logging.stdlib import setup_loguru_std_logging_interceptor
 
+_IMPORT_PROPS = ["sink", "format", "filter", "patcher"]
 
-def setup_logger(settings: Settings):
-    enable = [(name, True) for name in settings.logging.enable]
-    disable = [(name, False) for name in settings.logging.disable]
 
-    # enabling has precedence over disabling
-    # therefore the "enable" list comes after the "disable" list
-    activation = disable + enable
+def setup_logging(settings: Settings):
+    config = copy.deepcopy(settings.logging.config) if settings.logging.config else {}
 
-    log_config = settings.get("logging", {})
-    root_level = logger.level(log_config.get("root", "WARNING"))
-    log_level = {
-        name: logger.level(value) for name, value in log_config.get("level", {}).items()
-    }
+    handlers = enumerate(config.get("handlers", []))
 
-    filter_func = filter_func_factory(root_level, log_level)
-    handler = {"sink": sys.stderr, "filter": filter_func}
+    for i, handler in handlers:
+        for prop in _IMPORT_PROPS:
+            if (item := handler.get(prop)) and isinstance(item, str) and item.startswith("ext://"):
+                config.handlers[i][prop] = import_item(item.removeprefix("ext://"))
 
-    logger.configure(handlers=[handler], activation=activation)
+    logger.configure(**config)
 
     setup_loguru_std_logging_interceptor()
-
-
-def filter_func_factory(root_level, log_level: dict):
-    @cache
-    def has_level(name: str, record_level):
-        level = log_level.get(name)
-
-        while not level:
-            match name.rsplit(".", 1):
-                case [first, _last]:
-                    name = first
-                    level = log_level.get(name)
-                case _:
-                    level = root_level
-
-        return record_level.no >= level.no
-
-    def filter_func(record):
-        name = record["name"]
-        record_level = record["level"]
-        return has_level(name, record_level)
-
-    return filter_func

@@ -1,3 +1,7 @@
+"""
+https://loguru.readthedocs.io/en/stable/overview.html#entirely-compatible-with-standard-logging
+"""
+
 import inspect
 import logging
 

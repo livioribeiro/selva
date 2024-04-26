@@ -66,8 +66,8 @@ class Selva:
 
         self._register_modules()
 
-        setup_logger = import_item(self.settings.logging.setup)
-        setup_logger(self.settings)
+        logging_config = import_item(self.settings.logging.setup)
+        logging_config(self.settings)
 
     async def __call__(self, scope, receive, send):
         match scope["type"]:

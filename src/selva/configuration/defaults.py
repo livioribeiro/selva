@@ -3,11 +3,18 @@ default_settings = {
     "extensions": [],
     "middleware": [],
     "logging": {
-        "setup": "selva.logging.setup.setup_logger",
-        "root": "WARNING",
-        "level": {},
-        "enable": [],
-        "disable": [],
+        "setup": "selva.logging.setup.setup_logging",
+        "config": {
+            "handlers": [
+                {
+                    "sink": "ext://sys.stderr",
+                    "level": "INFO",
+                    "format": "ext://selva.logging.logfmt.formatter",
+                    "diagnose": True,
+                    "backtrace": False,
+                },
+            ]
+        },
     },
     "templates": {
         "backend": None,
