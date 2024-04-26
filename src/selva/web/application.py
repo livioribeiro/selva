@@ -72,7 +72,7 @@ class Selva:
     async def __call__(self, scope, receive, send):
         match scope["type"]:
             case "http" | "websocket":
-                with logger.contextualize(request_id=uuid4()):
+                with logger.contextualize(request_id=str(uuid4())):
                     await self._handle_request(scope, receive, send)
             case "lifespan":
                 await self._handle_lifespan(scope, receive, send)

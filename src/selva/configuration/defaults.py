@@ -9,7 +9,6 @@ default_settings = {
                 {
                     "sink": "ext://sys.stderr",
                     "level": "INFO",
-                    "format": "ext://selva.logging.logfmt.formatter",
                     "diagnose": True,
                     "backtrace": False,
                 },
