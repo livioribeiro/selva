@@ -5,12 +5,14 @@ from asgikit.errors.websocket import WebSocketDisconnectError
 from asgikit.requests import Request
 from asgikit.responses import respond_file
 from asgikit.websockets import WebSocket
-from loguru import logger
+import structlog
 
 from selva.configuration import Settings
 from selva.di import Inject, service
 from selva.web import controller, get, websocket
 from selva.web.exception import WebSocketException
+
+logger = structlog.get_logger()
 
 
 @service
@@ -23,17 +25,15 @@ class WebSocketService:
         ws = request.websocket
         self.clients[client] = ws
 
-        logger.info("client connected: {}", client)
+        logger.info("client connected", client=repr(client))
 
         while True:
             try:
                 message = await ws.receive()
-                logger.info(
-                    "client message: content={}, client={}", message, repr(client)
-                )
+                logger.info("client message", content=message, client=repr(client))
                 await self.broadcast(message)
             except (WebSocketDisconnectError, WebSocketException):
-                logger.info("client disconnected: {}", repr(client))
+                logger.info("client disconnected", client=repr(client))
                 del self.clients[client]
                 break
 
@@ -46,7 +46,7 @@ class WebSocketService:
                 await ws.send(message)
             except (WebSocketDisconnectError, WebSocketException):
                 del self.clients[client]
-                logger.info("client disconnected: {}", repr(client))
+                logger.info("client disconnected", client=repr(client))
 
 
 @controller

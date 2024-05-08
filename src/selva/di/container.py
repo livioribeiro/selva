@@ -4,7 +4,7 @@ from collections.abc import AsyncGenerator, Awaitable, Generator, Iterable
 from types import FunctionType, ModuleType
 from typing import Any, Type, TypeVar
 
-from loguru import logger
+import structlog
 
 from selva._util.maybe_async import maybe_async
 from selva._util.package_scan import scan_packages
@@ -18,8 +18,10 @@ from selva.di.error import (
 )
 from selva.di.interceptor import Interceptor
 from selva.di.service.model import InjectableType, ServiceDependency, ServiceSpec
-from selva.di.service.parse import get_dependencies, parse_service_spec
+from selva.di.service.parse import parse_service_spec
 from selva.di.service.registry import ServiceRegistry
+
+logger = structlog.get_logger(__name__)
 
 T = TypeVar("T")
 
@@ -50,29 +52,29 @@ class Container:
         if startup:
             self.startup.append((service_spec.provides, name))
 
+        log_context = {
+            "service": f"{injectable.__module__}.{injectable.__qualname__}",
+        }
+
+        if name:
+            log_context["name"] = name
+
         if provides:
-            logger.trace(
-                "service registered: {}.{}; provides={}.{} name={}",
-                injectable.__module__,
-                injectable.__qualname__,
-                provides.__module__,
-                provides.__qualname__,
-                name or "",
-            )
-        else:
-            logger.trace(
-                "service registered: {}.{}; name={}",
-                injectable.__module__,
-                injectable.__qualname__,
-                name or "",
-            )
+            log_context["provides"] = f"{provides.__module__}.{provides.__qualname__}"
+
+        logger.debug("service registered", **log_context)
 
     def define(self, service_type: type, instance: Any, *, name: str = None):
         self.store[service_type, name] = instance
 
-        logger.trace(
-            "service defined: {}; name={}", service_type.__qualname__, name or ""
-        )
+        log_context = {
+            "service": f"{service_type.__module__}.{service_type.__qualname__}"
+        }
+
+        if name:
+            log_context["name"] = name
+
+        logger.debug("service defined", **log_context)
 
     def interceptor(self, interceptor: Type[Interceptor]):
         self.register(
@@ -84,7 +86,10 @@ class Container:
         )
         self.interceptors.append(interceptor)
 
-        logger.trace("interceptor registered: {}", interceptor.__qualname__)
+        logger.debug(
+            "interceptor registered",
+            interceptor=f"{interceptor.__module__}.{interceptor.__qualname__}",
+        )
 
     def scan(self, *packages: str | ModuleType):
         def predicate_services(item: Any):

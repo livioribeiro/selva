@@ -1,28 +1,14 @@
 import pytest
-from _pytest.logging import LogCaptureFixture
-from loguru import logger
-
-logger.remove()
+import structlog
 
 
-@pytest.fixture
-def caplog(caplog: LogCaptureFixture):
-    logger.enable("selva")
-    handler_id = logger.add(
-        caplog.handler,
-        format="{message}",
-        level=0,
-        filter=lambda record: record["level"].no >= caplog.handler.level,
-        enqueue=False,  # Set to 'True' if your test is spawning child processes.
+@pytest.fixture(name="log_output")
+def fixture_log_output():
+    return structlog.testing.LogCapture()
+
+
+@pytest.fixture(autouse=True)
+def fixture_configure_structlog(log_output):
+    structlog.configure(
+        processors=[log_output],
     )
-    yield caplog
-    logger.remove(handler_id)
-    logger.disable("selva")
-
-
-@pytest.fixture
-def reportlog(pytestconfig):
-    logging_plugin = pytestconfig.pluginmanager.getplugin("logging-plugin")
-    handler_id = logger.add(logging_plugin.report_handler, format="{message}")
-    yield
-    logger.remove(handler_id)

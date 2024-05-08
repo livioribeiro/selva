@@ -30,9 +30,11 @@ in the processing of the request:
     from datetime import datetime
     
     from asgikit.requests import Request
+    import structlog
     from selva.di import service
     from selva.web.middleware import Middleware, CallNext
-    from loguru import logger
+    
+    logger = structlog.get_logger()
     
     
     @service
@@ -43,7 +45,7 @@ in the processing of the request:
             request_end = datetime.now()
     
             delta = request_end - request_start
-            logger.info("Request time: {}", delta)
+            logger.info("request duration", duration=str(delta))
     ```
 
     1. Invoke the middleware chain to process the request

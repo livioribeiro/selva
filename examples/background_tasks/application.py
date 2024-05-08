@@ -2,9 +2,11 @@ import asyncio
 
 from asgikit.requests import Request
 from asgikit.responses import respond_json
-from loguru import logger
+import structlog
 
 from selva.web import controller, get
+
+logger = structlog.get_logger()
 
 
 @controller

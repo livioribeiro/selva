@@ -1,11 +1,13 @@
-from loguru import logger
+import structlog
 from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker, create_async_engine
 
 from selva.configuration.settings import Settings
-from selva.di import Container, Inject
+from selva.di import Container
 from selva.ext.data.sqlalchemy.settings import SqlAlchemyEngineSettings
 
 from .settings import SqlAlchemySettings
+
+logger = structlog.get_logger()
 
 
 def make_engine_service(name: str):
@@ -61,6 +63,6 @@ async def sessionmaker_service(
         engine = engines.get("default")
         if not engine:
             name, engine = next(iter(engines.items()))
-            logger.warning("Using connection '{}' for sqlalchemy session", name)
+            logger.warning("connection for sqlalchemy session", connection=name)
 
         return async_sessionmaker(engine, **options)

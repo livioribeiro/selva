@@ -4,18 +4,17 @@ import traceback
 import typing
 from http import HTTPStatus
 from typing import Any
-from uuid import uuid4
 
+import structlog
 from asgikit.errors.websocket import WebSocketDisconnectError, WebSocketError
 from asgikit.requests import Request
 from asgikit.responses import respond_status, respond_text
 from asgikit.websockets import WebSocket
-from loguru import logger
 
 from selva._util.base_types import get_base_types
 from selva._util.import_item import import_item
 from selva._util.maybe_async import maybe_async
-from selva.configuration.settings import Settings
+from selva.configuration.settings import Settings, get_settings
 from selva.di.container import Container
 from selva.web.converter import (
     from_request_impl,
@@ -36,6 +35,8 @@ from selva.web.middleware import Middleware
 from selva.web.routing.decorator import CONTROLLER_ATTRIBUTE
 from selva.web.routing.router import Router
 
+logger = structlog.get_logger()
+
 
 def _is_controller(arg) -> bool:
     return inspect.isclass(arg) and hasattr(arg, CONTROLLER_ATTRIBUTE)
@@ -45,6 +46,24 @@ def _is_module(arg) -> bool:
     return inspect.ismodule(arg) or isinstance(arg, str)
 
 
+def _init_settings(settings: Settings | None) -> Settings:
+    paths = []
+    if not settings:
+        settings, paths = get_settings()
+
+    logging_setup = import_item(settings.logging.setup)
+    logging_setup(settings)
+
+    for path, found in paths:
+        path = str(path)
+        if found:
+            logger.info("settings loaded", settings_file=path)
+        else:
+            logger.warning("settings file not found", settings_file=path)
+
+    return settings
+
+
 class Selva:
     """Entrypoint class for a Selva Application
 
@@ -52,28 +71,24 @@ class Selva:
     Other modules and classes can be registered using the "register" method
     """
 
-    def __init__(self, settings: Settings):
+    def __init__(self, settings: Settings = None):
         self.di = Container()
         self.di.define(Container, self.di)
 
+        self.settings = _init_settings(settings)
+        self.di.define(Settings, self.settings)
+
         self.router = Router()
         self.di.define(Router, self.router)
-
-        self.settings = settings
-        self.di.define(Settings, self.settings)
 
         self.handler = self._process_request
 
         self._register_modules()
 
-        logging_config = import_item(self.settings.logging.setup)
-        logging_config(self.settings)
-
     async def __call__(self, scope, receive, send):
         match scope["type"]:
             case "http" | "websocket":
-                with logger.contextualize(request_id=str(uuid4())):
-                    await self._handle_request(scope, receive, send)
+                await self._handle_request(scope, receive, send)
             case "lifespan":
                 await self._handle_lifespan(scope, receive, send)
             case _:
@@ -124,7 +139,13 @@ class Selva:
                 f"Middleware classes must be of type '{mid_class_name}': {mid_classes}"
             )
 
+        import selva.di.decorator
+
         for cls in reversed(middleware):
+            if not hasattr(cls, selva.di.decorator.DI_ATTRIBUTE_SERVICE):
+                selva.di.decorator.service(cls)
+                self.di.register(cls)
+
             mid = await self.di.get(cls)
             chain = functools.partial(mid, self.handler)
             self.handler = chain
@@ -141,22 +162,22 @@ class Selva:
         while True:
             message = await receive()
             if message["type"] == "lifespan.startup":
-                logger.trace("Handling lifespan startup")
+                logger.debug("handling lifespan startup")
                 try:
                     await self._lifespan_startup()
-                    logger.trace("Lifespan startup complete")
+                    logger.debug("lifespan startup complete")
                     await send({"type": "lifespan.startup.complete"})
                 except Exception as err:
-                    logger.trace("Lifespan startup failed")
+                    logger.exception("lifespan startup failed")
                     await send({"type": "lifespan.startup.failed", "message": str(err)})
             elif message["type"] == "lifespan.shutdown":
-                logger.trace("Handling lifespan shutdown")
+                logger.debug("handling lifespan shutdown")
                 try:
                     await self._lifespan_shutdown()
-                    logger.trace("Lifespan shutdown complete")
+                    logger.debug("lifespan shutdown complete")
                     await send({"type": "lifespan.shutdown.complete"})
                 except Exception as err:
-                    logger.trace("Lifespan shutdown failed")
+                    logger.debug("lifespan shutdown failed")
                     await send(
                         {"type": "lifespan.shutdown.failed", "message": str(err)}
                     )
@@ -164,13 +185,6 @@ class Selva:
 
     async def _handle_request(self, scope, receive, send):
         request = Request(scope, receive, send)
-
-        logger.trace(
-            "Started handling of request '{} {} {}'",
-            request.method,
-            request.path,
-            request.raw_query,
-        )
 
         try:
             try:
@@ -180,21 +194,21 @@ class Selva:
                     ExceptionHandler[type(err)], optional=True
                 ):
                     logger.debug(
-                        "Handling exception with handler {}.{}",
-                        handler.__class__.__module__,
-                        handler.__class__.__qualname__,
+                        "Handling exception with handler",
+                        module=handler.__class__.__module__,
+                        handler=handler.__class__.__qualname__,
                     )
                     await handler.handle_exception(request, err)
                 else:
                     raise
         except (WebSocketDisconnectError, WebSocketError):
-            logger.exception("WebSocket error")
+            logger.exception("websocket error")
             await request.websocket.close()
         except WebSocketException as err:
             await request.websocket.close(err.code, err.reason)
         except HTTPException as err:
             if websocket := request.websocket:
-                logger.exception("WebSocket request raised HTTPException")
+                logger.exception("websocket request raised HTTPException")
                 await websocket.close()
                 return
 
@@ -207,12 +221,12 @@ class Selva:
                 stack_trace = None
 
             if response.is_started:
-                logger.error("Response has already started")
+                logger.error("response has already started")
                 await response.end()
                 return
 
             if response.is_finished:
-                logger.error("Response is finished")
+                logger.error("response is finished")
                 return
 
             if stack_trace:
@@ -220,7 +234,7 @@ class Selva:
             else:
                 await respond_status(response, status=err.status)
         except Exception:
-            logger.exception("Error processing request")
+            logger.exception("error processing request")
 
             await respond_text(
                 request.response,
@@ -229,6 +243,13 @@ class Selva:
             )
 
     async def _process_request(self, request: Request):
+        logger.debug(
+            "handling request",
+            method=str(request.method),
+            path=request.path,
+            query=request.raw_query,
+        )
+
         method = request.method
         path = request.path
 

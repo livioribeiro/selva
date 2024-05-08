@@ -1,53 +1,51 @@
 # Logging
 
-Selva uses [loguru](https://pypi.org/project/loguru/) for logging, but provides
+Selva uses [Structlog](https://pypi.org/project/structlog/) for logging and provides
 some facilities on top of it to make its usage a bit closer to other frameworks
 like Spring Boot.
 
-First, an interceptor to the standard `logging` module is configured by default,
-as suggested in <https://github.com/Delgan/loguru#entirely-compatible-with-standard-logging>.
+It is integrated with the standard library logging, so libraries that use it are logged
+through Structlog. It also enables filtering by logger name using the standard library.
 
-Second, a custom logging filter is provided in order to set the logging level for
-each package independently.
+The default configuration uses the `structlog.dev.ConsoleRenderer` if the property
+`debug` in the settings is `True`, otherwise it is set to `structlog.procesors.JSONRenderer`.
+It is possible to configure `structlog.processors.LogfmtRenderer` through the settings.
 
 ## Configuring logging
 
 Logging is configured in the Selva configuration:
 
 ```yaml
+debug: false
 logging:
-  root: WARNING
-  level:
+  setup: selva.logging.setup # (1)
+  format: null # (2) 
+  root: WARNING # (3)
+  level: # (4)
     application: INFO
-    application.service: TRACE
     sqlalchemy: DEBUG
-  enable:
-    - packages_to_activate_logging
-  disabled:
-    - packages_to_deactivate_logging
 ```
 
-The `root` property is the *root* level. It is used if no other level is set for the
-package where the log comes from.
-
-The `level` property defines the logging level for each package independently.
-
-The `enable` and `disable` properties lists the packages to enable or disable logging.
-This comes from loguru, as can be seen in <https://github.com/Delgan/loguru#suitable-for-scripts-and-libraries>.
+1.  Setup function to configure logging. It receices the application settings as parameter.
+2.  Log format. Possible values are "json", "logfmt" and console". If not defined,
+    defaults to "json" if "debug" is false, or "console" otherwise.
+3.  Log level of the root logger.
+4.  Mapping of logger names to log level.
 
 ## Manual logger setup
 
-If you want full control of how loguru is configured, you can provide a logger setup
+If you want full control of how Structlog is configured, you can provide a logger setup
 function and reference it in the configuration file:
 
 === "application/logging.py"
 
     ```python
-    from loguru import logger
+    import structlog
+    from selva.configuration import Settings
     
     
-    def setup(settings):
-        logger.configure(...)
+    def setup(settings: Settings):
+        structlog.configure(...)
     ```
 
 === "configuration/settings.yaml"

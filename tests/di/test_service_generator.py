@@ -1,4 +1,5 @@
 import pytest
+from structlog.testing import capture_logs
 
 from selva.di.container import Container
 from selva.di.decorator import service
@@ -91,6 +92,10 @@ def test_factory_function_without_return_type_should_fail(ioc: Container):
         ioc.register(service_factory)
 
 
-def test_provides_option_should_log_warning(ioc: Container, caplog):
-    ioc.register(interface_factory)
-    assert "option 'provides' on a factory function has no effect" in caplog.text
+def test_provides_option_should_log_warning(ioc: Container):
+    with capture_logs() as cap_logs:
+        ioc.register(interface_factory)
+
+    assert (
+        cap_logs[0]["event"] == "option 'provides' on a factory function has no effect"
+    )

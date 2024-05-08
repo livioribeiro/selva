@@ -1,19 +1,10 @@
 default_settings = {
     "application": "application",
+    "debug": False,
     "extensions": [],
     "middleware": [],
     "logging": {
-        "setup": "selva.logging.setup.setup_logging",
-        "config": {
-            "handlers": [
-                {
-                    "sink": "ext://sys.stderr",
-                    "level": "INFO",
-                    "diagnose": True,
-                    "backtrace": False,
-                },
-            ]
-        },
+        "setup": "selva.logging.setup",
     },
     "templates": {
         "backend": None,

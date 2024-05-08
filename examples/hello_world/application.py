@@ -4,8 +4,12 @@ from asgikit.requests import Request, read_json
 from asgikit.responses import respond_json
 from pydantic import BaseModel
 
+import structlog
+
 from selva.di import Inject, service
 from selva.web import FromPath, FromQuery, controller, get, post
+
+logger = structlog.get_logger()
 
 
 class MyModel(BaseModel):
@@ -31,6 +35,11 @@ class Controller:
         number: Annotated[int, FromQuery] = 1,
     ):
         greeting = self.greeter.greet(name)
+        logger.info(greeting, name=name, number=number)
+        try:
+            1/0
+        except:
+            logger.exception("error occurred")
         await respond_json(request.response, {"greeting": greeting, "number": number})
 
     @get("/:name")
