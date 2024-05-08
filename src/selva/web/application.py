@@ -72,10 +72,11 @@ class Selva:
     """
 
     def __init__(self, settings: Settings = None):
+        self.settings = _init_settings(settings)
+
         self.di = Container()
         self.di.define(Container, self.di)
 
-        self.settings = _init_settings(settings)
         self.di.define(Settings, self.settings)
 
         self.router = Router()

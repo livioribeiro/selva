@@ -1,5 +1,6 @@
 import logging
 import logging.config
+import sys
 
 import structlog
 
@@ -14,7 +15,7 @@ def setup(settings: Settings):
 
     log_format = settings.logging.get("log_format")
     if not log_format:
-        log_format = "console" if settings.debug else "json"
+        log_format = "console" if sys.stderr.isatty() else "json"
 
     if log_format == "json":
         renderer = structlog.processors.JSONRenderer()
@@ -57,13 +58,12 @@ def setup(settings: Settings):
         },
         "root": {
             "handlers": ["console"],
-            "level": settings.logging.get(
-                "root", "INFO" if settings.debug else "WARNING"
-            ).upper(),
+            "level": settings.logging.get("root", "INFO").upper(),
         },
         "loggers": {
-            k: {"level": v.upper()}
-            for k, v in settings.logging.get("level", {}).items()
+            module: {"level": level.upper()}
+            for module, level in settings.logging.get("level", {}).items()
         },
     }
+
     logging.config.dictConfig(logging_config)

@@ -1,6 +1,5 @@
 default_settings = {
     "application": "application",
-    "debug": False,
     "extensions": [],
     "middleware": [],
     "logging": {
