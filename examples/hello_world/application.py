@@ -36,10 +36,6 @@ class Controller:
     ):
         greeting = self.greeter.greet(name)
         logger.info(greeting, name=name, number=number)
-        try:
-            1/0
-        except:
-            logger.exception("error occurred")
         await respond_json(request.response, {"greeting": greeting, "number": number})
 
     @get("/:name")
