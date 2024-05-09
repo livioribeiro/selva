@@ -13,14 +13,16 @@ def setup(settings: Settings):
         logger_factory=structlog.stdlib.LoggerFactory(),
     )
 
-    log_format = settings.logging.get("log_format")
+    log_format = settings.logging.get("format")
     if not log_format:
         log_format = "console" if sys.stderr.isatty() else "json"
 
     if log_format == "json":
         renderer = structlog.processors.JSONRenderer()
     elif log_format == "logfmt":
-        renderer = structlog.processors.LogfmtRenderer()
+        renderer = structlog.processors.LogfmtRenderer(bool_as_flag=False)
+    elif log_format == "keyvalue":
+        renderer = structlog.processors.KeyValueRenderer()
     elif log_format == "console":
         renderer = structlog.dev.ConsoleRenderer()
     else:
