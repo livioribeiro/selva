@@ -4,7 +4,7 @@ from collections.abc import Callable, Iterable
 from types import NoneType, UnionType
 from typing import Annotated, Any, Optional, TypeVar, Union
 
-from loguru import logger
+import structlog
 
 from selva.di.error import (
     FactoryMissingReturnTypeError,
@@ -17,6 +17,8 @@ from selva.di.service.model import InjectableType, ServiceDependency, ServiceSpe
 
 DI_INITIALIZER = "initialize"
 DI_FINALIZER = "finalize"
+
+logger = structlog.get_logger()
 
 
 def _check_optional(type_hint: type, default: Any) -> tuple[type, bool]:
@@ -123,7 +125,10 @@ def parse_service_spec(
         factory = None
     elif inspect.isfunction(injectable):
         if provides:
-            logger.warning("option 'provides' on a factory function has no effect")
+            logger.warning(
+                "option 'provides' on a factory function has no effect",
+                factory=f"{injectable.__module__}.{injectable.__name__}",
+            )
 
         provided_service = _parse_definition_factory(injectable)
         initializer = None

@@ -2,7 +2,7 @@ import inspect
 from collections import OrderedDict
 from http import HTTPMethod
 
-from loguru import logger
+import structlog
 
 from selva.web.exception import HTTPNotFoundException
 from selva.web.routing.decorator import (
@@ -16,6 +16,8 @@ from selva.web.routing.exception import (
     DuplicateRouteError,
 )
 from selva.web.routing.route import Route, RouteMatch
+
+logger = structlog.get_logger()
 
 
 def _path_with_prefix(path: str, prefix: str):
@@ -38,11 +40,10 @@ class Router:
 
         path_prefix = controller_info.path
 
-        logger.trace(
-            "controller registered at {}: {}.{}",
-            path_prefix or "/",
-            controller.__module__,
-            controller.__qualname__,
+        logger.debug(
+            "controller registered",
+            path_prefix=path_prefix or "/",
+            controller=f"{controller.__module__}.{controller.__qualname__}",
         )
 
         for name, action in inspect.getmembers(controller, inspect.isfunction):
@@ -67,13 +68,12 @@ class Router:
                     raise DuplicateRouteError(route.name, current_route.name)
 
             self.routes[route_name] = route
-            logger.trace(
-                "action '{}.{}:{}' registered at '{} {}'",
-                controller.__module__,
-                controller.__qualname__,
-                route.action.__name__,
-                route.method,
-                route.path,
+            logger.debug(
+                "action registered",
+                controller=f"{controller.__module__}.{controller.__qualname__}",
+                action=route.action.__name__,
+                method=route.method,
+                path=route.path,
             )
 
     def match(self, method: HTTPMethod | None, path: str) -> RouteMatch | None:

@@ -31,9 +31,9 @@ packages = [
 python = "^3.11"
 asgikit = "^0.8"
 pydantic = "^2.7"
-loguru = "^0.7"
 python-dotenv = "^1.0"
 "ruamel.yaml" = "^0.18"
+structlog = "^24.1.0"
 jinja2 = { version = "^3.1", optional = true }
 SQLAlchemy = { version = "^2.0", optional = true }
 redis = { version = "^5.0", optional = true }

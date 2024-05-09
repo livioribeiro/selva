@@ -1,60 +1,74 @@
 # Logging
 
-Selva uses [loguru](https://pypi.org/project/loguru/) for logging, but provides
+Selva uses [Structlog](https://www.structlog.org) for logging and provides
 some facilities on top of it to make its usage a bit closer to other frameworks
 like Spring Boot.
 
-First, an interceptor to the standard `logging` module is configured by default,
-as suggested in <https://github.com/Delgan/loguru#entirely-compatible-with-standard-logging>.
+It is integrated with the standard library logging, so libraries that use it are logged
+through Structlog. It also enables filtering by logger name using the standard library.
 
-Second, a custom logging filter is provided in order to set the logging level for
-each package independently.
+## Why?
 
-## Configuring logging
+Nowadays, it is very likely that your application is deployed to a cloud and its
+logs are sent to an aggregator like Graylog, so a structured logging format seems
+to be the logical choice.
+
+For more information on why use structured logging, refer to the
+[Structlog documentation](https://www.structlog.org/en/stable/why.html).
+
+## Configure logging
 
 Logging is configured in the Selva configuration:
 
 ```yaml
 logging:
-  root: WARNING
-  level:
+  root: WARNING # (1)
+  level: # (2)
     application: INFO
-    application.service: TRACE
-    sqlalchemy: DEBUG
-  enable:
-    - packages_to_activate_logging
-  disabled:
-    - packages_to_deactivate_logging
+    selva: DEBUG
+  format: json # (3) 
+  setup: selva.logging.setup # (4)
 ```
 
-The `root` property is the *root* level. It is used if no other level is set for the
-package where the log comes from.
+1.  Log level of the root logger.
+2.  Mapping of logger names to log level.
+3.  Log format. Possible values are `"json"`, `"logfmt"`, `"keyvalue""` and `"console"`.
+4.  Setup function to configure logging.
 
-The `level` property defines the logging level for each package independently.
+The `format` config defines which renderer will be used. The possible values map to:
 
-The `enable` and `disable` properties lists the packages to enable or disable logging.
-This comes from loguru, as can be seen in <https://github.com/Delgan/loguru#suitable-for-scripts-and-libraries>.
+| value    | renderer                                                 |
+|----------|----------------------------------------------------------|
+| `json`     | `structlog.processors.JSONRenderer()`                    |
+| `logfmt`   | `structlog.processors.LogfmtRenderer(bool_as_flag=True)` |
+| `keyvalue` | `structlog.processors.KeyValueRenderer()`                |
+| `console`  | `structlog.dev.ConsoleRenderer()`                        |
+
+If not defined, `format` defaults to `"json"` if `sys.stderr.isatty() == False`,
+or `"console"` otherwise. This is done to use the `ConsoleRenderer` during development
+and the `JSONRenderer` when deploying to production.
 
 ## Manual logger setup
 
-If you want full control of how loguru is configured, you can provide a logger setup
-function and reference it in the configuration file:
-
-=== "application/logging.py"
-
-    ```python
-    from loguru import logger
-    
-    
-    def setup(settings):
-        logger.configure(...)
-    ```
+If you need full control of how Structlog is configured, you can provide a logger setup
+function. You just need to reference it in the configuration file:
 
 === "configuration/settings.yaml"
 
     ```yaml
     logging:
       setup: application.logging.setup
+    ```
+
+=== "application/logging.py"
+
+    ```python
+    import structlog
+    from selva.configuration import Settings
+    
+    
+    def setup(settings: Settings):
+        structlog.configure(...)
     ```
 
 The setup function receives a parameter of type `selva.configuration.Settings`,

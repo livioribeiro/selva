@@ -14,7 +14,9 @@ be the first two parameters.
 from asgikit.requests import Request, read_json
 from asgikit.responses import respond_text, respond_redirect
 from selva.web import controller, get, post
-from loguru import logger
+import structlog
+
+logger = structlog.get_logger()
 
 
 @controller
@@ -28,7 +30,7 @@ class IndexController:
 class AdminController:
     @post("send")
     async def handle_data(self, request: Request):
-        logger.info(await read_json(request))
+        logger.info("request body", content=str(await read_json(request)))
         await respond_redirect(request.response, "/")
 ```
 
@@ -41,8 +43,7 @@ handler with the annotation `FromPath`:
 
 ```python
 from typing import Annotated
-from selva.web.converter import FromPath
-from selva.web.routing.decorator import get
+from selva.web import get, FromPath
 
 
 @get("/:path_param")

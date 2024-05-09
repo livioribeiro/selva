@@ -6,7 +6,7 @@ from functools import cache
 from pathlib import Path
 from typing import Any
 
-from loguru import logger
+import structlog
 from ruamel.yaml import YAML
 
 from selva.configuration.defaults import default_settings
@@ -16,6 +16,8 @@ from selva.configuration.environment import (
 )
 
 __all__ = ("Settings", "SettingsError", "get_settings")
+
+logger = structlog.get_logger(__name__)
 
 SETTINGS_DIR_ENV = "SELVA_SETTINGS_DIR"
 SETTINGS_FILE_ENV = "SELVA_SETTINGS_FILE"
@@ -28,11 +30,18 @@ SELVA_PROFILE = "SELVA_PROFILE"
 
 class Settings(Mapping[str, Any]):
     def __init__(self, data: dict):
+        self._original_data = copy.deepcopy(data)
+        self.__data = data
+
         for key, value in data.items():
             if isinstance(value, dict):
                 data[key] = Settings(value)
 
-        self.__data = data
+    def __getattr__(self, item: str):
+        try:
+            return self.__data[item]
+        except KeyError:
+            raise AttributeError(item)
 
     def __len__(self) -> int:
         return len(self.__data)
@@ -46,24 +55,18 @@ class Settings(Mapping[str, Any]):
     def __getitem__(self, key: str):
         return self.__data[key]
 
-    def __getattr__(self, item: str):
-        try:
-            return self.__data[item]
-        except KeyError:
-            raise AttributeError(item)
-
     def __copy__(self):
-        return Settings(copy.copy(self.__data))
+        return Settings(copy.copy(self._original_data))
 
     def __deepcopy__(self, memodict):
-        data = copy.deepcopy(self.__data, memodict)
+        data = copy.deepcopy(self._original_data, memodict)
         return Settings(data)
 
     def __eq__(self, other: Any) -> bool:
         if isinstance(other, Settings):
-            return self.__data == other.__data
+            return self._original_data == other._original_data
         if isinstance(other, Mapping):
-            return self.__data == other
+            return self._original_data == other
 
         return False
 
@@ -81,31 +84,39 @@ class SettingsError(Exception):
 
 
 @cache
-def get_settings() -> Settings:
+def get_settings() -> tuple[Settings, list[tuple[Path, bool]]]:
     return _get_settings_nocache()
 
 
-def _get_settings_nocache() -> Settings:
+def _get_settings_nocache() -> tuple[Settings, list[tuple[Path, bool]]]:
     # get default settings
     settings = deepcopy(default_settings)
+    paths = []
 
     # merge with main settings file (settings.yaml)
-    merge_recursive(settings, get_settings_for_profile())
+    profile_settings, path = get_settings_for_profile()
+    merge_recursive(settings, profile_settings)
+    paths.append(path)
 
     # merge with profile settings files (settings_$SELVA_PROFILE.yaml)
     if active_profile_list := os.getenv(SELVA_PROFILE):
-        for active_profile in (p.strip() for p in active_profile_list.split(",")):
-            merge_recursive(settings, get_settings_for_profile(active_profile))
+        for active_profile in active_profile_list.split(","):
+            active_profile = active_profile.strip()
+            profile_settings, path = get_settings_for_profile(active_profile)
+            merge_recursive(settings, profile_settings)
+            paths.append(path)
 
     # merge with environment variables (SELVA_*)
     from_env_vars = parse_settings_from_env(os.environ)
     merge_recursive(settings, from_env_vars)
 
     settings = replace_variables_recursive(settings, os.environ)
-    return Settings(settings)
+    return Settings(settings), paths
 
 
-def get_settings_for_profile(profile: str = None) -> dict[str, Any]:
+def get_settings_for_profile(
+    profile: str = None,
+) -> tuple[dict[str, Any], tuple[Path, bool]]:
     settings_file = os.getenv(SETTINGS_FILE_ENV, DEFAULT_SETTINGS_FILE)
     settings_dir_path = Path(os.getenv(SETTINGS_DIR_ENV, DEFAULT_SETTINGS_DIR))
     settings_file_path = settings_dir_path / settings_file
@@ -118,18 +129,18 @@ def get_settings_for_profile(profile: str = None) -> dict[str, Any]:
     settings_file_path = settings_file_path.absolute()
 
     try:
-        logger.info("settings loaded from {}", settings_file_path)
+        # logger.info("settings loaded", file=str(settings_file_path))
         yaml = YAML(typ="safe")
-        return yaml.load(settings_file_path) or {}
+        return yaml.load(settings_file_path) or {}, (settings_file_path, True)
     except FileNotFoundError:
-        if profile:
-            logger.warning(
-                "no settings file found for profile '{}' at {}",
-                profile,
-                settings_file_path,
-            )
+        # if profile:
+        #     logger.warning(
+        #         "settings file not found",
+        #         profile=profile,
+        #         file=str(settings_file_path),
+        #     )
 
-        return {}
+        return {}, (settings_file_path, False)
     except Exception as err:
         raise SettingsError(settings_file_path) from err
 

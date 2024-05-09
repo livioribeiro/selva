@@ -19,7 +19,7 @@ pytestmark = [
 
 async def test_url_from_environment_variables(monkeypatch):
     monkeypatch.setenv("SELVA__DATA__REDIS__DEFAULT__URL", REDIS_URL)
-    settings = _get_settings_nocache()
+    settings, _ = _get_settings_nocache()
 
     service = make_service("default")(settings)
     async for redis in service:
@@ -39,7 +39,7 @@ async def test_url_username_password_from_environment_variables(monkeypatch):
     monkeypatch.setenv("SELVA__DATA__REDIS__DEFAULT__URL", url)
     monkeypatch.setenv("SELVA__DATA__REDIS__DEFAULT__USERNAME", username)
     monkeypatch.setenv("SELVA__DATA__REDIS__DEFAULT__PASSWORD", password)
-    settings = _get_settings_nocache()
+    settings, _ = _get_settings_nocache()
 
     service = make_service("default")(settings)
     async for redis in service:
@@ -64,7 +64,7 @@ async def test_url_components_from_environment_variables(monkeypatch):
     monkeypatch.setenv("SELVA__DATA__REDIS__DEFAULT__USERNAME", username)
     monkeypatch.setenv("SELVA__DATA__REDIS__DEFAULT__PASSWORD", password)
 
-    settings = _get_settings_nocache()
+    settings, _ = _get_settings_nocache()
 
     service = make_service("default")(settings)
     async for redis in service:

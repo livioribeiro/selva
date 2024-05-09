@@ -17,7 +17,7 @@ pytestmark = [
 
 async def test_address_from_environment_variables(monkeypatch):
     monkeypatch.setenv("SELVA__DATA__MEMCACHED__DEFAULT__ADDRESS", MEMCACHED_ADDR)
-    settings = _get_settings_nocache()
+    settings, _ = _get_settings_nocache()
 
     addr = MEMCACHED_ADDR.split(":")
     host = addr[0]

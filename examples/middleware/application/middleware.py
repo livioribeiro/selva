@@ -4,9 +4,12 @@ from http import HTTPStatus
 
 from asgikit.requests import Request
 from asgikit.responses import respond_status
-from loguru import logger
+
+import structlog
 
 from selva.web.middleware import Middleware
+
+logger = structlog.get_logger()
 
 
 class TimingMiddleware(Middleware):
@@ -20,7 +23,7 @@ class TimingMiddleware(Middleware):
         request_end = datetime.now()
 
         delta = request_end - request_start
-        logger.info("Request time: {}", delta)
+        logger.info("request duration", duration=str(delta))
 
 
 class LoggingMiddleware(Middleware):
@@ -35,7 +38,7 @@ class LoggingMiddleware(Middleware):
         request_line = f"{request.method} {request.path} HTTP/{request.http_version}"
         status = request.response.status
 
-        logger.info('{} "{}" {} {}', client, request_line, status.value, status.phrase)
+        logger.info("request", client=client, request_line=request_line, status=status.value, status_phrase=status.phrase)
 
 
 class AuthMiddleware(Middleware):
@@ -52,7 +55,7 @@ class AuthMiddleware(Middleware):
 
             authn = authn.removeprefix("Basic")
             user, password = base64.urlsafe_b64decode(authn).decode().split(":")
-            logger.info("User '{}' with password '{}'", user, password)
+            logger.info("user logged in", user=user, password=password)
             request["user"] = user
 
         await chain(request)

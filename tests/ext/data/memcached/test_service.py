@@ -2,7 +2,6 @@ import os
 from importlib.util import find_spec
 
 import pytest
-
 from emcache import ClusterEvents, ClusterManagment, MemcachedHostAddress
 
 from selva.configuration import Settings
@@ -67,10 +66,14 @@ async def test_make_service_with_options():
 
 
 class MyClusterEvents(ClusterEvents):
-    async def on_node_healthy(self, cluster_managment: ClusterManagment, host: MemcachedHostAddress):
+    async def on_node_healthy(
+        self, cluster_managment: ClusterManagment, host: MemcachedHostAddress
+    ):
         pass
 
-    async def on_node_unhealthy(self, cluster_managment: ClusterManagment, host: MemcachedHostAddress):
+    async def on_node_unhealthy(
+        self, cluster_managment: ClusterManagment, host: MemcachedHostAddress
+    ):
         pass
 
 

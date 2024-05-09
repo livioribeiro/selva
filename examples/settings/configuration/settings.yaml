@@ -1,1 +1,6 @@
 message: ${MESSAGE:Hello, World!}
+
+logging:
+  root: info
+  level:
+    selva.web: debug
