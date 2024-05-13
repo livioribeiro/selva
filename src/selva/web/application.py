@@ -231,17 +231,15 @@ class Selva:
                 return
 
             if stack_trace:
-                await respond_text(response, stack_trace, status=err.status)
+                response.status = err.status
+                await respond_text(response, stack_trace)
             else:
                 await respond_status(response, status=err.status)
         except Exception:
             logger.exception("error processing request")
 
-            await respond_text(
-                request.response,
-                traceback.format_exc(),
-                status=HTTPStatus.INTERNAL_SERVER_ERROR,
-            )
+            request.response.status = HTTPStatus.INTERNAL_SERVER_ERROR
+            await respond_text(request.response, traceback.format_exc())
 
     async def _process_request(self, request: Request):
         logger.debug(
