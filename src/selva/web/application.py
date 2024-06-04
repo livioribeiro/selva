@@ -145,6 +145,8 @@ class Selva:
         for cls in reversed(middleware):
             if not hasattr(cls, selva.di.decorator.DI_ATTRIBUTE_SERVICE):
                 selva.di.decorator.service(cls)
+
+            if not self.di.has(cls):
                 self.di.register(cls)
 
             mid = await self.di.get(cls)

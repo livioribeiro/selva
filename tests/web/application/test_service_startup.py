@@ -23,5 +23,4 @@ async def test_application():
     app.di.register(Service)
 
     await app._lifespan_startup()
-
     assert Service.startup_called

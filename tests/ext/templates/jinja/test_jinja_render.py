@@ -1,3 +1,4 @@
+from copy import deepcopy
 from pathlib import Path
 
 from selva.configuration.defaults import default_settings
@@ -18,7 +19,7 @@ async def test_render_template():
 
 
 async def test_render_str():
-    settings = Settings(default_settings)
+    settings = Settings(deepcopy(default_settings))
     template = JinjaTemplate(settings)
     template.initialize()
     result = await template.render_str("{{ variable }}", {"variable": "Jinja"})

@@ -1,4 +1,4 @@
-from httpx import AsyncClient
+from httpx import AsyncClient, ASGITransport
 
 from selva.configuration import Settings
 from selva.configuration.defaults import default_settings
@@ -18,6 +18,6 @@ async def test_exception_handler():
     app = Selva(settings)
     await app._lifespan_startup()
 
-    client = AsyncClient(app=app)
+    client = AsyncClient(transport=ASGITransport(app=app))
     response = await client.get("http://localhost:8000/")
     assert response.json() == {"exception": MyException.__name__}

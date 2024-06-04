@@ -1,5 +1,5 @@
 from asgikit.requests import Request
-from httpx import AsyncClient
+from httpx import AsyncClient, ASGITransport
 
 from selva.configuration import Settings
 from selva.configuration.defaults import default_settings
@@ -30,9 +30,9 @@ async def test_middleware():
         }
     )
     app = Selva(settings)
-    app.di.register(MyMiddleware)
+    # app.di.register(MyMiddleware)
     await app._lifespan_startup()
 
-    client = AsyncClient(app=app)
+    client = AsyncClient(transport=ASGITransport(app=app))
     response = await client.get("http://localhost:8000/")
     assert response.text == "Middleware Ok"
