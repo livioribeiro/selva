@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from httpx import AsyncClient
+from httpx import AsyncClient, ASGITransport
 
 from selva.configuration.defaults import default_settings
 from selva.configuration.settings import Settings
@@ -21,7 +21,7 @@ async def test_render():
     app = Selva(settings)
     await app._lifespan_startup()
 
-    client = AsyncClient(app=app)
+    client = AsyncClient(transport=ASGITransport(app=app))
     response = await client.get("http://localhost:8000/render")
 
     assert response.status_code == 200
@@ -34,7 +34,7 @@ async def test_stream():
     app = Selva(settings)
     await app._lifespan_startup()
 
-    client = AsyncClient(app=app)
+    client = AsyncClient(transport=ASGITransport(app=app))
     response = await client.get("http://localhost:8000/stream")
 
     assert response.status_code == 200
@@ -46,7 +46,7 @@ async def test_define_content_type():
     app = Selva(settings)
     await app._lifespan_startup()
 
-    client = AsyncClient(app=app)
+    client = AsyncClient(transport=ASGITransport(app=app))
     response = await client.get("http://localhost:8000/define_content_type")
 
     assert response.status_code == 200
@@ -57,7 +57,7 @@ async def test_override_content_type():
     app = Selva(settings)
     await app._lifespan_startup()
 
-    client = AsyncClient(app=app)
+    client = AsyncClient(transport=ASGITransport(app=app))
     response = await client.get("http://localhost:8000/override_content_type")
 
     assert response.status_code == 200
@@ -68,7 +68,7 @@ async def test_content_type_from_response():
     app = Selva(settings)
     await app._lifespan_startup()
 
-    client = AsyncClient(app=app)
+    client = AsyncClient(transport=ASGITransport(app=app))
     response = await client.get("http://localhost:8000/content_type_from_response")
 
     assert response.status_code == 200

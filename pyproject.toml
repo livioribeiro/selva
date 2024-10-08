@@ -29,7 +29,7 @@ packages = [
 
 [tool.poetry.dependencies]
 python = "^3.11"
-asgikit = "^0.8"
+asgikit = "^0.9"
 pydantic = "^2.7"
 python-dotenv = "^1.0"
 "ruamel.yaml" = "^0.18"
@@ -49,7 +49,8 @@ memcached = ["emcache"]
 optional = true
 
 [tool.poetry.group.dev.dependencies]
-uvicorn = { version = "^0.23", extras = ["standard"] }
+uvicorn = { version = "^0.29", extras = ["standard"] }
+granian = "^1.3"
 
 [tool.poetry.group.test]
 optional = true
@@ -62,6 +63,7 @@ coverage = { version = "^7", extras = ["toml"] }
 httpx = "^0.27"
 aiosqlite = "^0.20"
 psycopg = "^3.1"
+uvicorn = { version = "^0.29", extras = ["standard"] }
 
 [tool.poetry.group.lint]
 optional = true

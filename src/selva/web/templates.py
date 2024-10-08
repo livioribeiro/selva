@@ -12,7 +12,6 @@ class Template(ABC):
         template_name: str,
         context: dict,
         *,
-        status: HTTPStatus = HTTPStatus.OK,
         content_type: str = None,
         stream: bool = False,
     ):

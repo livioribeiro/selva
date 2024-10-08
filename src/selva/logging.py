@@ -3,6 +3,7 @@ import logging.config
 import sys
 
 import structlog
+from uvicorn.config import LOGGING_CONFIG
 
 from selva.configuration.settings import Settings
 
@@ -45,7 +46,7 @@ def setup(settings: Settings):
 
     logging_config = {
         "version": 1,
-        "disable_existing_loggers": True,
+        "disable_existing_loggers": False,
         "formatters": {
             "structlog": {
                 "()": structlog.stdlib.ProcessorFormatter,
@@ -60,7 +61,7 @@ def setup(settings: Settings):
         },
         "root": {
             "handlers": ["console"],
-            "level": settings.logging.get("root", "INFO").upper(),
+            "level": settings.logging.get("root", "WARN").upper(),
         },
         "loggers": {
             module: {"level": level.upper()}

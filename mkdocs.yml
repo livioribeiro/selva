@@ -47,10 +47,12 @@ nav:
   - routing.md
   - templates.md
   - configuration.md
-  - middleware.md
   - logging.md
+  - Middleware:
+    - Overview: middleware/overview.md
+    - middleware/staticfiles_uploads.md
   - Extensions:
-    - extensions/overview.md
+    - Overview: extensions/overview.md
     - extensions/sqlalchemy.md
     - extensions/redis.md
     - extensions/jinja.md

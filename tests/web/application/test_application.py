@@ -1,6 +1,6 @@
 from http import HTTPStatus
 
-from httpx import AsyncClient
+from httpx import AsyncClient, ASGITransport
 
 from selva.configuration.defaults import default_settings
 from selva.configuration.settings import Settings
@@ -13,7 +13,7 @@ async def test_application():
     )
     app = Selva(settings)
 
-    client = AsyncClient(app=app)
+    client = AsyncClient(transport=ASGITransport(app=app))
     response = await client.get("http://localhost:8000/")
     assert response.text == "Ok"
 
@@ -24,6 +24,6 @@ async def test_not_found():
     )
     app = Selva(settings)
 
-    client = AsyncClient(app=app)
+    client = AsyncClient(transport=ASGITransport(app=app))
     response = await client.get("http://localhost:8000/not-found")
     assert response.status_code == HTTPStatus.NOT_FOUND

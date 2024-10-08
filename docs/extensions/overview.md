@@ -1,4 +1,4 @@
-# Overview
+# Extensions
 
 Extensions are python packages that provide additional functionality or integrate
 external libraries into the framework.

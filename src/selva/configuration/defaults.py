@@ -15,4 +15,13 @@ default_settings = {
         "redis": {},
         "sqlalchemy": {},
     },
+    "staticfiles": {
+        "path": "/static",
+        "root": "resources/static",
+        "mappings": {},
+    },
+    "uploadedfiles": {
+        "path": "/uploads",
+        "root": "resources/uploads",
+    },
 }
