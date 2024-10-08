@@ -1,6 +1,6 @@
 # Middleware
 
-The middleware pipeline is configured with the `MIDDLEWARE` configuration property. It must contain a list of classes
+The middleware pipeline is configured with the `middleware` configuration property. It must contain a list of classes
 that inherit from `selva.web.middleware.Middleware`.
 
 ## Usage
