@@ -43,6 +43,7 @@ markdown_extensions:
 nav:
   - Selva: index.md
   - tutorial.md
+  - structure.md
   - controllers.md
   - routing.md
   - templates.md
