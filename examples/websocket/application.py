@@ -49,17 +49,17 @@ class WebSocketService:
                 logger.info("client disconnected", client=repr(client))
 
 
-@controller
-class WebSocketController:
-    handler: Annotated[WebSocketService, Inject]
-    settings: Annotated[Settings, Inject]
-    index_html = (Path() / "resources" / "static" / "index.html").absolute()
 
-    @get
-    async def index(self, request: Request):
-        await respond_file(request.response, self.index_html)
+index_html = (Path() / "resources" / "static" / "index.html").absolute()
 
-    @websocket("/chat")
-    async def chat(self, request: Request):
-        await request.websocket.accept()
-        await self.handler.handle_websocket(request)
+@get
+async def index(request: Request):
+    await respond_file(request.response, index_html)
+
+@websocket("/chat")
+async def chat(
+    request: Request,
+    handler: Annotated[WebSocketService, Inject],
+):
+    await request.websocket.accept()
+    await handler.handle_websocket(request)

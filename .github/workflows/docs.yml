@@ -13,8 +13,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v4
+      - uses: pdm-project/setup-pdm@v4
         with:
           python-version: 3.x
-      - run: pip install "mkdocs-material>=9.5,<9.6"
-      - run: mkdocs gh-deploy --force
+      - run: pdm install --with docs
+      - run: pdm run mkdocs gh-deploy --force

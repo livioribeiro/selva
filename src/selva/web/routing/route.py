@@ -67,7 +67,7 @@ def build_request_params(action: Callable) -> dict[str, tuple[type, Any | None]]
 
     result = {}
 
-    for name, type_hint in type_hints[2:]:  # skip self and request parameters
+    for name, type_hint in type_hints[1:]:  # skip request parameters
         if typing.get_origin(type_hint) is Annotated:
             # Annotated is garanteed to have at least 2 args
             param_type, param_meta, *_ = typing.get_args(type_hint)
@@ -83,13 +83,11 @@ class Route:
         self,
         method: HTTPMethod | None,
         path: str,
-        controller: type,
         action: Callable,
         name: str,
     ):
         self.method = method
         self.path = path
-        self.controller = controller
         self.action = action
         self.name = name
 

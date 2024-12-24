@@ -15,12 +15,8 @@ jobs:
       id-token: write
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v4
-        with:
-          python-version: "3.x"
-      - run: pip install pipx
-      - run: pipx install poetry
-      - run: poetry version ${VERSION#v}
-      - run: poetry build
+      - uses: pdm-project/setup-pdm@v4
+      - name: Define version number
+        run: echo "__version__ = \"${VERSION#v}\"" > src/selva/__version__.py
       - name: Publish package distributions to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
+        run: pdm publish

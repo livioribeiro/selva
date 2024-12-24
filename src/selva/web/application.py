@@ -2,7 +2,7 @@ import functools
 import inspect
 import traceback
 import typing
-from http import HTTPStatus
+from http import HTTPStatus, HTTPMethod
 from typing import Any
 
 import structlog
@@ -14,7 +14,9 @@ from asgikit.websockets import WebSocket
 from selva._util.base_types import get_base_types
 from selva._util.import_item import import_item
 from selva._util.maybe_async import maybe_async
+from selva._util.package_scan import scan_packages
 from selva.configuration.settings import Settings, get_settings
+from selva.di import Inject
 from selva.di.container import Container
 from selva.web.converter import (
     from_request_impl,
@@ -32,10 +34,14 @@ from selva.web.converter.param_extractor import ParamExtractor
 from selva.web.exception import HTTPException, HTTPNotFoundException, WebSocketException
 from selva.web.exception_handler import ExceptionHandler
 from selva.web.middleware import Middleware
-from selva.web.routing.decorator import CONTROLLER_ATTRIBUTE
+from selva.web.routing.decorator import CONTROLLER_ATTRIBUTE, ACTION_ATTRIBUTE
 from selva.web.routing.router import Router
 
 logger = structlog.get_logger()
+
+
+def _is_handler(arg) -> bool:
+    return inspect.iscoroutinefunction(arg) and hasattr(arg, ACTION_ATTRIBUTE)
 
 
 def _is_controller(arg) -> bool:
@@ -106,9 +112,8 @@ class Selva:
 
         self.di.scan(self.settings.application)
 
-        for _iface, impl, _name in self.di.iter_all_services():
-            if _is_controller(impl):
-                self.router.route(impl)
+        for item in scan_packages([self.settings.application], _is_handler):
+            self.router.route(item)
 
     async def _initialize_extensions(self):
         for extension_name in self.settings.extensions:
@@ -244,22 +249,20 @@ class Selva:
             await respond_text(request.response, traceback.format_exc())
 
     async def _process_request(self, request: Request):
+        path = request.path
+
         logger.debug(
             "handling request",
             method=str(request.method),
-            path=request.path,
-            query=request.raw_query,
+            path=path,
+            query=request.query,
         )
 
-        method = request.method
-        path = request.path
-
-        match = self.router.match(method, path)
+        match = self.router.match(request.method, path)
 
         if not match:
             raise HTTPNotFoundException()
 
-        controller = match.route.controller
         action = match.route.action
         path_params = match.params
         request["path_params"] = path_params
@@ -268,8 +271,7 @@ class Selva:
             request, match.route.request_params
         )
 
-        instance = await self.di.get(controller)
-        await action(instance, request, **request_params)
+        await action(request, **request_params)
 
         response = request.response
 
@@ -295,6 +297,12 @@ class Selva:
                     extractor_type = extractor_param
                 else:
                     extractor_type = type(extractor_param)
+
+                if extractor_type is Inject:
+                    service_name = extractor_param.name if isinstance(extractor_param, Inject) else None
+                    service = await self.di.get(param_type, name=service_name)
+                    result[name] = service
+                    continue
 
                 extractor = await self.di.get(
                     ParamExtractor[extractor_type], optional=True

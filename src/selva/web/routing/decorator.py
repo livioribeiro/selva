@@ -61,16 +61,17 @@ def route(action: Callable = None, /, *, method: HTTPMethod | None, path: str | 
             raise TypeError("Handler method must be async")
 
         params = list(inspect.signature(arg).parameters.values())
-        if len(params) < 2:
+        if len(params) < 1:
             raise TypeError(
-                "Handler method must have at least 'self' and 'request' parameters"
+                "Handler method must have at least ''request' parameter"
             )
 
-        req_param = params[1].annotation
+        req_param = params[0].annotation
         if req_param is not inspect.Signature.empty and req_param is not Request:
             raise TypeError(
                 f"Handler request parameter must be of type "
-                f"'{Request.__module__}.{Request.__name__}'"
+                f"'{Request.__module__}.{Request.__name__}' "
+                f"({arg.__name__})"
             )
 
         if any(p.annotation is inspect.Signature.empty for p in params[2:]):

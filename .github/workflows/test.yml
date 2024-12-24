@@ -49,16 +49,12 @@ jobs:
           --health-retries 5
     steps:
       - uses: actions/checkout@v4
-      - run: pip install poetry
-      - run: poetry install
-          --with test
-          --extras jinja
-          --extras sqlalchemy
-          --extras redis
-          --extras memcached
-          --no-interaction
+      - uses: pdm-project/setup-pdm@v4
+        with:
+          python-version: ${{ matrix.version }}
+      - run: pdm install --with test --with jinja --with sqlalchemy --with redis --with memcached
       - env:
           POSTGRES_URL: postgresql+psycopg://postgres:postgres@postgres:5432/test
           REDIS_URL: redis://default:password@redis:6379/0
           MEMCACHED_ADDR: memcached:11211
-        run: poetry run pytest
+        run: pdm run pytest

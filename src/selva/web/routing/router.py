@@ -1,5 +1,6 @@
 import inspect
 from collections import OrderedDict
+from collections.abc import Callable
 from http import HTTPMethod
 
 import structlog
@@ -7,7 +8,6 @@ import structlog
 from selva.web.exception import HTTPNotFoundException
 from selva.web.routing.decorator import (
     ACTION_ATTRIBUTE,
-    CONTROLLER_ATTRIBUTE,
     ActionInfo,
     ControllerInfo,
 )
@@ -30,51 +30,33 @@ class Router:
     def __init__(self):
         self.routes: OrderedDict[str, Route] = OrderedDict()
 
-    def route(self, controller: type):
-        controller_info: ControllerInfo = getattr(
-            controller, CONTROLLER_ATTRIBUTE, None
-        )
+    def route(self, action: Callable):
+        action_info: ActionInfo = getattr(action, ACTION_ATTRIBUTE, None)
+        if not action_info:
+            raise ControllerWithoutDecoratorError(action)
 
-        if not controller_info:
-            raise ControllerWithoutDecoratorError(controller)
+        action_type = action_info.type
+        method: HTTPMethod = action_type.value  # type: ignore
+        path = action_info.path.strip("/")
+        route_name = f"{action.__module__}.{action.__qualname__}"
 
-        path_prefix = controller_info.path
+        route = Route(method, path, action, route_name)
 
+        for current_route in self.routes.values():
+            if (
+                current_route.action != route.action
+                and current_route.method == route.method
+                and current_route.regex == route.regex
+            ):
+                raise DuplicateRouteError(route.name, current_route.name)
+
+        self.routes[route_name] = route
         logger.debug(
-            "controller registered",
-            path_prefix=path_prefix or "/",
-            controller=f"{controller.__module__}.{controller.__qualname__}",
+            "action registered",
+            action=f"{action.__module__}.{action.__qualname__}",
+            method=route.method,
+            path=route.path,
         )
-
-        for name, action in inspect.getmembers(controller, inspect.isfunction):
-            action_info: ActionInfo = getattr(action, ACTION_ATTRIBUTE, None)
-            if not action_info:
-                continue
-
-            action_type = action_info.type
-            method: HTTPMethod = action_type.value  # type: ignore
-            path = action_info.path
-            path = _path_with_prefix(path, path_prefix)
-            route_name = f"{controller.__module__}.{controller.__qualname__}:{name}"
-
-            route = Route(method, path, controller, action, route_name)
-
-            for current_route in self.routes.values():
-                if (
-                    current_route.action != route.action
-                    and current_route.method == route.method
-                    and current_route.regex == route.regex
-                ):
-                    raise DuplicateRouteError(route.name, current_route.name)
-
-            self.routes[route_name] = route
-            logger.debug(
-                "action registered",
-                controller=f"{controller.__module__}.{controller.__qualname__}",
-                action=route.action.__name__,
-                method=route.method,
-                path=route.path,
-            )
 
     def match(self, method: HTTPMethod | None, path: str) -> RouteMatch | None:
         for route in self.routes.values():
