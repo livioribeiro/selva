@@ -1,7 +1,7 @@
 import os
-from typing import Annotated, NamedTuple
+from typing import NamedTuple
 
-from selva.di import Inject, service
+from selva.di import service
 
 DEFAULT_NAME = "World"
 
@@ -16,9 +16,9 @@ def settings_factory() -> Config:
     return Config(default_name)
 
 
-@service
 class Greeter:
-    config: Annotated[Config, Inject]
+    def __init__(self, config: Config):
+        self.config = config
 
     @property
     def default_name(self):
@@ -27,3 +27,9 @@ class Greeter:
     def greet(self, name: str = None):
         greeted_name = name or self.default_name
         return f"Hello, {greeted_name}!"
+
+
+@service
+async def greeter_factory(locator) -> Greeter:
+    config = await locator.get(Config)
+    return Greeter(config)

@@ -1,3 +1,11 @@
+middleware:
+  - selva.web.middleware.files.static_files_middleware
+
+staticfiles:
+  mappings:
+    /: index.html
+
 logging:
   level:
     application: INFO
+  format: console

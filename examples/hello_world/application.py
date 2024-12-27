@@ -17,10 +17,14 @@ class MyModel(BaseModel):
     region: str = None
 
 
-@service
 class Greeter:
     def greet(self, name: str) -> str:
         return f"Hello, {name}!"
+
+
+@service
+def service_greeter() -> Greeter:
+    return Greeter()
 
 
 @get
@@ -33,6 +37,7 @@ async def greet_query(
     greeting = greeter.greet(name)
     logger.info(greeting, name=name, number=number)
     await respond_json(request.response, {"greeting": greeting, "number": number})
+
 
 @get("/:name")
 async def greet_path(

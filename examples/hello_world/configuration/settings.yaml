@@ -1,5 +1,5 @@
 middleware:
-#- selva.web.middleware.files.StaticFilesMiddleware
+- selva.web.middleware.files.StaticFilesMiddleware
 - selva.web.middleware.request_id.RequestIdMiddleware
 
 logging:

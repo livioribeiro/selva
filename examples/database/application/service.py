@@ -1,17 +1,17 @@
 import os
-from typing import Annotated
 
 from databases import Database
 import structlog
 
 from selva.configuration import Settings
-from selva.di import Inject, service
+from selva.di import service
 
 logger = structlog.get_logger()
 
 
 @service
-def database_factory(settings: Settings) -> Database:
+async def database_factory(locator) -> Database:
+    settings = await locator.get(Settings)
     database = Database(settings.database.url)
     logger.info("sqlite database created")
 
@@ -22,21 +22,23 @@ def database_factory(settings: Settings) -> Database:
 
 
 @service
+async def database_repository(locator) -> "Repository":
+    database = await locator.get(Database)
+    await database.connect()
+    logger.info("sqlite database connection opened")
+
+    await database.execute("create table if not exists counter(value int not null)")
+    await database.execute("insert into counter values (0)")
+
+    yield Repository(database)
+
+    await database.disconnect()
+    logger.info("sqlite database connection closed")
+
+
 class Repository:
-    database: Annotated[Database, Inject]
-
-    async def initialize(self):
-        await self.database.connect()
-        logger.info("sqlite database connection opened")
-
-        await self.database.execute(
-            "create table if not exists counter(value int not null)"
-        )
-        await self.database.execute("insert into counter values (0)")
-
-    async def finalize(self):
-        await self.database.disconnect()
-        logger.info("sqlite database connection closed")
+    def __init__(self, database: Database):
+        self.database = database
 
     async def test(self):
         await self.database.execute("select 1")

@@ -1,6 +1,7 @@
 import inspect
-from collections.abc import Callable
 from typing import Any
+
+from mypy.fastparse import FunctionType
 
 from selva.di.service.model import InjectableType
 
@@ -21,9 +22,27 @@ class DependencyInjectionError(Exception):
 
 
 class DependencyLoopError(DependencyInjectionError):
-    def __init__(self, dependency_stack: list[type]):
-        loop = " -> ".join([dep.__name__ for dep in dependency_stack])
-        super().__init__(f"dependency loop detected: {loop}")
+    def __init__(self, stack: list[tuple[type, str | None]], conflict: tuple[type, str | None]):
+        conflict_index = stack.index(conflict)
+        last_index = len(stack) - 1
+
+        loop_stack = []
+        for i, (dep, name) in enumerate(stack):
+            if i == conflict_index:
+                indicator = "┌"
+            elif i < last_index:
+                indicator = "│"
+            elif i == last_index:
+                indicator = "└"
+            else:
+                indicator = " "
+
+            dependency = f"{dep.__module__}.{dep.__name__}"
+            name = f" ({name})" if name else ""
+            loop_stack.append(f"{indicator} {dependency}{name}")
+
+        result = "\n".join(loop_stack)
+        super().__init__(f"dependency loop detected: \n{result}")
 
 
 class ServiceNotFoundError(DependencyInjectionError):
@@ -45,7 +64,7 @@ class NonInjectableTypeError(DependencyInjectionError):
 
 
 class FactoryMissingReturnTypeError(DependencyInjectionError):
-    def __init__(self, factory: Callable):
+    def __init__(self, factory: FunctionType):
         super().__init__(f"factory '{_type_name(factory)}' is missing return type")
 
 

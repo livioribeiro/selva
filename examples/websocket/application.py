@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated as A
 
 from asgikit.errors.websocket import WebSocketDisconnectError
 from asgikit.requests import Request
@@ -16,6 +16,10 @@ logger = structlog.get_logger()
 
 
 @service
+def websocket_service() -> "WebSocketService":
+    return WebSocketService()
+
+
 class WebSocketService:
     def __init__(self):
         self.clients: dict[str, WebSocket] = {}
@@ -49,17 +53,7 @@ class WebSocketService:
                 logger.info("client disconnected", client=repr(client))
 
 
-
-index_html = (Path() / "resources" / "static" / "index.html").absolute()
-
-@get
-async def index(request: Request):
-    await respond_file(request.response, index_html)
-
 @websocket("/chat")
-async def chat(
-    request: Request,
-    handler: Annotated[WebSocketService, Inject],
-):
+async def chat(request: Request, handler: A[WebSocketService, Inject]):
     await request.websocket.accept()
     await handler.handle_websocket(request)

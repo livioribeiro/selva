@@ -1,10 +1,11 @@
 middleware:
-  - application.middleware.TimingMiddleware
-  - application.middleware.LoggingMiddleware
-  - application.middleware.AuthMiddleware
+  - application.middleware.timing_middleware
+  - application.middleware.logging_middleware
+  - application.middleware.auth_middleware
 
 logging:
   root: WARNING
   level:
     application: INFO
     selva: INFO
+  format: console

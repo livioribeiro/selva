@@ -50,9 +50,8 @@ def build_retry(data: RetrySchema):
 
 
 def make_service(name: str):
-    async def redis_service(
-        settings: Settings,
-    ) -> Redis:
+    async def redis_service(locator) -> Redis:
+        settings = await locator.get(Settings)
         redis_settings = RedisSettings.model_validate(dict(settings.data.redis[name]))
 
         kwargs = redis_settings.model_dump(exclude_unset=True)

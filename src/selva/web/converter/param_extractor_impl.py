@@ -3,7 +3,7 @@ from typing import Type
 
 from asgikit.requests import Request
 
-from selva.web.converter.decorator import register_param_extractor
+from selva.di.decorator import service
 from selva.web.converter.error import PathParamNotFoundError
 
 __all__ = (
@@ -12,6 +12,8 @@ __all__ = (
     "FromHeader",
     "FromCookie",
 )
+
+from selva.web.converter.param_extractor import ParamExtractor
 
 
 class FromRequestParam:
@@ -25,7 +27,26 @@ class FromPath(FromRequestParam):
     pass
 
 
-@register_param_extractor(FromPath)
+@service
+async def from_path_extractor(_) -> ParamExtractor["FromPath"]:
+    return FromPathExtractor()
+
+
+@service
+async def from_query_extractor(_) -> ParamExtractor["FromQuery"]:
+    return FromQueryExtractor()
+
+
+@service
+async def from_header_extractor(_) -> ParamExtractor["FromHeader"]:
+    return FromHeaderExtractor()
+
+
+@service
+async def from_cookie_extractor(_) -> ParamExtractor["FromCookie"]:
+    return FromCookieExtractor()
+
+
 class FromPathExtractor:
     @staticmethod
     def extract(
@@ -49,7 +70,6 @@ class FromQuery(FromRequestParam):
     pass
 
 
-@register_param_extractor(FromQuery)
 class FromQueryExtractor:
     @staticmethod
     def extract(
@@ -69,7 +89,6 @@ class FromHeader(FromRequestParam):
     pass
 
 
-@register_param_extractor(FromHeader)
 class FromHeaderExtractor:
     @staticmethod
     def extract(
@@ -100,7 +119,6 @@ class FromCookie(FromRequestParam):
     pass
 
 
-@register_param_extractor(FromCookie)
 class FromCookieExtractor:
     @staticmethod
     def extract(

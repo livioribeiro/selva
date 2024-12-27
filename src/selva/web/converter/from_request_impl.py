@@ -5,11 +5,21 @@ import pydantic
 from asgikit.requests import Request, read_form, read_json
 from pydantic import BaseModel as PydanticModel
 
-from selva.web.converter.decorator import register_from_request
+from selva.di.decorator import service
+from selva.web.converter.from_request import FromRequest
 from selva.web.exception import HTTPBadRequestException, HTTPException
 
 
-@register_from_request(PydanticModel)
+@service
+async def pydantic_model_from_request(_) -> FromRequest[PydanticModel]:
+    return PydanticModelFromRequest()
+
+
+@service
+async def pydanto_model_list_from_request(_) -> FromRequest[list[PydanticModel]]:
+    return PydanticModelListFromRequest()
+
+
 class PydanticModelFromRequest:
     async def from_request(
         self,
@@ -37,7 +47,6 @@ class PydanticModelFromRequest:
             raise HTTPBadRequestException() from err
 
 
-@register_from_request(list[PydanticModel])
 class PydanticModelListFromRequest:
     async def from_request(
         self,

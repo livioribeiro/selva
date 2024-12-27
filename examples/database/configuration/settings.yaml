@@ -4,3 +4,4 @@ database:
 logging:
   level:
     application: INFO
+  format: console

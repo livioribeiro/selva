@@ -1,6 +1,6 @@
 middleware:
-  - selva.web.middleware.files.StaticFilesMiddleware
-  - selva.web.middleware.files.UploadedFilesMiddleware
+  - selva.web.middleware.files.static_files_middleware
+  - selva.web.middleware.files.uploaded_files_middleware
 staticfiles:
   mappings:
     favicon.ico: python.ico

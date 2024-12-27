@@ -2,20 +2,17 @@ import structlog
 from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker, create_async_engine
 
 from selva.configuration.settings import Settings
-from selva.di import Container
-from selva.ext.data.sqlalchemy.settings import SqlAlchemyEngineSettings
-
-from .settings import SqlAlchemySettings
+from selva.di.decorator import service
+from selva.ext.data.sqlalchemy.settings import SqlAlchemySettings, SqlAlchemyEngineSettings
 
 logger = structlog.get_logger()
 
 
-def make_engine_service(name: str):
-    async def engine_service(
-        settings: Settings,
-    ) -> AsyncEngine:
+def make_engine_service(name: str | None, settings: Settings):
+    @service(name=name)
+    async def engine_service() -> AsyncEngine:
         sa_settings = SqlAlchemyEngineSettings.model_validate(
-            settings.data.sqlalchemy.connections[name]
+            settings.data.sqlalchemy.connections[name or "default"]
         )
         url = sa_settings.get_url()
 
@@ -31,19 +28,21 @@ def make_engine_service(name: str):
     return engine_service
 
 
-async def engine_dict_service(
-    di: Container, settings: Settings
-) -> dict[str, AsyncEngine]:
+@service
+async def engine_dict_service(locator) -> dict[str, AsyncEngine]:
+    settings = await locator.get(Settings)
+
     return {
-        db: await di.get(AsyncEngine, name=db if db != "default" else None)
+        db: await locator.get(AsyncEngine, name=db if db != "default" else None)
         for db in settings.data.sqlalchemy.connections
     }
 
 
-async def sessionmaker_service(
-    engines: dict[str, AsyncEngine],
-    settings: Settings,
-) -> async_sessionmaker:
+@service
+async def sessionmaker_service(locator) -> async_sessionmaker:
+    settings = await locator.get(Settings)
+    engines_map = await locator.get(dict[str, AsyncEngine])
+
     sqlalchemy_settings = SqlAlchemySettings.model_validate(settings.data.sqlalchemy)
     if session_options := sqlalchemy_settings.session.options:
         options = session_options.model_dump(exclude_unset=True)
@@ -53,16 +52,16 @@ async def sessionmaker_service(
     if binds := sqlalchemy_settings.session.binds:
         binds_config = {}
         for mapper, engine_name in binds.items():
-            if engine := engines.get(engine_name):
+            if engine := engines_map.get(engine_name):
                 binds_config[mapper] = engine
             else:
                 raise ValueError(f"No engine with name '{engine_name}'")
 
         return async_sessionmaker(binds=binds_config, **options)
     else:
-        engine = engines.get("default")
+        engine = engines_map.get("default")
         if not engine:
-            name, engine = next(iter(engines.items()))
+            name, engine = next(iter(engines_map.items()))
             logger.warning("connection for sqlalchemy session", connection=name)
 
         return async_sessionmaker(engine, **options)

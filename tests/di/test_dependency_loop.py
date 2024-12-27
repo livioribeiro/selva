@@ -1,26 +1,35 @@
-from typing import Annotated
+import pytest
 
 from selva.di.container import Container
 from selva.di.decorator import service
-from selva.di.inject import Inject
+from selva.di.error import DependencyLoopError
 
 
-@service
 class Service1:
-    service2: Annotated["Service2", Inject]
+    def __init__(self, service2: "Service2"):
+        self.service2 = service2
 
 
 @service
+async def service1_factory(locator) -> Service1:
+    instance = await locator.get(Service2)
+    return Service1(instance)
+
+
 class Service2:
-    service1: Annotated[Service1, Inject]
+    def __init__(self, service1: Service1):
+        self.service1 = service1
 
 
-async def test_dependency_loop(ioc: Container):
-    ioc.register(Service1)
-    ioc.register(Service2)
+@service
+async def service2_factory(locator) -> Service2:
+    instance = await locator.get(Service1)
+    return Service2(instance)
 
-    service1 = await ioc.get(Service1)
-    service2 = await ioc.get(Service2)
 
-    assert service1 is service2.service1
-    assert service2 is service1.service2
+async def test_dependency_loop_should_fail(ioc: Container):
+    ioc.register(service1_factory)
+    ioc.register(service2_factory)
+
+    with pytest.raises(DependencyLoopError) as e:
+        await ioc.get(Service1)

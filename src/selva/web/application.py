@@ -2,7 +2,7 @@ import functools
 import inspect
 import traceback
 import typing
-from http import HTTPStatus, HTTPMethod
+from http import HTTPStatus
 from typing import Any
 
 import structlog
@@ -16,8 +16,8 @@ from selva._util.import_item import import_item
 from selva._util.maybe_async import maybe_async
 from selva._util.package_scan import scan_packages
 from selva.configuration.settings import Settings, get_settings
-from selva.di import Inject
 from selva.di.container import Container
+from selva.di.decorator import DI_ATTRIBUTE_SERVICE
 from selva.web.converter import (
     from_request_impl,
     param_converter_impl,
@@ -33,7 +33,8 @@ from selva.web.converter.param_converter import ParamConverter
 from selva.web.converter.param_extractor import ParamExtractor
 from selva.web.exception import HTTPException, HTTPNotFoundException, WebSocketException
 from selva.web.exception_handler import ExceptionHandler
-from selva.web.middleware import Middleware
+from selva.web.middleware import Middleware, MiddlewareCall
+from selva.web.middleware import files as files_middleware, request_id as request_id_middleware
 from selva.web.routing.decorator import CONTROLLER_ATTRIBUTE, ACTION_ATTRIBUTE
 from selva.web.routing.router import Router
 
@@ -42,6 +43,10 @@ logger = structlog.get_logger()
 
 def _is_handler(arg) -> bool:
     return inspect.iscoroutinefunction(arg) and hasattr(arg, ACTION_ATTRIBUTE)
+
+
+def _is_service(arg) -> bool:
+    return inspect.isroutine(arg) and hasattr(arg, DI_ATTRIBUTE_SERVICE)
 
 
 def _is_controller(arg) -> bool:
@@ -108,12 +113,18 @@ class Selva:
             from_request_impl,
             param_extractor_impl,
             param_converter_impl,
+            files_middleware,
+            request_id_middleware,
         )
 
-        self.di.scan(self.settings.application)
+        # self.di.scan(self.settings.application)
 
-        for item in scan_packages([self.settings.application], _is_handler):
-            self.router.route(item)
+        for item in scan_packages([self.settings.application]):
+            if _is_handler(item):
+                self.router.route(item)
+
+            if _is_service(item):
+                self.di.register(item)
 
     async def _initialize_extensions(self):
         for extension_name in self.settings.extensions:
@@ -136,25 +147,9 @@ class Selva:
         if len(middleware) == 0:
             return
 
-        middleware = [import_item(name) for name in middleware]
+        middleware = [MiddlewareCall(self.di, import_item(name)) for name in middleware]
 
-        if errors := [m for m in middleware if not issubclass(m, Middleware)]:
-            mid_classes = [f"{m.__module__}.{m.__qualname__}" for m in errors]
-            mid_class_name = f"{Middleware.__module__}.{Middleware.__qualname__}"
-            raise TypeError(
-                f"Middleware classes must be of type '{mid_class_name}': {mid_classes}"
-            )
-
-        import selva.di.decorator
-
-        for cls in reversed(middleware):
-            if not hasattr(cls, selva.di.decorator.DI_ATTRIBUTE_SERVICE):
-                selva.di.decorator.service(cls)
-
-            if not self.di.has(cls):
-                self.di.register(cls)
-
-            mid = await self.di.get(cls)
+        for mid in reversed(middleware):
             chain = functools.partial(mid, self.handler)
             self.handler = chain
 
@@ -206,7 +201,7 @@ class Selva:
                         module=handler.__class__.__module__,
                         handler=handler.__class__.__qualname__,
                     )
-                    await handler.handle_exception(request, err)
+                    await handler(request, err)
                 else:
                     raise
         except (WebSocketDisconnectError, WebSocketError):
@@ -271,7 +266,9 @@ class Selva:
             request, match.route.request_params
         )
 
-        await action(request, **request_params)
+        handler_services = await self._handler_services(match.route.services)
+
+        await action(request, **(request_params | handler_services))
 
         response = request.response
 
@@ -283,6 +280,12 @@ class Selva:
             await respond_status(response, HTTPStatus.INTERNAL_SERVER_ERROR)
         elif not response.is_finished:
             await response.end()
+
+    async def _handler_services(self, services: dict[str, tuple[type, str | None]]):
+        return {
+            name: await self.di.get(service_type, name=service_name)
+            for name, (service_type, service_name) in services.items()
+        }
 
     async def _params_from_request(
         self,
@@ -297,12 +300,6 @@ class Selva:
                     extractor_type = extractor_param
                 else:
                     extractor_type = type(extractor_param)
-
-                if extractor_type is Inject:
-                    service_name = extractor_param.name if isinstance(extractor_param, Inject) else None
-                    service = await self.di.get(param_type, name=service_name)
-                    result[name] = service
-                    continue
 
                 extractor = await self.di.get(
                     ParamExtractor[extractor_type], optional=True

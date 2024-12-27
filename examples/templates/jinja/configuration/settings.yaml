@@ -1,5 +1,5 @@
 extensions:
-- selva.ext.templates.jinja
+  - selva.ext.templates.jinja
 
 templates:
   jinja:
@@ -7,3 +7,6 @@ templates:
     extensions:
       - jinja2.ext.i18n
       - jinja2.ext.debug
+
+logging:
+  format: console
