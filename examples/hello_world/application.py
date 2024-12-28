@@ -17,14 +17,10 @@ class MyModel(BaseModel):
     region: str = None
 
 
+@service
 class Greeter:
     def greet(self, name: str) -> str:
         return f"Hello, {name}!"
-
-
-@service
-def service_greeter() -> Greeter:
-    return Greeter()
 
 
 @get

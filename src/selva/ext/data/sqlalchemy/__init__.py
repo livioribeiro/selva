@@ -19,7 +19,7 @@ def selva_extension(container: Container, settings: Settings):
 
     for name in settings.data.sqlalchemy.connections:
         container.register(
-            make_engine_service(name if name != "default" else None, settings)
+            make_engine_service(name if name != "default" else None)
         )
 
     container.register(engine_dict_service)

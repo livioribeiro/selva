@@ -2,21 +2,22 @@ from asgikit.responses import respond_json
 
 from selva.di import service
 from selva.web import get
-from selva.web.exception_handler import ExceptionHandler
+from selva.web.exception_handler import exception_handler
+
+
+@service
+class MyService:
+    def parse_exception(self, exc: Exception) -> dict:
+        return {"exception": exc.__class__.__name__}
 
 
 class MyException(Exception):
     pass
 
 
-class MyExceptionHandler:
-    async def __call__(self, request, exc):
-        await respond_json(request.response, {"exception": exc.__class__.__name__})
-
-
-@service
-def my_exception_handler() -> ExceptionHandler[MyException]:
-    return MyExceptionHandler()
+@exception_handler(MyException)
+async def handle_exception(request, exc, my_service: MyService):
+    await respond_json(request.response, my_service.parse_exception(exc))
 
 
 @get

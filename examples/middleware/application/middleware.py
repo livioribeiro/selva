@@ -12,25 +12,25 @@ from selva.web.middleware import Middleware
 logger = structlog.get_logger()
 
 
-async def timing_middleware(chain, request: Request):
+async def timing_middleware(callnext, request: Request):
     if request.is_websocket:
-        await chain(request)
+        await callnext(request)
         return
 
     request_start = datetime.now()
-    await chain(request)
+    await callnext(request)
     request_end = datetime.now()
 
     delta = request_end - request_start
     logger.info("request duration", duration=str(delta))
 
 
-async def logging_middleware(chain, request: Request):
+async def logging_middleware(callnext, request: Request):
     if request.is_websocket:
-        await chain(request)
+        await callnext(request)
         return
 
-    await chain(request)
+    await callnext(request)
 
     client = f"{request.client[0]}:{request.client[1]}"
     request_line = f"{request.method} {request.path} HTTP/{request.http_version}"
@@ -39,9 +39,9 @@ async def logging_middleware(chain, request: Request):
     logger.info("request", client=client, request_line=request_line, status=status.value, status_phrase=status.phrase)
 
 
-async def auth_middleware(chain, request: Request):
-    response = request.response
+async def auth_middleware(callnext, request: Request):
     if request.path == "/protected":
+        response = request.response
         authn = request.headers.get("authorization")
         if not authn:
             response.header(
@@ -55,4 +55,4 @@ async def auth_middleware(chain, request: Request):
         logger.info("user logged in", user=user, password=password)
         request["user"] = user
 
-    await chain(request)
+    await callnext(request)

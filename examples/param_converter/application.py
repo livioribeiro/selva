@@ -5,9 +5,8 @@ from typing import Annotated
 from asgikit.requests import Request
 from asgikit.responses import respond_text
 
-from selva.di import service
 from selva.web import FromPath, FromQuery, get
-from selva.web.converter.param_converter import ParamConverter
+from selva.web.converter.decorator import register_param_converter
 
 
 @dataclass
@@ -15,11 +14,7 @@ class MyModel:
     name: str
 
 
-@service
-async def my_model_param_converter(locator) -> ParamConverter[MyModel]:
-    return MyModelParamConverter()
-
-
+@register_param_converter(MyModel)
 class MyModelParamConverter:
     def from_str(self, value: str) -> MyModel:
         return MyModel(value)

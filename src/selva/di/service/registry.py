@@ -14,7 +14,7 @@ class ServiceRecord:
 
     def add(self, service: ServiceSpec, name: str = None):
         if name in self.providers:
-            raise ServiceAlreadyRegisteredError(service.provides, name)
+            raise ServiceAlreadyRegisteredError(service.impl, name)
 
         self.providers[name] = service
 

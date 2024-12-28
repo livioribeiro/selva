@@ -9,17 +9,13 @@ import structlog
 
 from selva.configuration import Settings
 from selva.di import Inject, service
-from selva.web import controller, get, websocket
+from selva.web import get, websocket
 from selva.web.exception import WebSocketException
 
 logger = structlog.get_logger()
 
 
 @service
-def websocket_service() -> "WebSocketService":
-    return WebSocketService()
-
-
 class WebSocketService:
     def __init__(self):
         self.clients: dict[str, WebSocket] = {}

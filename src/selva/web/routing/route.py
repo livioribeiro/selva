@@ -6,9 +6,10 @@ from http import HTTPMethod
 from re import Pattern
 from typing import Annotated, Any, Callable, NamedTuple
 
-__all__ = ("Route", "RouteMatch")
-
 from selva.di.inject import Inject
+from selva.di.util import parse_function_services
+
+__all__ = ("Route", "RouteMatch")
 
 RE_PATH_PARAM_SPEC = re.compile(r"([:*])([a-zA-Z\w]+)")
 RE_MULTI_SLASH = re.compile(r"/{2,}")
@@ -20,14 +21,14 @@ PATH_PARAM_PATTERN = {
 
 
 def build_path_regex_and_params(
-    action: Callable, path: str
+    handler: Callable, path: str
 ) -> tuple[Pattern, dict[str, type]]:
     """parse path and build regex for route matching
 
     :returns: compiled regex and tuple of mapping param name to type
     """
 
-    type_hints = typing.get_type_hints(action)
+    type_hints = typing.get_type_hints(handler)
     type_hints.pop("return", None)
 
     regex = RE_MULTI_SLASH.sub("/", path)
@@ -61,7 +62,7 @@ def build_path_regex_and_params(
     return re.compile(regex), param_types
 
 
-def parse_handler_params(action: Callable) -> tuple[dict[str, tuple[type, Any | None]], dict[str, tuple[type, str | None]]]:
+def parse_handler_params(handler: Callable) -> tuple[dict[str, tuple[type, Any | None]], dict[str, tuple[type, str | None]]]:
     """parse handler parameters from function signature
 
     returns: 2-tuple of mapping of request parameters and mapping of handler service dependencies
@@ -69,23 +70,22 @@ def parse_handler_params(action: Callable) -> tuple[dict[str, tuple[type, Any | 
 
     type_hints = [
         (name, param.annotation)
-        for name, param in inspect.signature(action).parameters.items()
+        for name, param in inspect.signature(handler).parameters.items()
     ]
 
+    services = parse_function_services(handler, skip=1, require_annotation=True)
+
     parameters = {}
-    services = {}
 
     for name, type_hint in type_hints[1:]:  # skip request parameter
         if typing.get_origin(type_hint) is Annotated:
             # Annotated is garanteed to have at least 2 args
             param_type, param_meta, *_ = typing.get_args(type_hint)
 
-            if param_meta is Inject:
-                services[name] = (param_type, None)
-            elif isinstance(param_meta, Inject):
-                services[name] = (param_type, param_meta.name)
-            else:
-                parameters[name] = (param_type, param_meta)
+            if param_meta is Inject or isinstance(param_meta, Inject):
+                continue
+
+            parameters[name] = (param_type, param_meta)
         else:
             parameters[name] = (type_hint, None)
 

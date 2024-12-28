@@ -2,15 +2,16 @@ import structlog
 from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker, create_async_engine
 
 from selva.configuration.settings import Settings
+from selva.di.container import Container
 from selva.di.decorator import service
 from selva.ext.data.sqlalchemy.settings import SqlAlchemySettings, SqlAlchemyEngineSettings
 
 logger = structlog.get_logger()
 
 
-def make_engine_service(name: str | None, settings: Settings):
+def make_engine_service(name: str | None):
     @service(name=name)
-    async def engine_service() -> AsyncEngine:
+    async def engine_service(settings: Settings) -> AsyncEngine:
         sa_settings = SqlAlchemyEngineSettings.model_validate(
             settings.data.sqlalchemy.connections[name or "default"]
         )
@@ -29,20 +30,15 @@ def make_engine_service(name: str | None, settings: Settings):
 
 
 @service
-async def engine_dict_service(locator) -> dict[str, AsyncEngine]:
-    settings = await locator.get(Settings)
-
+async def engine_dict_service(settings: Settings, di: Container) -> dict[str, AsyncEngine]:
     return {
-        db: await locator.get(AsyncEngine, name=db if db != "default" else None)
+        db: await di.get(AsyncEngine, name=db if db != "default" else None)
         for db in settings.data.sqlalchemy.connections
     }
 
 
 @service
-async def sessionmaker_service(locator) -> async_sessionmaker:
-    settings = await locator.get(Settings)
-    engines_map = await locator.get(dict[str, AsyncEngine])
-
+async def sessionmaker_service(settings: Settings, engines_map: dict[str, AsyncEngine]) -> async_sessionmaker:
     sqlalchemy_settings = SqlAlchemySettings.model_validate(settings.data.sqlalchemy)
     if session_options := sqlalchemy_settings.session.options:
         options = session_options.model_dump(exclude_unset=True)

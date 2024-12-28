@@ -1,11 +1,24 @@
-from typing import Protocol, TypeVar, runtime_checkable
+from collections.abc import Awaitable, Callable
+from typing import NamedTuple, Type, TypeVar
 
 from asgikit.requests import Request
 
 TExc = TypeVar("TExc", bound=BaseException)
 
+ATTRIBUTE_EXCEPTION_HANDLER = "__selva_exception_handler__"
 
-@runtime_checkable
-class ExceptionHandler(Protocol[TExc]):
-    async def __call__(self, request: Request, exc: TExc):
-        raise NotImplementedError()
+ExceptionHandlerType = Callable[[Request, BaseException, ...], Awaitable]
+
+
+class ExceptionHandlerInfo(NamedTuple):
+    exception_class: Type[BaseException]
+
+
+def exception_handler(exc: Type[BaseException]):
+    assert issubclass(exc, BaseException)
+
+    def inner(handler: ExceptionHandlerType):
+        setattr(handler, ATTRIBUTE_EXCEPTION_HANDLER, ExceptionHandlerInfo(exception_class=exc))
+        return handler
+
+    return inner

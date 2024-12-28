@@ -12,7 +12,7 @@ from selva.web.exception import HTTPNotFoundException
 
 
 _static_files_middleware = None
-async def static_files_middleware(callnext, request, settings: Annotated[Settings, Inject]):
+async def static_files_middleware(callnext: CallNext, request: Request, settings: Annotated[Settings, Inject]):
     global _static_files_middleware
 
     if not _static_files_middleware:
@@ -32,7 +32,7 @@ async def static_files_middleware(callnext, request, settings: Annotated[Setting
 
 
 _uploaded_files_middleware = None
-async def uploaded_files_middleware(callnext, request, settings: Annotated[Settings, Inject]):
+async def uploaded_files_middleware(callnext: CallNext, request: Request, settings: Annotated[Settings, Inject]):
     global _uploaded_files_middleware
 
     if not _uploaded_files_middleware:

@@ -3,7 +3,7 @@ import inspect
 import traceback
 import typing
 from http import HTTPStatus
-from typing import Any
+from typing import Any, Type
 
 import structlog
 from asgikit.errors.websocket import WebSocketDisconnectError, WebSocketError
@@ -18,6 +18,7 @@ from selva._util.package_scan import scan_packages
 from selva.configuration.settings import Settings, get_settings
 from selva.di.container import Container
 from selva.di.decorator import DI_ATTRIBUTE_SERVICE
+from selva.di.util import parse_function_services
 from selva.web.converter import (
     from_request_impl,
     param_converter_impl,
@@ -32,25 +33,25 @@ from selva.web.converter.from_request import FromRequest
 from selva.web.converter.param_converter import ParamConverter
 from selva.web.converter.param_extractor import ParamExtractor
 from selva.web.exception import HTTPException, HTTPNotFoundException, WebSocketException
-from selva.web.exception_handler import ExceptionHandler
-from selva.web.middleware import Middleware, MiddlewareCall
+from selva.web.exception_handler import ATTRIBUTE_EXCEPTION_HANDLER, ExceptionHandlerType
+from selva.web.middleware import MiddlewareCall
 from selva.web.middleware import files as files_middleware, request_id as request_id_middleware
-from selva.web.routing.decorator import CONTROLLER_ATTRIBUTE, ACTION_ATTRIBUTE
+from selva.web.routing.decorator import ATTRIBUTE_HANDLER
 from selva.web.routing.router import Router
 
 logger = structlog.get_logger()
 
 
 def _is_handler(arg) -> bool:
-    return inspect.iscoroutinefunction(arg) and hasattr(arg, ACTION_ATTRIBUTE)
+    return inspect.iscoroutinefunction(arg) and hasattr(arg, ATTRIBUTE_HANDLER)
+
+
+def _is_exception_handler(arg) -> bool:
+    return inspect.iscoroutinefunction(arg) and hasattr(arg, ATTRIBUTE_EXCEPTION_HANDLER)
 
 
 def _is_service(arg) -> bool:
-    return inspect.isroutine(arg) and hasattr(arg, DI_ATTRIBUTE_SERVICE)
-
-
-def _is_controller(arg) -> bool:
-    return inspect.isclass(arg) and hasattr(arg, CONTROLLER_ATTRIBUTE)
+    return (inspect.isfunction(arg) or inspect.isclass(arg)) and hasattr(arg, DI_ATTRIBUTE_SERVICE)
 
 
 def _is_module(arg) -> bool:
@@ -94,6 +95,7 @@ class Selva:
         self.di.define(Router, self.router)
 
         self.handler = self._process_request
+        self.exception_handlers: dict[Type[BaseException], ExceptionHandlerType] = {}
 
         self._register_modules()
 
@@ -122,6 +124,14 @@ class Selva:
         for item in scan_packages([self.settings.application]):
             if _is_handler(item):
                 self.router.route(item)
+
+            if _is_exception_handler(item):
+                exc_handler_info = getattr(item, ATTRIBUTE_EXCEPTION_HANDLER)
+                exc_type = exc_handler_info.exception_class
+                if exc_type in self.exception_handlers:
+                    raise ValueError("Exception handler already registered")
+
+                self.exception_handlers[exc_type] = item
 
             if _is_service(item):
                 self.di.register(item)
@@ -193,15 +203,13 @@ class Selva:
             try:
                 await self.handler(request)
             except Exception as err:
-                if handler := await self.di.get(
-                    ExceptionHandler[type(err)], optional=True
-                ):
+                if handler := self.exception_handlers.get(type(err)):
                     logger.debug(
                         "Handling exception with handler",
-                        module=handler.__class__.__module__,
-                        handler=handler.__class__.__qualname__,
+                        module=handler.__module__,
+                        handler=handler.__qualname__,
                     )
-                    await handler(request, err)
+                    await self._handle_exception(request, err, handler)
                 else:
                     raise
         except (WebSocketDisconnectError, WebSocketError):
@@ -243,6 +251,13 @@ class Selva:
             request.response.status = HTTPStatus.INTERNAL_SERVER_ERROR
             await respond_text(request.response, traceback.format_exc())
 
+    async def _handle_exception(self, request: Request, exc: Exception, handler):
+        services = {
+            name: await self.di.get(service_type, name=service_name)
+            for name, (service_type, service_name) in parse_function_services(handler, skip=2).items()
+        }
+        await handler(request, exc, **services)
+
     async def _process_request(self, request: Request):
         path = request.path
 
@@ -266,7 +281,10 @@ class Selva:
             request, match.route.request_params
         )
 
-        handler_services = await self._handler_services(match.route.services)
+        handler_services = {
+            name: await self.di.get(service_type, name=service_name)
+            for name, (service_type, service_name) in match.route.services.items()
+        }
 
         await action(request, **(request_params | handler_services))
 
@@ -280,12 +298,6 @@ class Selva:
             await respond_status(response, HTTPStatus.INTERNAL_SERVER_ERROR)
         elif not response.is_finished:
             await response.end()
-
-    async def _handler_services(self, services: dict[str, tuple[type, str | None]]):
-        return {
-            name: await self.di.get(service_type, name=service_name)
-            for name, (service_type, service_name) in services.items()
-        }
 
     async def _params_from_request(
         self,

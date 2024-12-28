@@ -1,18 +1,13 @@
+from typing import Annotated as A
+
 from redis.asyncio import Redis
 
-from selva.di import service
+from selva.di import service, Inject
 
 
 @service
-async def redis_service(locator) -> "RedisService":
-    redis = await locator.get(Redis)
-    await redis.set("number", 0, ex=60)
-    return RedisService(redis)
-
-
 class RedisService:
-    def __init__(self, redis: Redis):
-        self.redis = redis
+    redis: A[Redis, Inject]
 
     async def get_incr(self) -> int:
         return await self.redis.incr("number")

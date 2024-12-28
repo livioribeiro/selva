@@ -3,10 +3,10 @@ from http import HTTPMethod
 import pytest
 
 from selva.web.routing.decorator import (
-    ACTION_ATTRIBUTE,
+    ATTRIBUTE_HANDLER,
     CONTROLLER_ATTRIBUTE,
-    ActionInfo,
-    ActionType,
+    HandlerInfo,
+    HandlerType,
     ControllerInfo,
     controller,
     delete,
@@ -50,12 +50,12 @@ def test_controller_decorator_on_non_class_should_fail():
 @pytest.mark.parametrize(
     "decorator,action_type",
     [
-        (get, ActionType.GET),
-        (post, ActionType.POST),
-        (put, ActionType.PUT),
-        (patch, ActionType.PATCH),
-        (delete, ActionType.DELETE),
-        (websocket, ActionType.WEBSOCKET),
+        (get, HandlerType.GET),
+        (post, HandlerType.POST),
+        (put, HandlerType.PUT),
+        (patch, HandlerType.PATCH),
+        (delete, HandlerType.DELETE),
+        (websocket, HandlerType.WEBSOCKET),
     ],
     ids=["get", "post", "put", "patch", "delete", "websocket"],
 )
@@ -66,19 +66,19 @@ def test_route_decorator_without_path(decorator, action_type):
 
     decorator(Controller.handler)
 
-    assert hasattr(Controller.handler, ACTION_ATTRIBUTE)
-    assert getattr(Controller.handler, ACTION_ATTRIBUTE) == ActionInfo(action_type, "")
+    assert hasattr(Controller.handler, ATTRIBUTE_HANDLER)
+    assert getattr(Controller.handler, ATTRIBUTE_HANDLER) == HandlerInfo(action_type, "")
 
 
 @pytest.mark.parametrize(
     "decorator,action_type",
     [
-        (get, ActionType.GET),
-        (post, ActionType.POST),
-        (put, ActionType.PUT),
-        (patch, ActionType.PATCH),
-        (delete, ActionType.DELETE),
-        (websocket, ActionType.WEBSOCKET),
+        (get, HandlerType.GET),
+        (post, HandlerType.POST),
+        (put, HandlerType.PUT),
+        (patch, HandlerType.PATCH),
+        (delete, HandlerType.DELETE),
+        (websocket, HandlerType.WEBSOCKET),
     ],
     ids=["get", "post", "put", "patch", "delete", "websocket"],
 )
@@ -89,8 +89,8 @@ def test_route_decorator_with_path(decorator, action_type):
 
     decorator("path")(Controller.handler)
 
-    assert hasattr(Controller.handler, ACTION_ATTRIBUTE)
-    assert getattr(Controller.handler, ACTION_ATTRIBUTE) == ActionInfo(
+    assert hasattr(Controller.handler, ATTRIBUTE_HANDLER)
+    assert getattr(Controller.handler, ATTRIBUTE_HANDLER) == HandlerInfo(
         action_type, "path"
     )
 

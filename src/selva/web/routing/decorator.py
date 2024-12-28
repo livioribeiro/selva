@@ -6,17 +6,14 @@ from typing import NamedTuple
 
 from asgikit.requests import Request
 
-from selva.di import service
-
-CONTROLLER_ATTRIBUTE = "__selva_web_controller__"
-ACTION_ATTRIBUTE = "__selva_web_action__"
+ATTRIBUTE_HANDLER = "__selva_web_action__"
 
 
 class ControllerInfo(NamedTuple):
     path: str
 
 
-class ActionType(Enum):
+class HandlerType(Enum):
     GET = HTTPMethod.GET
     HEAD = HTTPMethod.HEAD
     POST = HTTPMethod.POST
@@ -28,29 +25,12 @@ class ActionType(Enum):
 
     @property
     def is_websocket(self) -> bool:
-        return self is ActionType.WEBSOCKET
+        return self is HandlerType.WEBSOCKET
 
 
-class ActionInfo(NamedTuple):
-    type: ActionType
+class HandlerInfo(NamedTuple):
+    type: HandlerType
     path: str
-
-
-def controller(target: type | str):
-    if inspect.isclass(target):
-        path = ""
-        cls = target
-    elif isinstance(target, str):
-        path = target.strip("/")
-        cls = None
-    else:
-        raise TypeError(f"@controller must be applied to class, '{target}' given")
-
-    def inner(arg: type):
-        setattr(arg, CONTROLLER_ATTRIBUTE, ControllerInfo(path))
-        return service(arg)
-
-    return inner(cls) if cls else inner
 
 
 def route(action: Callable = None, /, *, method: HTTPMethod | None, path: str | None):
@@ -77,7 +57,7 @@ def route(action: Callable = None, /, *, method: HTTPMethod | None, path: str | 
         if any(p.annotation is inspect.Signature.empty for p in params[2:]):
             raise TypeError("Handler parameters must be typed")
 
-        setattr(arg, ACTION_ATTRIBUTE, ActionInfo(ActionType(method), path))
+        setattr(arg, ATTRIBUTE_HANDLER, HandlerInfo(HandlerType(method), path))
         return arg
 
     return inner(action) if action else inner

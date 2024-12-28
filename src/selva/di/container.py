@@ -11,14 +11,13 @@ from selva._util.package_scan import scan_packages
 from selva.di.decorator import DI_ATTRIBUTE_SERVICE
 from selva.di.decorator import service as service_decorator
 from selva.di.error import (
+    DependencyLoopError,
     NonInjectableTypeError,
     ServiceNotFoundError,
-    ServiceWithoutDecoratorError, DependencyLoopError,
+    ServiceWithoutDecoratorError,
 )
 from selva.di.interceptor import Interceptor
-from selva.di.lazy import Lazy
-from selva.di.locator import Locator
-from selva.di.service.model import InjectableType, ServiceSpec
+from selva.di.service.model import InjectableType, ServiceDependency, ServiceSpec
 from selva.di.service.parse import parse_service_spec
 from selva.di.service.registry import ServiceRegistry
 
@@ -39,19 +38,19 @@ class Container:
         service_info = getattr(injectable, DI_ATTRIBUTE_SERVICE, None)
 
         if not service_info:
-            if inspect.isfunction(injectable):
+            if inspect.isfunction(injectable) or inspect.isclass(injectable):
                 raise ServiceWithoutDecoratorError(injectable)
 
             raise NonInjectableTypeError(injectable)
 
-        name, startup = service_info
-        service_spec = parse_service_spec(injectable, name)
-        provided_service = service_spec.provides
+        provides, name, startup = service_info
+        service_spec = parse_service_spec(injectable, provides, name)
+        provided_service = service_spec.impl
 
         self.registry[provided_service, name] = service_spec
 
         if startup:
-            self.startup.append((service_spec.provides, name))
+            self.startup.append((service_spec.impl, name))
 
         log_context = {
             "service": f"{injectable.__module__}.{injectable.__qualname__}",
@@ -60,8 +59,8 @@ class Container:
         if name:
             log_context["name"] = name
 
-        if provided_service:
-            log_context["provides"] = f"{provided_service.__module__}.{provided_service.__qualname__}"
+        if provides:
+            log_context["provides"] = f"{provides.__module__}.{provides.__qualname__}"
 
         logger.debug("service registered", **log_context)
 
@@ -104,91 +103,116 @@ class Container:
         return definition is not None
 
     def iter_service(
-        self, key: type
+        self, service_type: type
     ) -> Iterable[tuple[type | FunctionType, str | None]]:
-        record = self.registry.services.get(key)
+        record = self.registry.services.get(service_type)
         if not record:
-            raise ServiceNotFoundError(key)
+            raise ServiceNotFoundError(service_type)
 
         for name, definition in record.providers.items():
-            yield definition.provides, name
+            yield definition.impl, name
 
     def iter_all_services(
         self,
     ) -> Iterable[tuple[type, type | FunctionType | None, str | None]]:
         for interface, record in self.registry.services.items():
             for name, definition in record.providers.items():
-                yield interface, definition.provides, name
+                yield interface, definition.service, name
 
     async def get(
-        self, service: Type[T], name: str = None, *, optional=False, locator=None, stack=None
+        self, service_type: Type[T], *, name: str = None, optional=False
     ) -> T:
-        if not locator:
-            locator = Locator(self)
-
-        return await self._get(locator, service, name, optional, stack or [])
+        dependency = ServiceDependency(service_type, name=name, optional=optional)
+        return await self._get(dependency)
 
     def _get_from_cache(self, service_type: Type[T], name: str | None) -> T | None:
         return self.store.get((service_type, name))
 
-    async def _get(
+    async def _get[T](
         self,
-        locator: Locator,
-        service_type: Type[T],
-        name: str | None,
-        optional: bool,
-        stack: list[tuple[Type[T], str]],
-    ) -> T | None:
+        dependency: ServiceDependency,
+        stack: list[tuple[type[T], str | None]] = None,
+    ) -> Any | None:
+        service_type, service_name = dependency.service, dependency.name
+
         # check if service exists in cache
-        if instance := self._get_from_cache(service_type, name):
+        if instance := self._get_from_cache(service_type, service_name):
             return instance
 
-        if (service_type, name) in stack:
-            raise DependencyLoopError(stack, (service_type, name))
-
         try:
-            service_spec = self.registry.get(service_type, name)
+            service_spec = self.registry.get(service_type, service_name)
             if not service_spec:
-                raise ServiceNotFoundError(service_type, name)
+                raise ServiceNotFoundError(service_type, service_name)
         except ServiceNotFoundError:
-            if optional:
+            if dependency.optional:
                 return None
             raise
 
-        stack.append((service_type, name))
-        instance = await self._create_service(service_spec, locator)
+        stack = stack or []
+
+        if service_type in stack:
+            raise DependencyLoopError(stack + [service_type])
+
+        stack.append((service_type, service_name))
+        instance = await self._create_service(service_spec, stack)
         stack.pop()
 
         return instance
 
+    async def _get_dependent_services(
+        self, service_spec: ServiceSpec, stack: list
+    ) -> dict[str, Any]:
+        return {
+            name: await self._get(dep, stack) for name, dep in service_spec.dependencies
+        }
+
     async def _create_service(
         self,
         service_spec: ServiceSpec,
-        locator: Locator,
-    ) -> Any:
+        stack: list[tuple[Type[T], str]],
+    ) -> T:
         name = service_spec.name
-        factory = service_spec.factory
-        receives_locator = service_spec.receives_locator
 
-        if inspect.iscoroutinefunction(factory):
-            instance = await (factory(locator) if receives_locator else factory())
-        elif inspect.isasyncgenfunction(factory):
-            generator = factory(locator) if receives_locator else factory()
-            instance = await anext(generator)
-            self._setup_asyncgen_finalizer(generator)
-        elif inspect.isgeneratorfunction(factory):
-            generator = factory()
-            instance = next(generator)
-            self._setup_generator_finalizer(generator)
+        # check if service exists in cache
+        if instance := self._get_from_cache(service_spec.impl, name):
+            return instance
+
+        if factory := service_spec.factory:
+            dependencies = await self._get_dependent_services(service_spec, stack)
+
+            instance = await maybe_async(factory, **dependencies)
+            if inspect.isgenerator(instance):
+                generator = instance
+                instance = await asyncio.to_thread(next, generator)
+                self._setup_generator_finalizer(generator)
+            elif inspect.isasyncgen(instance):
+                generator = instance
+                instance = await anext(generator)
+                self._setup_asyncgen_finalizer(generator)
+
+            self.store[service_spec.impl, name] = instance
         else:
-            instance = factory()
+            instance = service_spec.service()
+            self.store[service_spec.impl, name] = instance
 
-        self.store[service_spec.provides, name] = instance
+            dependencies = await self._get_dependent_services(service_spec, stack)
 
-        if service_spec.provides is not Interceptor:
-            await self._run_interceptors(instance, service_spec.provides)
+            for name, dep_service in dependencies.items():
+                setattr(instance, name, dep_service)
+
+            if initializer := service_spec.initializer:
+                await maybe_async(initializer, instance)
+
+            self._setup_finalizer(service_spec, instance)
+
+        if service_spec.impl is not Interceptor:
+            await self._run_interceptors(instance, service_spec.impl)
 
         return instance
+
+    def _setup_finalizer(self, service_spec: ServiceSpec, instance: Any):
+        if finalizer := service_spec.finalizer:
+            self.finalizers.append(maybe_async(finalizer, instance))
 
     def _setup_generator_finalizer(self, gen: Generator):
         self.finalizers.append(asyncio.to_thread(next, gen, None))

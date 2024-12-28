@@ -1,4 +1,3 @@
-import inspect
 from collections import OrderedDict
 from collections.abc import Callable
 from http import HTTPMethod
@@ -7,9 +6,8 @@ import structlog
 
 from selva.web.exception import HTTPNotFoundException
 from selva.web.routing.decorator import (
-    ACTION_ATTRIBUTE,
-    ActionInfo,
-    ControllerInfo,
+    ATTRIBUTE_HANDLER,
+    HandlerInfo,
 )
 from selva.web.routing.exception import (
     ControllerWithoutDecoratorError,
@@ -31,7 +29,7 @@ class Router:
         self.routes: OrderedDict[str, Route] = OrderedDict()
 
     def route(self, action: Callable):
-        action_info: ActionInfo = getattr(action, ACTION_ATTRIBUTE, None)
+        action_info: HandlerInfo = getattr(action, ATTRIBUTE_HANDLER, None)
         if not action_info:
             raise ControllerWithoutDecoratorError(action)
 

@@ -1,7 +1,6 @@
 import inspect
+from types import FunctionType
 from typing import Any
-
-from mypy.fastparse import FunctionType
 
 from selva.di.service.model import InjectableType
 

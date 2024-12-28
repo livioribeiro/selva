@@ -8,10 +8,9 @@ from selva.web.converter.param_extractor_impl import (
     FromPath,
     FromQuery,
 )
-from selva.web.exception_handler import ExceptionHandler
+from selva.web.exception_handler import exception_handler
 from selva.web.middleware import Middleware
 from selva.web.routing.decorator import (
-    controller,
     delete,
     get,
     patch,

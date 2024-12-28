@@ -10,8 +10,7 @@ from selva.web.templates import Template
 
 
 @service
-async def jinja_template_service(locator) -> Template:
-    settings = await locator.get(Settings)
+async def jinja_template_service(settings: Settings) -> Template:
     jinja_settings = JinjaTemplateSettings.model_validate(
         settings.templates.jinja
     )
