@@ -6,7 +6,7 @@ from asgikit.requests import Request
 from asgikit.responses import respond_text
 
 from selva.web import FromPath, FromQuery, get
-from selva.web.converter.decorator import register_param_converter
+from selva.web.converter.decorator import register_converter
 
 
 @dataclass
@@ -14,12 +14,12 @@ class MyModel:
     name: str
 
 
-@register_param_converter(MyModel)
+@register_converter(str, MyModel)
 class MyModelParamConverter:
-    def from_str(self, value: str) -> MyModel:
+    def convert(self, value: str, original_type: type[MyModel]) -> MyModel:
         return MyModel(value)
 
-    def into_str(self, data: MyModel) -> str:
+    def convert_back(self, data: MyModel) -> str:
         return str(data)
 
 

@@ -2,14 +2,15 @@
 # ruff: noqa: F401
 
 from selva.web.application import Selva
-from selva.web.converter.param_extractor_impl import (
+from selva.web.converter.param_extractor import (
+    FromBody,
     FromCookie,
     FromHeader,
     FromPath,
     FromQuery,
 )
 from selva.web.exception_handler import exception_handler
-from selva.web.middleware import Middleware
+from selva.web.middleware import MiddlewareCall
 from selva.web.routing.decorator import (
     delete,
     get,

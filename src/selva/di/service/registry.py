@@ -1,5 +1,4 @@
 import typing
-import warnings
 from collections import defaultdict
 
 from selva.di.error import ServiceAlreadyRegisteredError, ServiceNotFoundError

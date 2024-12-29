@@ -19,19 +19,9 @@ from selva.configuration.settings import Settings, get_settings
 from selva.di.container import Container
 from selva.di.decorator import DI_ATTRIBUTE_SERVICE
 from selva.di.util import parse_function_services
-from selva.web.converter import (
-    from_request_impl,
-    param_converter_impl,
-    param_extractor_impl,
-)
-from selva.web.converter.error import (
-    MissingFromRequestImplError,
-    MissingParamConverterImplError,
-    MissingRequestParamExtractorImplError,
-)
+from selva.web import converter
+from selva.web.converter.error import MissingFromRequestImplError
 from selva.web.converter.from_request import FromRequest
-from selva.web.converter.param_converter import ParamConverter
-from selva.web.converter.param_extractor import ParamExtractor
 from selva.web.exception import HTTPException, HTTPNotFoundException, WebSocketException
 from selva.web.exception_handler import ATTRIBUTE_EXCEPTION_HANDLER, ExceptionHandlerType
 from selva.web.middleware import MiddlewareCall
@@ -112,9 +102,10 @@ class Selva:
         self.di.scan()
 
         self.di.scan(
-            from_request_impl,
-            param_extractor_impl,
-            param_converter_impl,
+            converter,
+            # from_request_impl,
+            # param_extractor_impl,
+            # param_converter_impl,
             files_middleware,
             request_id_middleware,
         )
@@ -252,9 +243,10 @@ class Selva:
             await respond_text(request.response, traceback.format_exc())
 
     async def _handle_exception(self, request: Request, exc: Exception, handler):
+        service_params = parse_function_services(handler, skip=2, require_annotations=False)
         services = {
             name: await self.di.get(service_type, name=service_name)
-            for name, (service_type, service_name) in parse_function_services(handler, skip=2).items()
+            for name, (service_type, service_name) in service_params.items()
         }
         await handler(request, exc, **services)
 
@@ -302,49 +294,32 @@ class Selva:
     async def _params_from_request(
         self,
         request: Request,
-        params: dict[str, type],
+        params: dict[str, Any, Any],
     ) -> dict[str, Any]:
         result = {}
 
-        for name, (param_type, extractor_param) in params.items():
-            if extractor_param:
-                if inspect.isclass(extractor_param):
-                    extractor_type = extractor_param
-                else:
-                    extractor_type = type(extractor_param)
-
-                extractor = await self.di.get(
-                    ParamExtractor[extractor_type], optional=True
-                )
-                if not extractor:
-                    raise MissingRequestParamExtractorImplError(extractor_type)
-
-                param = extractor.extract(request, name, extractor_param)
-                if not param:
-                    continue
-
-                if converter := await self._find_param_converter(
-                    param_type, ParamConverter
-                ):
-                    value = await maybe_async(converter.from_str, param)
-                    result[name] = value
-                else:
-                    raise MissingParamConverterImplError(param_type)
+        for name, (param_type, metadata, default) in params.items():
+            if inspect.isclass(metadata):
+                converter_type = metadata
             else:
-                if converter := await self._find_param_converter(
-                    param_type, FromRequest
-                ):
-                    value = await maybe_async(
-                        converter.from_request, request, param_type, name
-                    )
+                converter_type = type(metadata)
+
+            if converter_service := await self.di.get(FromRequest[converter_type]):
+                value = await maybe_async(
+                    converter_service.from_request, request, param_type, name, metadata
+                )
+
+                if value:
                     result[name] = value
-                else:
-                    raise MissingFromRequestImplError(param_type)
+                elif default != inspect.Parameter.empty:
+                    result[name] = default
+            else:
+                raise MissingFromRequestImplError(param_type)
 
         return result
 
-    async def _find_param_converter(
-        self, param_type: type, converter_type: type
+    async def _find_from_request_converter(
+        self, param_type: type
     ) -> Any | None:
         if typing.get_origin(param_type) is list:
             (param_type,) = typing.get_args(param_type)
@@ -354,9 +329,7 @@ class Selva:
 
         for base_type in get_base_types(param_type):
             search_type = list[base_type] if is_generic else base_type
-            if converter := await self.di.get(
-                converter_type[search_type], optional=True
-            ):
+            if converter := await self.di.get(FromRequest[search_type], optional=True):
                 return converter
 
         return None

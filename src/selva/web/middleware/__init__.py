@@ -1,6 +1,4 @@
-import typing
 from collections.abc import Awaitable, Callable
-from functools import cache
 from typing import Protocol, TypeAlias, runtime_checkable
 
 from asgikit.requests import Request

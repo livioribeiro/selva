@@ -1,62 +1,85 @@
-from http import HTTPMethod, HTTPStatus
-from typing import Type
+import inspect
+from abc import ABC
+from http import HTTPMethod
+from typing import Annotated, Any, Union, get_origin, get_args
 
-import pydantic
-from asgikit.requests import Request, read_form, read_json
-from pydantic import BaseModel as PydanticModel
+from asgikit.requests import Request
 
+from selva._util.maybe_async import maybe_async
+from selva._util.base_types import get_base_types
+from selva.di.container import Container
+from selva.di.inject import Inject
+from selva.web.converter.converter import Converter
 from selva.web.converter.decorator import register_from_request
-from selva.web.exception import HTTPBadRequestException, HTTPException
+from selva.web.converter.param_extractor import ParamExtractor, FromBody, FromPath, FromQuery, FromHeader, FromCookie
 
 
-@register_from_request(PydanticModel)
-class PydanticModelFromRequest:
+@register_from_request(FromBody)
+class BodyFromRequest(FromBody):
+    di: Annotated[Container, Inject]
+
     async def from_request(
-        self,
-        request: Request,
-        original_type: Type[PydanticModel],
-        _parameter_name,
-        _metadata=None,
-    ) -> PydanticModel:
+            self,
+            request: Request,
+            original_type: type,
+            parameter_name: str,
+            metadata=None,
+    ) -> Any:
         if request.method not in (HTTPMethod.POST, HTTPMethod.PUT, HTTPMethod.PATCH):
             raise TypeError(
-                "Pydantic model parameter on method that does not accept body"
+                "`FromBody` parameter on method that does not accept body"
             )
 
-        # TODO: make request body decoding extensible
-        if "application/json" in request.content_type:
-            data = await read_json(request)
-        elif "application/x-www-form-urlencoded" in request.content_type:
-            data = await read_form(request)
+        if (origin := get_origin(original_type)) is list:
+            search_type = get_args(original_type)[0]
+            search_types = [origin[base_type] for base_type in get_base_types(search_type)]
+        elif original_type is dict:
+            search_types = [dict]
         else:
-            raise HTTPException(status=HTTPStatus.UNSUPPORTED_MEDIA_TYPE)
+            search_types = get_base_types(original_type)
 
-        try:
-            return original_type.model_validate(data)
-        except pydantic.ValidationError as err:
-            raise HTTPBadRequestException() from err
+        for base_type in search_types:
+            if converter := await self.di.get(Converter[Request, base_type], optional=True):
+                return await maybe_async(converter.convert(request, original_type))
+
+        raise TypeError(f"No converter available for {original_type}")
 
 
-@register_from_request(list[PydanticModel])
-class PydanticModelListFromRequest:
+class RequestParamFromRequest(ABC):
+    di: Annotated[Container, Inject]
+    extractor_type: type
+
     async def from_request(
         self,
         request: Request,
-        original_type: Type[list[PydanticModel]],
-        _parameter_name,
-        _metadata=None,
-    ) -> list[PydanticModel]:
-        if request.method not in (HTTPMethod.POST, HTTPMethod.PUT, HTTPMethod.PATCH):
-            raise TypeError("Pydantic parameter on method that does not accept body")
+        original_type: type,
+        parameter_name: str,
+        metadata: Union["extractor_type", type["extractor_type"]],
+    ):
+        parameter_type = metadata if inspect.isclass(metadata) else type(metadata)
+        extractor = await self.di.get(ParamExtractor[parameter_type], optional=True)
+        converter = await self.di.get(Converter[str, original_type], optional=True)
 
-        if "application/json" in request.content_type:
-            data = await read_json(request)
-        else:
-            raise HTTPException(status=HTTPStatus.UNSUPPORTED_MEDIA_TYPE)
+        if data := extractor.extract(request, parameter_name, metadata):
+            return converter.convert(data, original_type)
+        return None
 
-        adapter = pydantic.TypeAdapter(original_type)
 
-        try:
-            return adapter.validate_python(data)
-        except pydantic.ValidationError as err:
-            raise HTTPBadRequestException() from err
+@register_from_request(FromPath)
+class PathParamFromRequest(RequestParamFromRequest):
+    extractor_type = FromPath
+
+
+@register_from_request(FromQuery)
+class QueryParamFromRequest(RequestParamFromRequest):
+    extractor_type = FromQuery
+
+
+@register_from_request(FromHeader)
+class HeaderParamFromRequest(RequestParamFromRequest):
+    extractor_type = FromHeader
+
+
+@register_from_request(FromCookie)
+class CookieParamFromRequest(RequestParamFromRequest):
+    extractor_type = FromCookie

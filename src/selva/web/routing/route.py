@@ -62,34 +62,34 @@ def build_path_regex_and_params(
     return re.compile(regex), param_types
 
 
-def parse_handler_params(handler: Callable) -> tuple[dict[str, tuple[type, Any | None]], dict[str, tuple[type, str | None]]]:
+def parse_handler_params(handler: Callable) -> dict[str, tuple[type, Any, Any]]:
     """parse handler parameters from function signature
 
-    returns: 2-tuple of mapping of request parameters and mapping of handler service dependencies
+    returns: mapping of request parameters names to 3-tuple of type, metadata and default value
     """
 
-    type_hints = [
-        (name, param.annotation)
-        for name, param in inspect.signature(handler).parameters.items()
-    ]
+    signature = inspect.signature(handler, eval_str=True)
 
-    services = parse_function_services(handler, skip=1, require_annotation=True)
+    type_hints = [
+        (name, param.annotation, param.default)
+        for name, param in signature.parameters.items()
+    ]
 
     parameters = {}
 
-    for name, type_hint in type_hints[1:]:  # skip request parameter
-        if typing.get_origin(type_hint) is Annotated:
-            # Annotated is garanteed to have at least 2 args
-            param_type, param_meta, *_ = typing.get_args(type_hint)
+    for name, type_hint, default in type_hints[1:]:  # skip request parameter
+        if typing.get_origin(type_hint) is not Annotated:
+            continue
 
-            if param_meta is Inject or isinstance(param_meta, Inject):
-                continue
+        # Annotated is garanteed to have at least 2 args
+        param_type, param_meta, *_ = typing.get_args(type_hint)
 
-            parameters[name] = (param_type, param_meta)
-        else:
-            parameters[name] = (type_hint, None)
+        if param_meta is Inject or isinstance(param_meta, Inject):
+            continue
 
-    return parameters, services
+        parameters[name] = (param_type, param_meta, default)
+
+    return parameters
 
 
 class Route:
@@ -106,7 +106,8 @@ class Route:
         self.name = name
 
         self.regex, self.path_params = build_path_regex_and_params(action, path)
-        self.request_params, self.services = parse_handler_params(action)
+        self.request_params = parse_handler_params(action)
+        self.services = parse_function_services(action, skip=1, require_annotation=False)
 
     def match(self, method: HTTPMethod | None, path: str) -> dict[str, str] | None:
         if method is self.method and (match := self.regex.match(path)):

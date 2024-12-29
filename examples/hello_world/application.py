@@ -7,7 +7,7 @@ from pydantic import BaseModel
 import structlog
 
 from selva.di import Inject, service
-from selva.web import FromPath, FromQuery, get, post
+from selva.web import FromBody, FromPath, FromQuery, get, post
 
 logger = structlog.get_logger()
 
@@ -49,10 +49,12 @@ async def post_data(request: Request):
     body = await read_json(request)
     await respond_json(request.response, {"result": body})
 
+
 @post("pydantic")
-async def post_data_pydantic(request: Request, data: MyModel):
-    await respond_json(request.response, {"name": data.name, "region": data.region})
+async def post_data_pydantic(request: Request, data: A[MyModel, FromBody]):
+    await respond_json(request.response, data.model_dump())
+
 
 @post("pydantic/list")
-async def post_data_pydantic_list(request: Request, data: list[MyModel]):
+async def post_data_pydantic_list(request: Request, data: A[list[MyModel], FromBody]):
     await respond_json(request.response, {"data": [d.model_dump() for d in data]})
