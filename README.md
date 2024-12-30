@@ -26,14 +26,12 @@ Create a controller:
 ```python
 from asgikit.requests import Request
 from asgikit.responses import respond_text
-from selva.web import controller, get
+from selva.web import get
 
 
-@controller
-class Controller:
-    @get
-    async def hello(self, request: Request):
-        await respond_text(request.response, "Hello, World!")
+@get
+async def hello(self, request: Request):
+    await respond_text(request.response, "Hello, World!")
 ```
 
 Run application with `uvicorn` (Selva will automatically load `application.py`):
