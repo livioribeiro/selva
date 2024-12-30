@@ -9,10 +9,6 @@ from asgikit.requests import Request
 ATTRIBUTE_HANDLER = "__selva_web_action__"
 
 
-class ControllerInfo(NamedTuple):
-    path: str
-
-
 class HandlerType(Enum):
     GET = HTTPMethod.GET
     HEAD = HTTPMethod.HEAD
@@ -43,7 +39,7 @@ def route(action: Callable = None, /, *, method: HTTPMethod | None, path: str | 
         params = list(inspect.signature(arg).parameters.values())
         if len(params) < 1:
             raise TypeError(
-                "Handler method must have at least ''request' parameter"
+                "Handler method must have at least 'request' parameter"
             )
 
         req_param = params[0].annotation
@@ -54,7 +50,7 @@ def route(action: Callable = None, /, *, method: HTTPMethod | None, path: str | 
                 f"({arg.__name__})"
             )
 
-        if any(p.annotation is inspect.Signature.empty for p in params[2:]):
+        if any(p.annotation is inspect.Signature.empty for p in params[1:]):
             raise TypeError("Handler parameters must be typed")
 
         setattr(arg, ATTRIBUTE_HANDLER, HandlerInfo(HandlerType(method), path))

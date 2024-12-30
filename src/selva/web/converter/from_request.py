@@ -15,7 +15,8 @@ class FromRequest[T](Protocol):
         request: Request,
         original_type: type[T],
         parameter_name: str,
-        metadata: Any = None,
+        metadata: Any,
+        optional: bool,
     ) -> T | Awaitable[T]:
         """Extract values from the request based on the type hint
 

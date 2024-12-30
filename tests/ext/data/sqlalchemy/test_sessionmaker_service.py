@@ -53,7 +53,7 @@ async def test_options():
 
     engine = create_async_engine(settings.data.sqlalchemy.connections.default.url)
 
-    sessionmaker = await sessionmaker_service({"default": engine}, settings)
+    sessionmaker = await sessionmaker_service(settings, {"default": engine})
     async with sessionmaker() as session:
         assert session.info == {"framework": "selva"}
 
@@ -85,7 +85,7 @@ async def test_session_class():
 
     engine = create_async_engine(settings.data.sqlalchemy.connections.default.url)
 
-    sessionmaker = await sessionmaker_service({"default": engine}, settings)
+    sessionmaker = await sessionmaker_service(settings, {"default": engine})
     async with sessionmaker() as session:
         assert session.__class__ == MySession
 
@@ -119,7 +119,7 @@ async def test_binds():
     engine_b = create_async_engine(settings.data.sqlalchemy.connections.conn_b.url)
 
     sessionmaker = await sessionmaker_service(
-        {"conn_a": engine_a, "conn_b": engine_b}, settings
+        settings, {"conn_a": engine_a, "conn_b": engine_b}
     )
     async with sessionmaker() as session:
         assert session.binds[BaseA] == engine_a
@@ -160,7 +160,7 @@ async def test_binds_model():
         await conn.run_sync(BaseB.metadata.create_all)
 
     sessionmaker = await sessionmaker_service(
-        {"conn_a": engine_a, "conn_b": engine_b}, settings
+        settings, {"conn_a": engine_a, "conn_b": engine_b}
     )
     async with sessionmaker() as session:
         session.add_all(
@@ -201,4 +201,4 @@ async def test_binds_with_invalid_connection_should_fail():
     )
 
     with pytest.raises(ValueError, match="No engine with name 'invalid'"):
-        await sessionmaker_service({"default": None}, settings)
+        await sessionmaker_service(settings, {"default": None})

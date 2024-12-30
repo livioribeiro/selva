@@ -24,7 +24,7 @@ class RequestPydanticConverter:
     async def convert(
         self,
         request: Request,
-        original_type: type,
+        original_type: type[PydanticModel],
     ) -> PydanticModel:
         # TODO: make request body decoding extensible
         if "application/json" in request.content_type:
@@ -45,7 +45,7 @@ class RequestPydanticListConverter:
     async def convert(
         self,
         request: Request,
-        original_type: list[type[PydanticModel]],
+        original_type: type[list[PydanticModel]],
     ) -> list[PydanticModel]:
         if "application/json" in request.content_type:
             data = await read_json(request)

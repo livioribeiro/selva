@@ -156,7 +156,7 @@ async def test_sessionmaker_service():
 
     engine = create_async_engine(settings.data.sqlalchemy.connections.default.url)
 
-    sessionmaker = await sessionmaker_service({"default": engine}, settings)
+    sessionmaker = await sessionmaker_service(settings, {"default": engine})
     async with sessionmaker() as session:
         result = await session.execute(text("select 1"))
         assert result.scalar() == 1
@@ -196,6 +196,6 @@ async def test_engine_dict_service():
         name="other",
     )
 
-    engines = await engine_dict_service(ioc, settings)
+    engines = await engine_dict_service(settings, ioc)
 
     assert set(engines.keys()) == {"default", "other"}

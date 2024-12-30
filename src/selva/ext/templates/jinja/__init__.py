@@ -25,5 +25,5 @@ async def selva_extension(container: Container, settings: Settings):
             "Please define `templates.backend` property."
         )
 
-    from selva.ext.templates.jinja.service import jinja_template_service
-    container.register(jinja_template_service)
+    from selva.ext.templates.jinja.service import JinjaTemplate
+    container.register(JinjaTemplate)

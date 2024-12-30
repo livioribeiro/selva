@@ -12,6 +12,7 @@ from selva.di.inject import Inject
 from selva.web.converter.converter import Converter
 from selva.web.converter.decorator import register_from_request
 from selva.web.converter.param_extractor import ParamExtractor, FromBody, FromPath, FromQuery, FromHeader, FromCookie
+from selva.web.exception import HTTPBadRequestException
 
 
 @register_from_request(FromBody)
@@ -23,7 +24,8 @@ class BodyFromRequest(FromBody):
             request: Request,
             original_type: type,
             parameter_name: str,
-            metadata=None,
+            metadata,
+            optional: bool,
     ) -> Any:
         if request.method not in (HTTPMethod.POST, HTTPMethod.PUT, HTTPMethod.PATCH):
             raise TypeError(
@@ -55,6 +57,7 @@ class RequestParamFromRequest(ABC):
         original_type: type,
         parameter_name: str,
         metadata: Union["extractor_type", type["extractor_type"]],
+        optional: bool,
     ):
         parameter_type = metadata if inspect.isclass(metadata) else type(metadata)
         extractor = await self.di.get(ParamExtractor[parameter_type], optional=True)
@@ -62,7 +65,11 @@ class RequestParamFromRequest(ABC):
 
         if data := extractor.extract(request, parameter_name, metadata):
             return converter.convert(data, original_type)
-        return None
+
+        if optional:
+            return None
+
+        raise HTTPBadRequestException()
 
 
 @register_from_request(FromPath)

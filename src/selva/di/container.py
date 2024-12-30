@@ -1,13 +1,12 @@
 import asyncio
 import inspect
 from collections.abc import AsyncGenerator, Awaitable, Generator, Iterable
-from types import FunctionType, ModuleType
-from typing import Any, Type, TypeVar
+from types import FunctionType
+from typing import Any
 
 import structlog
 
 from selva._util.maybe_async import maybe_async
-from selva._util.package_scan import scan_packages
 from selva.di.decorator import DI_ATTRIBUTE_SERVICE
 from selva.di.decorator import service as service_decorator
 from selva.di.error import (
@@ -23,8 +22,6 @@ from selva.di.service.registry import ServiceRegistry
 
 logger = structlog.get_logger(__name__)
 
-T = TypeVar("T")
-
 
 class Container:
     def __init__(self):
@@ -32,7 +29,7 @@ class Container:
         self.store: dict[tuple[type, str | None], Any] = {}
         self.finalizers: list[Awaitable] = []
         self.startup: list[tuple[type, str | None]] = []
-        self.interceptors: list[Type[Interceptor]] = []
+        self.interceptors: list[type[Interceptor]] = []
 
     def register(self, injectable: InjectableType):
         service_info = getattr(injectable, DI_ATTRIBUTE_SERVICE, None)
@@ -45,12 +42,12 @@ class Container:
 
         provides, name, startup = service_info
         service_spec = parse_service_spec(injectable, provides, name)
-        provided_service = service_spec.impl
+        provided_service = service_spec.service
 
         self.registry[provided_service, name] = service_spec
 
         if startup:
-            self.startup.append((service_spec.impl, name))
+            self.startup.append((provided_service, name))
 
         log_context = {
             "service": f"{injectable.__module__}.{injectable.__qualname__}",
@@ -76,7 +73,7 @@ class Container:
 
         logger.debug("service defined", **log_context)
 
-    def interceptor(self, interceptor: Type[Interceptor]):
+    def interceptor(self, interceptor: type[Interceptor]):
         self.register(
             service_decorator(
                 interceptor,
@@ -90,13 +87,6 @@ class Container:
             "interceptor registered",
             interceptor=f"{interceptor.__module__}.{interceptor.__qualname__}",
         )
-
-    def scan(self, *packages: str | ModuleType):
-        def predicate_services(item: Any):
-            return hasattr(item, DI_ATTRIBUTE_SERVICE)
-
-        for found_service in scan_packages(packages, predicate_services):
-            self.register(found_service)
 
     def has(self, service_type: type, name: str = None) -> bool:
         definition = self.registry.get(service_type, name=name)
@@ -117,15 +107,15 @@ class Container:
     ) -> Iterable[tuple[type, type | FunctionType | None, str | None]]:
         for interface, record in self.registry.services.items():
             for name, definition in record.providers.items():
-                yield interface, definition.service, name
+                yield definition.service, definition.impl, name
 
-    async def get(
-        self, service_type: Type[T], *, name: str = None, optional=False
+    async def get[T](
+        self, service_type: type[T], *, name: str = None, optional=False
     ) -> T:
         dependency = ServiceDependency(service_type, name=name, optional=optional)
         return await self._get(dependency)
 
-    def _get_from_cache(self, service_type: Type[T], name: str | None) -> T | None:
+    def _get_from_cache[T](self, service_type: type[T], name: str | None) -> T | None:
         return self.store.get((service_type, name))
 
     async def _get[T](
@@ -166,15 +156,15 @@ class Container:
             name: await self._get(dep, stack) for name, dep in service_spec.dependencies
         }
 
-    async def _create_service(
+    async def _create_service[T](
         self,
         service_spec: ServiceSpec,
-        stack: list[tuple[Type[T], str]],
+        stack: list[tuple[type[T], str]],
     ) -> T:
         name = service_spec.name
 
         # check if service exists in cache
-        if instance := self._get_from_cache(service_spec.impl, name):
+        if instance := self._get_from_cache(service_spec.service, name):
             return instance
 
         if factory := service_spec.factory:
@@ -190,10 +180,10 @@ class Container:
                 instance = await anext(generator)
                 self._setup_asyncgen_finalizer(generator)
 
-            self.store[service_spec.impl, name] = instance
+            self.store[service_spec.service, name] = instance
         else:
-            instance = service_spec.service()
-            self.store[service_spec.impl, name] = instance
+            instance = service_spec.impl()
+            self.store[service_spec.service, name] = instance
 
             dependencies = await self._get_dependent_services(service_spec, stack)
 
@@ -205,8 +195,8 @@ class Container:
 
             self._setup_finalizer(service_spec, instance)
 
-        if service_spec.impl is not Interceptor:
-            await self._run_interceptors(instance, service_spec.impl)
+        if service_spec.service is not Interceptor:
+            await self._run_interceptors(instance, service_spec.service)
 
         return instance
 

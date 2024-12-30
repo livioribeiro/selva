@@ -1,6 +1,8 @@
+from typing import Annotated as A
+
 from asgikit.responses import respond_json
 
-from selva.di import service
+from selva.di import service, Inject
 from selva.web import get
 from selva.web.exception_handler import exception_handler
 
@@ -16,8 +18,8 @@ class MyException(Exception):
 
 
 @exception_handler(MyException)
-async def handle_exception(request, exc, my_service: MyService):
-    await respond_json(request.response, my_service.parse_exception(exc))
+async def handle_exception(err, request, my_service: A[MyService, Inject]):
+    await respond_json(request.response, my_service.parse_exception(err))
 
 
 @get

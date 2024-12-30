@@ -10,7 +10,6 @@ from selva.web.converter.param_extractor import (
     FromQuery,
 )
 from selva.web.exception_handler import exception_handler
-from selva.web.middleware import MiddlewareCall
 from selva.web.routing.decorator import (
     delete,
     get,

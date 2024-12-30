@@ -48,5 +48,5 @@ def test_scan_package_str_with_predicate():
 
 
 def test_non_function_predicate_should_fail():
-    with pytest.raises(ValueError, match="invalid predicate"):
+    with pytest.raises(TypeError, match="invalid predicate"):
         list(scan_packages([], "predicate"))

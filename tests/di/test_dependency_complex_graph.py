@@ -47,13 +47,16 @@ class Service6:
 
 
 async def test_complex_graph(ioc: Container):
-    ioc.scan("tests.di.test_dependency_complex_graph")
+    for svc in [Service1, Service2, Service3, Service4]:
+        ioc.register(svc)
+
     instance = await ioc.get(Service4)
     assert isinstance(instance, Service4)
 
 
 async def test_complex_graph_with_loop(ioc: Container):
-    ioc.scan("tests.di.test_dependency_complex_graph")
+    for svc in [Service1, Service2, Service3, Service4, Service5, Service6]:
+        ioc.register(svc)
 
     instance5 = await ioc.get(Service5)
     instance6 = await ioc.get(Service6)

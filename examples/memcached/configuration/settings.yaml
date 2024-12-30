@@ -7,3 +7,6 @@ data:
       address: "localhost:11211"
       options:
         cluster_events: application.service.MyClusterEvents
+
+logging:
+  format: console

@@ -142,8 +142,8 @@ def parse_service_spec(
     dependencies = list(get_dependencies(injectable))
 
     return ServiceSpec(
-        service=service,
-        impl=provided_service,
+        service=provided_service,
+        impl=service,
         factory=factory,
         name=name,
         dependencies=dependencies,

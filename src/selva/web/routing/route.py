@@ -1,13 +1,9 @@
-import inspect
 import re
 import typing
 from collections import Counter
 from http import HTTPMethod
 from re import Pattern
-from typing import Annotated, Any, Callable, NamedTuple
-
-from selva.di.inject import Inject
-from selva.di.util import parse_function_services
+from typing import Callable, NamedTuple
 
 __all__ = ("Route", "RouteMatch")
 
@@ -62,36 +58,6 @@ def build_path_regex_and_params(
     return re.compile(regex), param_types
 
 
-def parse_handler_params(handler: Callable) -> dict[str, tuple[type, Any, Any]]:
-    """parse handler parameters from function signature
-
-    returns: mapping of request parameters names to 3-tuple of type, metadata and default value
-    """
-
-    signature = inspect.signature(handler, eval_str=True)
-
-    type_hints = [
-        (name, param.annotation, param.default)
-        for name, param in signature.parameters.items()
-    ]
-
-    parameters = {}
-
-    for name, type_hint, default in type_hints[1:]:  # skip request parameter
-        if typing.get_origin(type_hint) is not Annotated:
-            continue
-
-        # Annotated is garanteed to have at least 2 args
-        param_type, param_meta, *_ = typing.get_args(type_hint)
-
-        if param_meta is Inject or isinstance(param_meta, Inject):
-            continue
-
-        parameters[name] = (param_type, param_meta, default)
-
-    return parameters
-
-
 class Route:
     def __init__(
         self,
@@ -104,10 +70,7 @@ class Route:
         self.path = path
         self.action = action
         self.name = name
-
         self.regex, self.path_params = build_path_regex_and_params(action, path)
-        self.request_params = parse_handler_params(action)
-        self.services = parse_function_services(action, skip=1, require_annotation=False)
 
     def match(self, method: HTTPMethod | None, path: str) -> dict[str, str] | None:
         if method is self.method and (match := self.regex.match(path)):

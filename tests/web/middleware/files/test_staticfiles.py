@@ -7,9 +7,9 @@ from httpx import ASGITransport, AsyncClient
 from selva.configuration import Settings
 from selva.configuration.defaults import default_settings
 from selva.web.application import Selva
-from selva.web.middleware.files import StaticFilesMiddleware
+from selva.web.middleware.files import static_files_middleware
 
-MIDDLEWARE = [f"{StaticFilesMiddleware.__module__}.{StaticFilesMiddleware.__name__}"]
+MIDDLEWARE = [f"{static_files_middleware.__module__}.{static_files_middleware.__name__}"]
 
 
 @pytest.fixture(autouse=True)

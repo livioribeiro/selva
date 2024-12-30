@@ -4,3 +4,6 @@ middleware:
 staticfiles:
   mappings:
     favicon.ico: python.ico
+
+logging:
+  format: console

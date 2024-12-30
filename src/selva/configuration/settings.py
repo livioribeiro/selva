@@ -35,7 +35,7 @@ class Settings(Mapping[str, Any]):
 
         for key, value in data.items():
             if isinstance(value, dict):
-                data[key] = Settings(value)
+                self.__data[key] = Settings(value)
 
     def __getattr__(self, item: str):
         try:
@@ -69,6 +69,9 @@ class Settings(Mapping[str, Any]):
             return self._original_data == other
 
         return False
+
+    def __hash__(self):
+        return hash(repr(self._original_data))
 
     def __str__(self):
         return str(self.__data)

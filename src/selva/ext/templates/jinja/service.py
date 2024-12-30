@@ -1,37 +1,35 @@
 from pathlib import Path
+from typing import Annotated
 
 from asgikit.responses import Response, respond_stream, respond_text
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from selva.configuration import Settings
-from selva.di import service
+from selva.di import Inject, service
 from selva.ext.templates.jinja.settings import JinjaTemplateSettings
 from selva.web.templates import Template
 
 
-@service
-async def jinja_template_service(settings: Settings) -> Template:
-    jinja_settings = JinjaTemplateSettings.model_validate(
-        settings.templates.jinja
-    )
-
-    kwargs = jinja_settings.model_dump(exclude_unset=True)
-
-    if "loader" not in kwargs:
-        templates_path = [Path(p).absolute() for p in settings.templates.paths]
-        kwargs["loader"] = FileSystemLoader(templates_path)
-
-    if "autoescape" not in kwargs:
-        kwargs["autoescape"] = select_autoescape()
-
-    environment = Environment(enable_async=True, **kwargs)
-
-    return JinjaTemplate(environment)
-
-
+@service(provides=Template)
 class JinjaTemplate(Template):
-    def __init__(self, environment: Environment):
-        self.environment = environment
+    settings: Annotated[Settings, Inject]
+    environment: Environment
+
+    def initialize(self):
+        jinja_settings = JinjaTemplateSettings.model_validate(
+            self.settings.templates.jinja
+        )
+
+        kwargs = jinja_settings.model_dump(exclude_unset=True)
+
+        if "loader" not in kwargs:
+            templates_path = [Path(p).absolute() for p in self.settings.templates.paths]
+            kwargs["loader"] = FileSystemLoader(templates_path)
+
+        if "autoescape" not in kwargs:
+            kwargs["autoescape"] = select_autoescape()
+
+        self.environment = Environment(enable_async=True, **kwargs)
 
     async def respond(
         self,

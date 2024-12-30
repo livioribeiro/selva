@@ -2,6 +2,7 @@ import functools
 import inspect
 import traceback
 import typing
+from collections.abc import Callable
 from http import HTTPStatus
 from typing import Any, Type
 
@@ -18,16 +19,13 @@ from selva._util.package_scan import scan_packages
 from selva.configuration.settings import Settings, get_settings
 from selva.di.container import Container
 from selva.di.decorator import DI_ATTRIBUTE_SERVICE
-from selva.di.util import parse_function_services
-from selva.web import converter
 from selva.web.converter.error import MissingFromRequestImplError
 from selva.web.converter.from_request import FromRequest
 from selva.web.exception import HTTPException, HTTPNotFoundException, WebSocketException
 from selva.web.exception_handler import ATTRIBUTE_EXCEPTION_HANDLER, ExceptionHandlerType
-from selva.web.middleware import MiddlewareCall
-from selva.web.middleware import files as files_middleware, request_id as request_id_middleware
 from selva.web.routing.decorator import ATTRIBUTE_HANDLER
 from selva.web.routing.router import Router
+from selva.web.util import parse_handler_params
 
 logger = structlog.get_logger()
 
@@ -42,10 +40,6 @@ def _is_exception_handler(arg) -> bool:
 
 def _is_service(arg) -> bool:
     return (inspect.isfunction(arg) or inspect.isclass(arg)) and hasattr(arg, DI_ATTRIBUTE_SERVICE)
-
-
-def _is_module(arg) -> bool:
-    return inspect.ismodule(arg) or isinstance(arg, str)
 
 
 def _init_settings(settings: Settings | None) -> Settings:
@@ -99,20 +93,13 @@ class Selva:
                 raise RuntimeError(f"unknown scope '{scope['type']}'")
 
     def _register_modules(self):
-        self.di.scan()
+        packages_to_scan = [
+            self.settings.application,
+            "selva.web.converter",
+            "selva.web.middleware",
+        ]
 
-        self.di.scan(
-            converter,
-            # from_request_impl,
-            # param_extractor_impl,
-            # param_converter_impl,
-            files_middleware,
-            request_id_middleware,
-        )
-
-        # self.di.scan(self.settings.application)
-
-        for item in scan_packages([self.settings.application]):
+        for item in scan_packages(packages_to_scan):
             if _is_handler(item):
                 self.router.route(item)
 
@@ -148,11 +135,11 @@ class Selva:
         if len(middleware) == 0:
             return
 
-        middleware = [MiddlewareCall(self.di, import_item(name)) for name in middleware]
+        middleware_functions = [import_item(name) for name in middleware]
 
-        for mid in reversed(middleware):
-            chain = functools.partial(mid, self.handler)
-            self.handler = chain
+        for mid in reversed(middleware_functions):
+            func = functools.partial(self._call_handler, functools.partial(mid, self.handler), skip=2)
+            self.handler = func
 
     async def _lifespan_startup(self):
         await self.di._run_startup()
@@ -200,7 +187,7 @@ class Selva:
                         module=handler.__module__,
                         handler=handler.__qualname__,
                     )
-                    await self._handle_exception(request, err, handler)
+                    await self._call_handler(functools.partial(handler, err), request, skip=2)
                 else:
                     raise
         except (WebSocketDisconnectError, WebSocketError):
@@ -242,14 +229,6 @@ class Selva:
             request.response.status = HTTPStatus.INTERNAL_SERVER_ERROR
             await respond_text(request.response, traceback.format_exc())
 
-    async def _handle_exception(self, request: Request, exc: Exception, handler):
-        service_params = parse_function_services(handler, skip=2, require_annotations=False)
-        services = {
-            name: await self.di.get(service_type, name=service_name)
-            for name, (service_type, service_name) in service_params.items()
-        }
-        await handler(request, exc, **services)
-
     async def _process_request(self, request: Request):
         path = request.path
 
@@ -269,16 +248,7 @@ class Selva:
         path_params = match.params
         request["path_params"] = path_params
 
-        request_params = await self._params_from_request(
-            request, match.route.request_params
-        )
-
-        handler_services = {
-            name: await self.di.get(service_type, name=service_name)
-            for name, (service_type, service_name) in match.route.services.items()
-        }
-
-        await action(request, **(request_params | handler_services))
+        await self._call_handler(action, request, skip=1)
 
         response = request.response
 
@@ -291,28 +261,45 @@ class Selva:
         elif not response.is_finished:
             await response.end()
 
+
+    async def _call_handler(self, handler: Callable, request: Request, *, skip: int):
+        actual_handler = handler
+        while type(actual_handler) is functools.partial:
+            actual_handler = actual_handler.func
+
+        handler_params = parse_handler_params(actual_handler, skip=skip)
+        request_params = await self._params_from_request(request, handler_params.request)
+        request_services = {
+            name: await self.di.get(service_type, name=service_name, optional=has_default)
+            for name, (service_type, service_name, has_default) in handler_params.service
+        }
+
+        await handler(request, **(request_params | request_services))
+
+
     async def _params_from_request(
         self,
         request: Request,
-        params: dict[str, Any, Any],
+        params: list[tuple[str, Any, bool]],
     ) -> dict[str, Any]:
         result = {}
 
-        for name, (param_type, metadata, default) in params.items():
-            if inspect.isclass(metadata):
-                converter_type = metadata
+        for name, (param_type, param_annotation, has_default) in params:
+            if param_annotation:
+                if inspect.isclass(param_annotation):
+                    converter_type = param_annotation
+                else:
+                    converter_type = type(param_annotation)
             else:
-                converter_type = type(metadata)
+                converter_type = param_type
 
-            if converter_service := await self.di.get(FromRequest[converter_type]):
+            if from_request_service := await self.di.get(FromRequest[converter_type]):
                 value = await maybe_async(
-                    converter_service.from_request, request, param_type, name, metadata
+                    from_request_service.from_request, request, param_type, name, param_annotation, has_default
                 )
 
                 if value:
                     result[name] = value
-                elif default != inspect.Parameter.empty:
-                    result[name] = default
             else:
                 raise MissingFromRequestImplError(param_type)
 
