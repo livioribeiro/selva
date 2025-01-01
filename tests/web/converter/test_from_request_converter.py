@@ -2,9 +2,9 @@ from asgikit.requests import Request
 from pydantic import BaseModel
 
 from selva.web.converter.converter_impl import (
-    RequestDictConverter,
-    RequestPydanticConverter,
-    RequestPydanticListConverter,
+    RequestBodyDictConverter,
+    RequestBodyPydanticConverter,
+    RequestBodyPydanticListConverter,
 )
 
 
@@ -23,9 +23,9 @@ async def test_dict_from_request():
     }
 
     request = Request(scope, receive, None)
-    converter = RequestDictConverter()
+    converter = RequestBodyDictConverter()
 
-    result = await converter.convert(request, dict)
+    result = await converter.convert(request.body, dict)
 
     assert type(result) == dict
     assert result["field"] == "value"
@@ -49,9 +49,9 @@ async def test_pydantic_model_from_request():
     }
 
     request = Request(scope, receive, None)
-    converter = RequestPydanticConverter()
+    converter = RequestBodyPydanticConverter()
 
-    result = await converter.convert(request, Model)
+    result = await converter.convert(request.body, Model)
 
     assert type(result) == Model
     assert result.field == "value"
@@ -75,9 +75,9 @@ async def test_pydantic_model_list_from_request():
     }
 
     request = Request(scope, receive, None)
-    converter = RequestPydanticListConverter()
+    converter = RequestBodyPydanticListConverter()
 
-    result = await converter.convert(request, list[Model])
+    result = await converter.convert(request.body, list[Model])
 
     assert isinstance(result, list)
     assert result[0].field == "value1"
