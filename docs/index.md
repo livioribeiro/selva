@@ -18,14 +18,12 @@ Create file `application.py`:
 ```python
 from asgikit.requests import Request
 from asgikit.responses import respond_text
-from selva.web import controller, get
+from selva.web import get
 
 
-@controller
-class Controller:
-    @get
-    async def hello(self, request: Request):
-        await respond_text(request.response, "Hello, World")
+@get
+async def hello(request: Request):
+    await respond_text(request.response, "Hello, World")
 ```
 
 Run application with `uvicorn`. Selva will automatically load `application.py`:
@@ -35,7 +33,7 @@ uvicorn selva.run:app
 ```
 
 ```
-INFO:     Started server process [18664]
+INFO:     Started server process [1000]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
 INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
