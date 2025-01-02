@@ -25,18 +25,13 @@ To render templates, inject the `selva.web.templates.Template` dependency and ca
     ```python
     from typing import Annotated
     from selva.di import Inject
-    from selva.web import controller, get
+    from selva.web import get
     from selva.web.templates import Template
     
-    
-    @controller
-    class Controller:
-        template: Annotated[Template, Inject]
-    
-        @get
-        async def index(self, request):
-            context = {"title": "Index"}
-            await self.template.respond(request.response, "index.html", context)
+    @get
+    async def index(request):
+        context = {"title": "Index"}
+        await self.template.respond(request.response, "index.html", context)
     ```
 
 === "resources/templates/index.html"
@@ -56,7 +51,7 @@ To render templates, inject the `selva.web.templates.Template` dependency and ca
 
 ## Render templates to str
 
-The `Template` interface provide methods to render templates into an str, instead
+The `Template` interface provide methods to render templates into a str, instead
 of rendering to the response.
 
 The method `Tempate.render` accepts a template name and returns a string with the
@@ -87,7 +82,7 @@ make sure to check whether the value of configuration property `templates.backen
 matches with your extension's `__package__` or no other implementation has been
 registered yet.
 
-For example, the function `selva_extension` in your extension could be implemented
+For example, the function `init_extension` in your extension could be implemented
 like the following:
 
 === "my/extension/__init__.py"
@@ -98,7 +93,7 @@ like the following:
     from selva.web.templates import Template
 
 
-    def selva_extension(container: Container, settings: Settings):
+    def init_extension(container: Container, settings: Settings):
         backend = settings.templates.backend
 
         if backend and backend != __package__:

@@ -119,20 +119,12 @@ the url, or even with individual components:
     from asgikit.responses import respond_json
     
     from selva.di import Inject
-    from selva.web import controller, get
+    from selva.web import get
     
-    
-    @controller
-    class Controller:
-        redis: Annotated[Redis, Inject]
-    
-        async def initialize(self):
-            await self.redis.set("number", 0, nx=True, ex=60)
-    
-        @get
-        async def index(self, request):
-            number = await self.redis.incr("number")
-            await respond_json(request.response, {"number": number})
+    @get
+    async def index(request, redis: Annotated[Redis, Inject]):
+        number = await redis.incr("number")
+        await respond_json(request.response, {"number": number})
     ```
 
 === "configuration/settings.yaml"

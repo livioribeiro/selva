@@ -122,10 +122,10 @@ class Selva:
                 raise TypeError(f"Extension '{extension_name}' not found")
 
             try:
-                extension_init = getattr(extension_module, "selva_extension")
+                extension_init = getattr(extension_module, "init_extension")
             except AttributeError:
                 raise TypeError(
-                    f"Extension '{extension_name}' is missing the 'selva_extension()' function"
+                    f"Extension '{extension_name}' is missing the 'init_extension()' function"
                 )
 
             await maybe_async(extension_init, self.di, self.settings)

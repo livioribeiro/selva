@@ -7,7 +7,7 @@ from selva.di.decorator import service as service_decorator
 from .service import make_service
 
 
-def selva_extension(container: Container, settings: Settings):
+def init_extension(container: Container, settings: Settings):
     if find_spec("redis") is None:
         raise ModuleNotFoundError(
             "Missing 'redis'. Install 'selva' with 'redis' extra."

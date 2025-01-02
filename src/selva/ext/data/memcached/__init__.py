@@ -7,7 +7,7 @@ from selva.di.decorator import service as service_decorator
 from .service import make_service
 
 
-async def selva_extension(container: Container, settings: Settings):
+async def init_extension(container: Container, settings: Settings):
     if find_spec("emcache") is None:
         raise ModuleNotFoundError(
             "Missing 'emcache'. Install 'selva' with 'memcached' extra."

@@ -10,7 +10,7 @@ from selva.ext.data.sqlalchemy.service import (
 )
 
 
-def selva_extension(container: Container, settings: Settings):
+def init_extension(container: Container, settings: Settings):
     if find_spec("sqlalchemy") is None:
         raise ModuleNotFoundError(
             "Missing 'sqlalchemy'. Install 'selva' with 'sqlalchemy' extra."

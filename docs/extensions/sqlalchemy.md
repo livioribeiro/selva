@@ -98,7 +98,7 @@ data:
 
 1.  Username and password separated from the database url
 2.  Each component defined individually
-3.  Query parameters can be define in a map
+3.  Query parameters can be defined in a map
 4.  "service_name" query parameter can be used instead of "database"
     ```yaml
     query:
@@ -192,33 +192,31 @@ configuration, otherwise it is bound to just the `default` connection.
     from asgikit.responses import respond_json
 
     from selva.di import Inject
-    from selva.web import controller, get
+    from selva.web import get
 
     from .model import Base, MyModel
-
-
-    @controller
-    class Controller:
-        engine: Annotated[AsyncEngine, Inject]
-        sessionmaker: Annotated[async_sessionmaker, Inject]
-
-        async def initialize():
-            async with self.engine.begin() as conn:
-                await conn.run_sync(Base.metadata.create_all)
-
-            async with self.sessionmaker() as session:
-                my_model = MyModel(name="MyModel")
-                session.add(my_model)
-                await session.commit()
     
-        @get
-        async def index(request):
-            async with self.sessionmaker() as session:
-                my_model = await session.scalar(select(MyModel).limit(1))
-                await respond_json(request.response, {
-                    "id": my_model.id,
-                    "name": my_model.name,
-                })
+    
+    @get
+    async def index(
+        request,
+        engine: Annotated[AsyncEngine, Inject],
+        sessionmaker: Annotated[async_sessionmaker, Inject],
+    ):
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+
+        async with sessionmaker() as session:
+            my_model = MyModel(name="MyModel")
+            session.add(my_model)
+            await session.commit()
+
+        async with self.sessionmaker() as session:
+            my_model = await session.scalar(select(MyModel).limit(1))
+            await respond_json(request.response, {
+                "id": my_model.id,
+                "name": my_model.name,
+            })
     ```
 
 === "application/model.py"

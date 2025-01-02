@@ -5,7 +5,7 @@ from selva.di.container import Container
 from selva.web.templates import Template
 
 
-async def selva_extension(container: Container, settings: Settings):
+async def init_extension(container: Container, settings: Settings):
     if find_spec("jinja2") is None:
         raise ModuleNotFoundError(
             "Missing 'jinja2'. Install 'selva' with 'jinja' extra."

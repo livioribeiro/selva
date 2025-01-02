@@ -27,6 +27,7 @@ class FromRequest[T](Protocol):
         :param original_type: Declared type on handler method signature
         :param parameter_name: Name of the parameter on the handler method
         :param metadata: Any metadata associated with the type
+        :param optional: Whether the parameter is optional
         """
 
         raise NotImplementedError()

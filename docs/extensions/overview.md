@@ -20,7 +20,7 @@ extensions:
 
 ## Creating extensions
 
-An extension is a python package or module that contains a function named `selva_extension`
+An extension is a python package or module that contains a function named `init_extension`
 with arguments `selva.di.Container` and `selva.configuration.Settings`. It is called
 during the startup phase of the application and may also be a coroutine.
 
@@ -28,12 +28,12 @@ during the startup phase of the application and may also be a coroutine.
 from selva.configuration import Settings
 from selva.di import Container
 
-# (1)
-def selva_extension(container: Container, settings: Settings):
+async def init_extension(container: Container, settings: Settings):
     pass
-```
 
-1.  `selva_extension` can also be `async`.
+# # init_extension can also be sync
+# def init_extension(container: Container, settings: Settings): ...
+```
 
 The function can then access values in the settings object, register new services,
 retrieve the router service to register new routes, etc.

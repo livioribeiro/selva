@@ -157,7 +157,7 @@ async def test_sessionmaker_service():
 
     engine = create_async_engine(POSTGRES_URL)
 
-    sessionmaker = await sessionmaker_service({"default": engine}, settings)
+    sessionmaker = await sessionmaker_service(settings, {"default": engine})
     async with sessionmaker() as session:
         result = await session.execute(text("select 1"))
         assert result.scalar() == 1
