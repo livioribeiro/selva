@@ -23,7 +23,7 @@ async def test_address_from_environment_variables(monkeypatch):
     host = addr[0]
     port = int(addr[1]) if len(addr) > 1 else 11211
 
-    service = make_service("default")(settings, None)
+    service = make_service("default")(settings)
     async for memcached in service:
-        assert memcached._cluster.nodes[0].host == host
-        assert memcached._cluster.nodes[0].port == port
+        assert memcached._pool._host == host
+        assert memcached._pool._port == port

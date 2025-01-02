@@ -17,12 +17,12 @@ pytestmark = [
 ]
 
 
-async def _test_engine_service(settings: Settings, ioc: Container):
-    service = make_service("default")(settings, ioc)
+async def _test_make_service(settings: Settings,):
+    service = make_service("default")(settings)
     async for memcached in service:
         await memcached.set(b"test", b"test")
         result = await memcached.get(b"test")
-        assert result.value == b"test"
+        assert result == b"test"
         await memcached.delete(b"test")
 
 
@@ -40,7 +40,7 @@ async def test_make_service_with_address():
         }
     )
 
-    await _test_engine_service(settings, Container())
+    await _test_make_service(settings)
 
 
 async def test_make_service_with_options():
@@ -52,7 +52,8 @@ async def test_make_service_with_options():
                     "default": {
                         "address": MEMCACHED_ADDR,
                         "options": {
-                            "timeout": 1.0,
+                            "pool_size": 10,
+                            "pool_minsize": 1,
                         },
                     },
                 },
@@ -60,40 +61,7 @@ async def test_make_service_with_options():
         }
     )
 
-    service = make_service("default")(settings, Container())
+    service = make_service("default")(settings)
     async for memcached in service:
-        assert memcached._timeout == 1.0
-
-
-class MyClusterEvents(ClusterEvents):
-    async def on_node_healthy(
-        self, cluster_managment: ClusterManagment, host: MemcachedHostAddress
-    ):
-        pass
-
-    async def on_node_unhealthy(
-        self, cluster_managment: ClusterManagment, host: MemcachedHostAddress
-    ):
-        pass
-
-
-async def test_make_service_with_cluster_events():
-    settings = Settings(
-        default_settings
-        | {
-            "data": {
-                "memcached": {
-                    "default": {
-                        "address": MEMCACHED_ADDR,
-                        "options": {
-                            "cluster_events": f"{__name__}.{MyClusterEvents.__qualname__}"
-                        },
-                    },
-                },
-            },
-        }
-    )
-
-    service = make_service("default")(settings, Container())
-    async for memcached in service:
-        assert isinstance(memcached._cluster._cluster_events, MyClusterEvents)
+        assert memcached._pool._maxsize == 10
+        assert memcached._pool._minsize == 1
