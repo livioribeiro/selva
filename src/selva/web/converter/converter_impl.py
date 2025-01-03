@@ -4,16 +4,26 @@ import pydantic
 from asgikit.requests import Body, read_form, read_json
 from pydantic import BaseModel as PydanticModel
 
+from selva.web.converter import Json, Form
 from selva.web.converter.decorator import register_converter
 from selva.web.exception import HTTPBadRequestException, HTTPException
 
 
-@register_converter(Body, dict)
-class RequestBodyDictConverter:
-    async def convert(self, body: Body, original_type: type) -> dict:
-        if "application/json" in body.content_type:
+
+
+@register_converter(Body, Json)
+class RequestBodyJsonConverter:
+    async def convert(self, body: Body, original_type: type) -> dict | list:
+        if body.content_type and "application/json" in body.content_type:
             return await read_json(body)
-        elif "application/x-www-form-urlencoded" in body.content_type:
+        else:
+            raise HTTPException(status=HTTPStatus.UNSUPPORTED_MEDIA_TYPE)
+
+
+@register_converter(Body, Form)
+class RequestBodyFormConverter:
+    async def convert(self, body: Body, original_type: type) -> dict:
+        if body.content_type and "application/x-www-form-urlencoded" in body.content_type:
             return await read_form(body)
         else:
             raise HTTPException(status=HTTPStatus.UNSUPPORTED_MEDIA_TYPE)
@@ -27,9 +37,9 @@ class RequestBodyPydanticConverter:
         original_type: type[PydanticModel],
     ) -> PydanticModel:
         # TODO: make request body decoding extensible
-        if "application/json" in body.content_type:
+        if body.content_type and "application/json" in body.content_type:
             data = await read_json(body)
-        elif "application/x-www-form-urlencoded" in body.content_type:
+        elif body.content_type and "application/x-www-form-urlencoded" in body.content_type:
             data = await read_form(body)
         else:
             raise HTTPException(status=HTTPStatus.UNSUPPORTED_MEDIA_TYPE)
@@ -47,7 +57,7 @@ class RequestBodyPydanticListConverter:
         body: Body,
         original_type: type[list[PydanticModel]],
     ) -> list[PydanticModel]:
-        if "application/json" in body.content_type:
+        if body.content_type and "application/json" in body.content_type:
             data = await read_json(body)
         else:
             raise HTTPException(status=HTTPStatus.UNSUPPORTED_MEDIA_TYPE)

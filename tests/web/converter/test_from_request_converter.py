@@ -1,14 +1,19 @@
+from http import HTTPStatus
+
+import pytest
 from asgikit.requests import Request
 from pydantic import BaseModel
 
 from selva.web.converter.converter_impl import (
-    RequestBodyDictConverter,
+    RequestBodyJsonConverter,
+    RequestBodyFormConverter,
     RequestBodyPydanticConverter,
     RequestBodyPydanticListConverter,
 )
+from selva.web.exception import HTTPException
 
 
-async def test_dict_from_request():
+async def test_json_from_request():
     async def receive():
         return {
             "type": "http.request",
@@ -23,12 +28,81 @@ async def test_dict_from_request():
     }
 
     request = Request(scope, receive, None)
-    converter = RequestBodyDictConverter()
+    converter = RequestBodyJsonConverter()
 
     result = await converter.convert(request.body, dict)
 
     assert type(result) == dict
     assert result["field"] == "value"
+
+
+async def test_json_from_request_with_wrong_content_type_should_fail():
+    async def receive():
+        return {
+            "type": "http.request",
+            "body": b"",
+            "more_body": False,
+        }
+
+    scope = {
+        "type": "http",
+        "method": "POST",
+        "headers": [(b"content-type", b"application/x-www-form-urlencoded")],
+    }
+
+    request = Request(scope, receive, None)
+    converter = RequestBodyJsonConverter()
+
+    with pytest.raises(HTTPException) as err:
+        await converter.convert(request.body, dict)
+
+    assert err.value.status == HTTPStatus.UNSUPPORTED_MEDIA_TYPE
+
+
+async def test_form_from_request():
+    async def receive():
+        return {
+            "type": "http.request",
+            "body": b"field1=value1&field2=value2",
+            "more_body": False,
+        }
+
+    scope = {
+        "type": "http",
+        "method": "POST",
+        "headers": [(b"content-type", b"application/x-www-form-urlencoded")],
+    }
+
+    request = Request(scope, receive, None)
+    converter = RequestBodyFormConverter()
+
+    result = await converter.convert(request.body, dict)
+
+    assert type(result) == dict
+    assert result["field1"] == "value1" and result["field2"] == "value2"
+
+
+async def test_form_from_request_with_wrong_content_type_should_fail():
+    async def receive():
+        return {
+            "type": "http.request",
+            "body": b"",
+            "more_body": False,
+        }
+
+    scope = {
+        "type": "http",
+        "method": "POST",
+        "headers": [(b"content-type", b"application/json")],
+    }
+
+    request = Request(scope, receive, None)
+    converter = RequestBodyFormConverter()
+
+    with pytest.raises(HTTPException) as err:
+        await converter.convert(request.body, dict)
+
+    assert err.value.status == HTTPStatus.UNSUPPORTED_MEDIA_TYPE
 
 
 async def test_pydantic_model_from_request():
