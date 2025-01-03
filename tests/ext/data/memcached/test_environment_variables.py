@@ -11,7 +11,7 @@ MEMCACHED_ADDR = os.getenv("MEMCACHED_ADDR")
 
 pytestmark = [
     pytest.mark.skipif(MEMCACHED_ADDR is None, reason="MEMCACHED_ADDR not defined"),
-    pytest.mark.skipif(find_spec("emcache") is None, reason="emcache not present"),
+    pytest.mark.skipif(find_spec("aiomcache") is None, reason="aiomcache not present"),
 ]
 
 

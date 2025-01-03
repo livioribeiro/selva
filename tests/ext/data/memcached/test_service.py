@@ -2,18 +2,16 @@ import os
 from importlib.util import find_spec
 
 import pytest
-from emcache import ClusterEvents, ClusterManagment, MemcachedHostAddress
 
 from selva.configuration import Settings
 from selva.configuration.defaults import default_settings
-from selva.di import Container
 from selva.ext.data.memcached.service import make_service
 
 MEMCACHED_ADDR = os.getenv("MEMCACHED_ADDR")
 
 pytestmark = [
     pytest.mark.skipif(MEMCACHED_ADDR is None, reason="MEMCACHED_ADDR not defined"),
-    pytest.mark.skipif(find_spec("emcache") is None, reason="emcache not present"),
+    pytest.mark.skipif(find_spec("aiomcache") is None, reason="aiomcache not present"),
 ]
 
 

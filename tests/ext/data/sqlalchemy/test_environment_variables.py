@@ -37,8 +37,7 @@ async def test_database_url_username_password_from_environment_variables(monkeyp
     )
     settings, _ = _get_settings_nocache()
 
-    engine_service = make_engine_service("default")(settings)
-    async for engine in engine_service:
+    async for engine in make_engine_service("default")(settings):
         assert engine.url == SA_DB_URL
 
 
@@ -68,6 +67,5 @@ async def test_database_url_components_from_environment_variables(monkeypatch):
     )
     settings, _ = _get_settings_nocache()
 
-    engine_service = make_engine_service("default")(settings)
-    async for engine in engine_service:
+    async for engine in make_engine_service("default")(settings):
         assert engine.url == SA_DB_URL
