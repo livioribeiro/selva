@@ -6,6 +6,7 @@ from typing import Annotated, Any, NamedTuple
 
 from selva.di.inject import Inject
 
+
 class RequestParam(NamedTuple):
     param_type: type
     param_meta: type | Any | None
@@ -16,6 +17,7 @@ class ServiceParam(NamedTuple):
     param_type: type
     service_name: str | None
     has_default: bool
+
 
 class HandlerParams(NamedTuple):
     request: list[tuple[str, RequestParam]]

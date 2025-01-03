@@ -2,7 +2,7 @@ import asyncio
 import inspect
 from collections.abc import AsyncGenerator, Awaitable, Generator, Iterable
 from types import FunctionType
-from typing import Any
+from typing import Any, TypeVar
 
 import structlog
 
@@ -21,6 +21,8 @@ from selva.di.service.parse import parse_service_spec
 from selva.di.service.registry import ServiceRegistry
 
 logger = structlog.get_logger(__name__)
+
+T = TypeVar("T")
 
 
 class Container:
@@ -109,16 +111,16 @@ class Container:
             for name, definition in record.providers.items():
                 yield definition.service, definition.impl, name
 
-    async def get[T](
+    async def get(
         self, service_type: type[T], *, name: str = None, optional=False
     ) -> T:
         dependency = ServiceDependency(service_type, name=name, optional=optional)
         return await self._get(dependency)
 
-    def _get_from_cache[T](self, service_type: type[T], name: str | None) -> T | None:
+    def _get_from_cache(self, service_type: type[T], name: str | None) -> T | None:
         return self.store.get((service_type, name))
 
-    async def _get[T](
+    async def _get(
         self,
         dependency: ServiceDependency,
         stack: list[tuple[type[T], str | None]] = None,
@@ -156,7 +158,7 @@ class Container:
             name: await self._get(dep, stack) for name, dep in service_spec.dependencies
         }
 
-    async def _create_service[T](
+    async def _create_service(
         self,
         service_spec: ServiceSpec,
         stack: list[tuple[type[T], str]],

@@ -25,7 +25,7 @@ from selva.web.exception import HTTPException, HTTPNotFoundException, WebSocketE
 from selva.web.exception_handler import ATTRIBUTE_EXCEPTION_HANDLER, ExceptionHandlerType
 from selva.web.routing.decorator import ATTRIBUTE_HANDLER
 from selva.web.routing.router import Router
-from selva.web.util import parse_handler_params
+from selva.web.handler import parse_handler_params
 
 logger = structlog.get_logger()
 

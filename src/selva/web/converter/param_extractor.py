@@ -1,16 +1,18 @@
 from abc import ABC
-from typing import Protocol, Type, runtime_checkable
+from typing import Protocol, TypeVar, runtime_checkable
 
 from asgikit.requests import Request
 
+T = TypeVar("T")
+
 
 @runtime_checkable
-class ParamExtractor[T](Protocol):
+class ParamExtractor(Protocol[T]):
     def extract(
         self,
         request: Request,
         parameter_name: str,
-        metadata: T | Type[T]
+        metadata: T | type[T]
     ):
         raise NotImplementedError()
 

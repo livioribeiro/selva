@@ -18,14 +18,13 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        version: [ "3.12", "3.13" ]
+        version: [ "3.11", "3.12", "3.13" ]
     container: python:${{ matrix.version }}
-#    env:
-#      PATH: "$HOME/.local/bin:$PATH"
     steps:
       - run: pip install --upgrade pip
       - uses: actions/checkout@v4
       - run: python -m venv $HOME/pdm
+      - run: $HOME/pdm/bin/pip install --upgrade pip
       - run: $HOME/pdm/bin/pip install pdm
       - run: $HOME/pdm/bin/pdm install --with test --with jinja --with sqlalchemy --with redis --with memcached
       - run: $HOME/pdm/bin/pdm run pytest

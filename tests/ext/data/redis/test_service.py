@@ -42,7 +42,10 @@ async def test_make_service_with_url():
     await _test_engine_service(settings)
 
 
-@pytest.mark.skipif(PARSED_URL is not None and PARSED_URL.password is None, reason="url without password")
+@pytest.mark.skipif(
+    PARSED_URL is not None and PARSED_URL.password is None,
+    reason="url without password",
+)
 async def test_make_service_with_url_username_password():
     settings = Settings(
         default_settings

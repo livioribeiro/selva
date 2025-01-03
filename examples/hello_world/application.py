@@ -8,6 +8,7 @@ import structlog
 
 from selva.di import Inject, service
 from selva.web import FromBody, FromPath, FromQuery, get, post
+from selva.web.converter import Json
 
 logger = structlog.get_logger()
 
@@ -45,8 +46,7 @@ async def greet_path(
     await respond_json(request.response, {"greeting": greeting})
 
 @post
-async def post_data(request: Request):
-    body = await read_json(request)
+async def post_data(request: Request, body: A[Json, FromBody]):
     await respond_json(request.response, {"result": body})
 
 

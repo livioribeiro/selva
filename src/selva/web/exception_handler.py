@@ -1,5 +1,5 @@
 from collections.abc import Awaitable, Callable
-from typing import NamedTuple, Type, TypeVar
+from typing import NamedTuple, TypeAlias, TypeVar
 
 from asgikit.requests import Request
 
@@ -7,14 +7,14 @@ TExc = TypeVar("TExc", bound=BaseException)
 
 ATTRIBUTE_EXCEPTION_HANDLER = "__selva_exception_handler__"
 
-ExceptionHandlerType = Callable[[Request, BaseException, ...], Awaitable]
+ExceptionHandlerType: TypeAlias = Callable[[Request, BaseException, ...], Awaitable]
 
 
 class ExceptionHandlerInfo(NamedTuple):
-    exception_class: Type[BaseException]
+    exception_class: type[BaseException]
 
 
-def exception_handler(exc: Type[BaseException]):
+def exception_handler(exc: type[BaseException]):
     assert issubclass(exc, BaseException)
 
     def inner(handler: ExceptionHandlerType):
