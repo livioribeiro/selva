@@ -1,5 +1,3 @@
-from http import HTTPMethod
-
 from selva.web.converter.converter import Converter
 from selva.web.converter.from_request import FromRequest
 from selva.web.converter.param_extractor import ParamExtractor, FromBody

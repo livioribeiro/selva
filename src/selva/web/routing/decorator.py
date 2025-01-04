@@ -11,7 +11,6 @@ from selva.web.routing.exception import (
     HandlerMissingRequestArgumentError,
     HandlerNotAsyncError,
     HandlerRequestTypeError,
-    HandlerUntypedParametersError,
 )
 
 ATTRIBUTE_HANDLER = "__selva_web_action__"

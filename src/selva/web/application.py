@@ -169,7 +169,9 @@ class Selva:
                     await send({"type": "lifespan.shutdown.complete"})
                 except Exception as err:
                     logger.debug("lifespan shutdown failed")
-                    await send({"type": "lifespan.shutdown.failed", "message": str(err)})
+                    await send(
+                        {"type": "lifespan.shutdown.failed", "message": str(err)}
+                    )
                 break
 
     async def _handle_request(self, scope, receive, send):

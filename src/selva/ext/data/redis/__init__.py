@@ -2,7 +2,6 @@ from importlib.util import find_spec
 
 from selva.configuration.settings import Settings
 from selva.di.container import Container
-from selva.di.decorator import service as service_decorator
 
 from .service import make_service
 

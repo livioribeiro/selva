@@ -424,7 +424,7 @@ def test_settings_with_env_var_replaced_in_profile(monkeypatch):
 
 def test_get_settings_cache(monkeypatch):
     monkeypatch.setenv("SELVA__PROP", "test")
-    assert "SELVA__PROP"     in os.environ
+    assert "SELVA__PROP" in os.environ
     assert get_settings().prop == "test"
 
     monkeypatch.setenv("SELVA__ANOTHER_PROP", "test")

@@ -1,16 +1,16 @@
 import inspect
 import typing
 from collections.abc import Callable, Iterable
-from types import NoneType, UnionType
-from typing import Annotated, Any, Optional, TypeVar, Union
+from typing import Annotated, Any, TypeVar
 
 import structlog
 
 from selva.di.error import (
     FactoryMissingReturnTypeError,
-        InvalidServiceTypeError,
+    InvalidServiceTypeError,
     NonInjectableTypeError,
     TypeVarInGenericServiceError,
+    ServiceWithUntypedDependencyError,
 )
 from selva.di.inject import Inject
 from selva.di.service.model import InjectableType, ServiceDependency, ServiceSpec
@@ -32,7 +32,9 @@ def _get_injectable_params(hint) -> tuple[type, Any] | None:
     return arg_type, arg_meta
 
 
-def _get_service_signature(service: InjectableType) -> Iterable[tuple[str, type, Any, bool]]:
+def _get_service_signature(
+    service: InjectableType,
+) -> Iterable[tuple[str, type, Any, bool]]:
     if inspect.isclass(service):
         for name, hint in typing.get_type_hints(service, include_extras=True).items():
             if params := _get_injectable_params(hint):
@@ -42,6 +44,9 @@ def _get_service_signature(service: InjectableType) -> Iterable[tuple[str, type,
     elif inspect.isfunction(service):
         for name, param in inspect.signature(service).parameters.items():
             hint = param.annotation
+            if hint is inspect.Signature.empty:
+                raise ServiceWithUntypedDependencyError(service, name)
+
             is_optional = param.default is not inspect.Parameter.empty
             if params := _get_injectable_params(hint):
                 arg_type, arg_meta = params

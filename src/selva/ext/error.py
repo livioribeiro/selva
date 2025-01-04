@@ -5,4 +5,6 @@ class ExtensionNotFoundError(Exception):
 
 class ExtensionMissingInitFunctionError(Exception):
     def __init__(self, name):
-        super().__init__(f"Extension '{name}' is missing the 'init_extension()' function")
+        super().__init__(
+            f"Extension '{name}' is missing the 'init_extension()' function"
+        )

@@ -94,3 +94,11 @@ class ServiceWithoutDecoratorError(DependencyInjectionError):
             f"service {service.__module__}.{service.__qualname__}"
             " must be decorated with @service"
         )
+
+
+class ServiceWithUntypedDependencyError(DependencyInjectionError):
+    def __init__(self, service: InjectableType, param: str):
+        super().__init__(
+            f"service {service.__module__}.{service.__qualname__}"
+            f" must annotate parameter '{param}'"
+        )
