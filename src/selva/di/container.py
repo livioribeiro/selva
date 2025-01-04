@@ -34,13 +34,13 @@ class Container:
         self.interceptors: list[type[Interceptor]] = []
 
     def register(self, injectable: InjectableType):
+        if not inspect.isfunction(injectable) and not inspect.isclass(injectable):
+            raise NonInjectableTypeError(injectable)
+
         service_info = getattr(injectable, ATTRIBUTE_DI_SERVICE, None)
 
         if not service_info:
-            if inspect.isfunction(injectable) or inspect.isclass(injectable):
-                raise ServiceWithoutDecoratorError(injectable)
-
-            raise NonInjectableTypeError(injectable)
+            raise ServiceWithoutDecoratorError(injectable)
 
         provides, name, startup = service_info
         service_spec = parse_service_spec(injectable, provides, name)
@@ -116,6 +116,16 @@ class Container:
     ) -> T:
         dependency = ServiceDependency(service_type, name=name, optional=optional)
         return await self._get(dependency)
+
+    async def init_startup_services(self):
+        for service, name in self.startup:
+            await self.get(service, name=name)
+
+    async def run_finalizers(self):
+        for finalizer in reversed(self.finalizers):
+            await finalizer
+
+        self.finalizers.clear()
 
     def _get_from_cache(self, service_type: type[T], name: str | None) -> T | None:
         return self.store.get((service_type, name))
@@ -222,13 +232,3 @@ class Container:
                 Interceptor, name=f"{cls.__module__}.{cls.__qualname__}"
             )
             await maybe_async(interceptor.intercept, instance, service_type)
-
-    async def _run_startup(self):
-        for service, name in self.startup:
-            await self.get(service, name=name)
-
-    async def _run_finalizers(self):
-        for finalizer in reversed(self.finalizers):
-            await finalizer
-
-        self.finalizers.clear()

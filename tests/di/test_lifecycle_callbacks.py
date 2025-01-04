@@ -94,7 +94,7 @@ async def test_call_finalize(ioc: Container, capsys):
     ioc.register(ServiceFinalize)
 
     await ioc.get(ServiceFinalize)
-    await ioc._run_finalizers()
+    await ioc.run_finalizers()
 
     assert capsys.readouterr().out == "finalize\n"
 
@@ -103,7 +103,7 @@ async def test_call_async_finalize(ioc: Container, capsys):
     ioc.register(ServiceAsyncFinalize)
 
     await ioc.get(ServiceAsyncFinalize)
-    await ioc._run_finalizers()
+    await ioc.run_finalizers()
 
     assert capsys.readouterr().out == "async finalize\n"
 
@@ -112,7 +112,7 @@ async def test_call_factory_finalize(ioc: Container, capsys):
     ioc.register(factory_finalize)
 
     await ioc.get(Service)
-    await ioc._run_finalizers()
+    await ioc.run_finalizers()
 
     assert capsys.readouterr().out == "factory finalize\n"
 
@@ -121,7 +121,7 @@ async def test_call_factory_async_finalize(ioc: Container, capsys):
     ioc.register(factory_async_finalize)
 
     await ioc.get(Service)
-    await ioc._run_finalizers()
+    await ioc.run_finalizers()
 
     assert capsys.readouterr().out == "factory async finalize\n"
 
@@ -131,7 +131,7 @@ async def test_finalizer_order(ioc: Container, capsys):
     ioc.register(FinalizerOrder2)
 
     await ioc.get(FinalizerOrder2)
-    await ioc._run_finalizers()
+    await ioc.run_finalizers()
 
     expected = "initialize 1\ninitialize 2\nfinalize 2\nfinalize 1\n"
     assert capsys.readouterr().out == expected

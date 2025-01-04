@@ -14,7 +14,7 @@ def test_decorator():
     assert getattr(Service, ATTRIBUTE_DI_SERVICE) == ServiceInfo(None, None)
 
 
-def test_decorator_with_dependency_annotation():
+def test_class_with_dependency_annotation():
     class Dependency:
         pass
 
@@ -30,7 +30,7 @@ def test_decorator_with_dependency_annotation():
     assert Service(dependency=Dependency()).dependency is not None
 
 
-def test_decorator_with_non_dependency_annotation():
+def test_class_with_non_dependency_annotation():
     class NonDependency:
         pass
 
@@ -43,7 +43,7 @@ def test_decorator_with_non_dependency_annotation():
     assert not hasattr(Service(non_dependency=NonDependency()), "non_dependency")
 
 
-def test_decorator_with_mixed_dependency_annotation():
+def test_class_with_mixed_dependency_annotation():
     class Dependency:
         pass
 

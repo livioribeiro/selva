@@ -15,3 +15,8 @@ def test_import_item():
 def test_import_item_invalid_name_should_fail(name):
     with pytest.raises(ImportError):
         import_item("invalid")
+
+
+def test_import_missing_item_from_module_should_fail():
+    with pytest.raises(ImportError):
+        import_item(f"tests.util.package_to_scan.module_to_scan.does_not_exist  ")

@@ -26,11 +26,11 @@ def service_factory(service_class):
 
 async def test_startup_class(ioc: Container, service_class):
     ioc.register(service(service_class, startup=True))
-    await ioc._run_startup()
+    await ioc.init_startup_services()
     assert service_class.startup_called
 
 
 async def test_startup_factory(ioc: Container, service_class, service_factory):
     ioc.register(service(service_factory, startup=True))
-    await ioc._run_startup()
+    await ioc.init_startup_services()
     assert service_class.startup_called

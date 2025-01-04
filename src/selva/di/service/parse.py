@@ -8,7 +8,7 @@ import structlog
 
 from selva.di.error import (
     FactoryMissingReturnTypeError,
-    InvalidServiceTypeError,
+        InvalidServiceTypeError,
     NonInjectableTypeError,
     TypeVarInGenericServiceError,
 )
@@ -19,26 +19,6 @@ DI_INITIALIZER = "initialize"
 DI_FINALIZER = "finalize"
 
 logger = structlog.get_logger()
-
-
-def _check_optional(type_hint: type, default: Any) -> tuple[type, bool]:
-    is_optional = default is None
-
-    if typing.get_origin(type_hint) is UnionType:
-        type_args = list(typing.get_args(type_hint))
-        if NoneType in type_args:
-            type_args.remove(NoneType)
-
-            type_hint = type_args[0]
-            is_optional = True
-
-    if typing.get_origin(type_hint) is Union:
-        type_arg = typing.get_args(type_hint)[0]
-        if type_hint == Optional[type_arg]:
-            type_hint = type_arg
-            is_optional = True
-
-    return type_hint, is_optional
 
 
 def _get_injectable_params(hint) -> tuple[type, Any] | None:
@@ -52,20 +32,22 @@ def _get_injectable_params(hint) -> tuple[type, Any] | None:
     return arg_type, arg_meta
 
 
-def _get_service_signature(service: InjectableType) -> Iterable[tuple[str, type, Any]]:
+def _get_service_signature(service: InjectableType) -> Iterable[tuple[str, type, Any, bool]]:
     if inspect.isclass(service):
         for name, hint in typing.get_type_hints(service, include_extras=True).items():
             if params := _get_injectable_params(hint):
                 arg_type, arg_meta = params
-                yield name, arg_type, arg_meta
+                is_optional = hasattr(service, name)
+                yield name, arg_type, arg_meta, is_optional
     elif inspect.isfunction(service):
         for name, param in inspect.signature(service).parameters.items():
             hint = param.annotation
+            is_optional = param.default is not inspect.Parameter.empty
             if params := _get_injectable_params(hint):
                 arg_type, arg_meta = params
-                yield name, arg_type, arg_meta
+                yield name, arg_type, arg_meta, is_optional
             else:
-                yield name, hint, None
+                yield name, hint, None, is_optional
     else:
         raise InvalidServiceTypeError(service)
 
@@ -73,14 +55,11 @@ def _get_service_signature(service: InjectableType) -> Iterable[tuple[str, type,
 def get_dependencies(
     service: InjectableType,
 ) -> Iterable[tuple[str, ServiceDependency]]:
-    for name, hint, meta in _get_service_signature(service):
+    for name, hint, meta, is_optional in _get_service_signature(service):
         if isinstance(meta, Inject):
             service_name = meta.name
-            meta = inspect.Parameter.empty
         else:
             service_name = None
-
-        hint, is_optional = _check_optional(hint, meta)
 
         dependency = ServiceDependency(hint, name=service_name, optional=is_optional)
         yield name, dependency

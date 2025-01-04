@@ -17,13 +17,12 @@ pytestmark = [
 
 async def test_address_from_environment_variables(monkeypatch):
     monkeypatch.setenv("SELVA__DATA__MEMCACHED__DEFAULT__ADDRESS", MEMCACHED_ADDR)
-    settings, _ = _get_settings_nocache()
+    settings = _get_settings_nocache()
 
     addr = MEMCACHED_ADDR.split(":")
     host = addr[0]
     port = int(addr[1]) if len(addr) > 1 else 11211
 
-    service = make_service("default")(settings)
-    async for memcached in service:
+    async for memcached in make_service("default")(settings):
         assert memcached._pool._host == host
         assert memcached._pool._port == port

@@ -52,19 +52,11 @@ def _is_service(arg) -> bool:
 
 
 def _init_settings(settings: Settings | None) -> Settings:
-    paths = []
     if not settings:
         settings, paths = get_settings()
 
     logging_setup = import_item(settings.logging.setup)
     logging_setup(settings)
-
-    for path, found in paths:
-        path = str(path)
-        if found:
-            logger.info("settings loaded", settings_file=path)
-        else:
-            logger.warning("settings file not found", settings_file=path)
 
     return settings
 
@@ -131,34 +123,31 @@ class Selva:
                 # pylint: disable=raise-missing-from
                 raise ExtensionNotFoundError(extension_name)
 
-            try:
-                extension_init = getattr(extension_module, "init_extension")
-            except AttributeError:
-                # pylint: disable=raise-missing-from
+            extension_init = getattr(extension_module, "init_extension", None)
+            if not extension_init:
                 raise ExtensionMissingInitFunctionError(extension_name)
 
             await maybe_async(extension_init, self.di, self.settings)
 
     async def _initialize_middleware(self):
         middleware = self.settings.middleware
-        if len(middleware) == 0:
+        if not middleware:
             return
 
         middleware_functions = [import_item(name) for name in middleware]
 
         for mid in reversed(middleware_functions):
-            func = functools.partial(
+            self.handler = functools.partial(
                 self._call_handler, functools.partial(mid, self.handler), skip=2
             )
-            self.handler = func
 
     async def _lifespan_startup(self):
-        await self.di._run_startup()
+        await self.di.init_startup_services()
         await self._initialize_extensions()
         await self._initialize_middleware()
 
     async def _lifespan_shutdown(self):
-        await self.di._run_finalizers()
+        await self.di.run_finalizers()
 
     async def _handle_lifespan(self, _scope, receive, send):
         while True:
@@ -180,9 +169,7 @@ class Selva:
                     await send({"type": "lifespan.shutdown.complete"})
                 except Exception as err:
                     logger.debug("lifespan shutdown failed")
-                    await send(
-                        {"type": "lifespan.shutdown.failed", "message": str(err)}
-                    )
+                    await send({"type": "lifespan.shutdown.failed", "message": str(err)})
                 break
 
     async def _handle_request(self, scope, receive, send):

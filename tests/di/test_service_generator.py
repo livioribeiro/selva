@@ -53,7 +53,7 @@ async def test_service_with_provided_interface(ioc: Container, capfd):
     instance = await ioc.get(Interface)
     assert isinstance(instance, Implementation)
 
-    await ioc._run_finalizers()
+    await ioc.run_finalizers()
     assert capfd.readouterr().out == "Interface Implementation\n"
 
 
@@ -69,7 +69,7 @@ async def test_inject_singleton(ioc: Container, capfd):
     assert other_instance is instance
     assert other_instance.service1 is instance.service1
 
-    await ioc._run_finalizers()
+    await ioc.run_finalizers()
     assert capfd.readouterr().out == "Service2\nService1\n"
 
 
@@ -79,7 +79,7 @@ async def test_interface_implementation(ioc: Container, capfd):
     instance = await ioc.get(Interface)
     assert isinstance(instance, Implementation)
 
-    await ioc._run_finalizers()
+    await ioc.run_finalizers()
     assert capfd.readouterr().out == "Interface Implementation\n"
 
 
