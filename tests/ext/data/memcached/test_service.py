@@ -15,7 +15,7 @@ pytestmark = [
 ]
 
 
-async def _test_make_service(settings: Settings,):
+async def _test_make_service(settings: Settings):
     service = make_service("default")(settings)
     async for memcached in service:
         await memcached.set(b"test", b"test")

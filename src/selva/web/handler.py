@@ -1,10 +1,11 @@
 import inspect
+import typing
 from collections.abc import Callable
 from functools import cache
-import typing
 from typing import Annotated, Any, NamedTuple
 
 from selva.di.inject import Inject
+from selva.web.routing.exception import HandlerUntypedParametersError
 
 
 class RequestParam(NamedTuple):
@@ -24,12 +25,30 @@ class HandlerParams(NamedTuple):
     service: list[tuple[str, ServiceParam]]
 
 
+def assert_params_annotated(handler: Callable, *, skip: int):
+    """Asserts that parameters past 'skip' are annotated.
+
+    :raises HandlerUntypedParametersError: if parameters are not annotated.
+    """
+    signature = inspect.signature(handler)
+    parameters = list(signature.parameters.values())
+
+    if untyped_params := [
+        p.name for p in parameters[skip:] if p.annotation is inspect.Signature.empty
+    ]:
+        raise HandlerUntypedParametersError(handler, untyped_params)
+
+
 @cache
 def parse_handler_params(handler: Callable, *, skip: int) -> HandlerParams:
     """parse handler parameters from function signature
 
-    returns: mapping of request parameters names to 3-tuple of type, metadata and default value
+    returns: mapping of request parameters names to 3-tuple of type,
+             metadata and default value
+    :raises HandlerUntypedParametersError:
     """
+
+    assert_params_annotated(handler, skip=skip)
 
     result = HandlerParams([], [])
 
@@ -49,9 +68,6 @@ def parse_handler_params(handler: Callable, *, skip: int) -> HandlerParams:
         type_hint = signature.parameters[name].annotation
         has_default = signature.parameters[name].default is not inspect.Parameter.empty
 
-        if type_hint is inspect.Parameter.empty:
-            raise TypeError(f"handler parameter {name} must be type annotated")
-
         if typing.get_origin(type_hint) is not Annotated:
             result.request.append((name, RequestParam(type_hint, None, has_default)))
             continue
@@ -61,9 +77,7 @@ def parse_handler_params(handler: Callable, *, skip: int) -> HandlerParams:
 
         # Skip service dependencies
         if param_meta is Inject:
-            result.service.append(
-                (name, ServiceParam(param_type, None, has_default))
-            )
+            result.service.append((name, ServiceParam(param_type, None, has_default)))
         elif isinstance(param_meta, Inject):
             result.service.append(
                 (name, ServiceParam(param_type, param_meta.name, has_default))

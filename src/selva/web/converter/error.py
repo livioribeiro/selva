@@ -1,6 +1,8 @@
+from http import HTTPMethod
+
 from selva.web.converter.converter import Converter
 from selva.web.converter.from_request import FromRequest
-from selva.web.converter.param_extractor import ParamExtractor
+from selva.web.converter.param_extractor import ParamExtractor, FromBody
 
 
 class MissingFromRequestImplError(Exception):
@@ -31,3 +33,11 @@ class PathParamNotFoundError(Exception):
     def __init__(self, name: str):
         super().__init__(f"path parameter '{name}' not found")
         self.name = name
+
+
+class FromBodyOnWrongHttpMethodError(Exception):
+    def __init__(self, param_name: str):
+        super().__init__(
+            f"'{param_name}' is annotated with {FromBody.__name__},"
+            " but handler does not receive request body"
+        )

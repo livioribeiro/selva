@@ -14,6 +14,4 @@ def init_extension(container: Container, settings: Settings):
         )
 
     for name in settings.data.redis:
-        service_name = name if name != "default" else None
-
-        container.register(service_decorator(make_service(name), name=service_name))
+        container.register(make_service(name))

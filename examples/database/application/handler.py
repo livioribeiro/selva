@@ -25,7 +25,4 @@ async def test(request: Request, repository: A[Repository, Inject]):
         await respond_json(response, {"status": "OK"})
     except Exception as err:
         response.status = HTTPStatus.INTERNAL_SERVER_ERROR
-        await respond_json(
-            response,
-            {"status": "FAIL", "message": str(err)}
-        )
+        await respond_json(response, {"status": "FAIL", "message": str(err)})

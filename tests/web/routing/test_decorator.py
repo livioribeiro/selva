@@ -14,6 +14,12 @@ from selva.web.routing.decorator import (
     route,
     websocket,
 )
+from selva.web.routing.exception import (
+    HandlerMissingRequestArgumentError,
+    HandlerNotAsyncError,
+    HandlerRequestTypeError,
+    HandlerUntypedParametersError,
+)
 
 
 @pytest.mark.parametrize(
@@ -67,10 +73,7 @@ def test_handler_with_less_than_one_parameter_should_fail():
     async def func1(req):
         pass
 
-    with pytest.raises(
-        TypeError,
-        match="Handler method must have at least 'request' parameter",
-    ):
+    with pytest.raises(HandlerMissingRequestArgumentError):
         route(func0, method=HTTPMethod.GET, path="")
 
     route(func1, method=HTTPMethod.GET, path="")
@@ -80,10 +83,7 @@ def test_handler_with_wrong_request_parameter_should_fail():
     async def handler(req: str):
         pass
 
-    with pytest.raises(
-        TypeError,
-        match="Handler request parameter must be of type 'asgikit.requests.Request'",
-    ):
+    with pytest.raises(HandlerRequestTypeError):
         route(handler, method=HTTPMethod.GET, path="")
 
 
@@ -91,7 +91,7 @@ def test_handler_with_untyped_parameters_should_fail():
     async def handler(req, untyped):
         pass
 
-    with pytest.raises(TypeError, match="Handler parameters must be typed"):
+    with pytest.raises(HandlerUntypedParametersError):
         route(handler, method=HTTPMethod.GET, path="")
 
 
@@ -99,5 +99,5 @@ def test_non_async_handler_should_fail():
     def handler(req):
         pass
 
-    with pytest.raises(TypeError, match="Handler method must be async"):
+    with pytest.raises(HandlerNotAsyncError):
         route(handler, method=HTTPMethod.GET, path="")

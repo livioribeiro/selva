@@ -3,8 +3,9 @@ import inspect
 import traceback
 import typing
 from collections.abc import Callable
+from functools import cache
 from http import HTTPStatus
-from typing import Any, Type
+from typing import Any
 
 import structlog
 from asgikit.errors.websocket import WebSocketDisconnectError, WebSocketError
@@ -18,14 +19,18 @@ from selva._util.maybe_async import maybe_async
 from selva._util.package_scan import scan_packages
 from selva.configuration.settings import Settings, get_settings
 from selva.di.container import Container
-from selva.di.decorator import DI_ATTRIBUTE_SERVICE
+from selva.di.decorator import ATTRIBUTE_DI_SERVICE
+from selva.ext.error import ExtensionNotFoundError, ExtensionMissingInitFunctionError
 from selva.web.converter.error import MissingFromRequestImplError
 from selva.web.converter.from_request import FromRequest
 from selva.web.exception import HTTPException, HTTPNotFoundException, WebSocketException
-from selva.web.exception_handler import ATTRIBUTE_EXCEPTION_HANDLER, ExceptionHandlerType
+from selva.web.exception_handler import (
+    ATTRIBUTE_EXCEPTION_HANDLER,
+    ExceptionHandlerType,
+)
+from selva.web.handler import parse_handler_params
 from selva.web.routing.decorator import ATTRIBUTE_HANDLER
 from selva.web.routing.router import Router
-from selva.web.handler import parse_handler_params
 
 logger = structlog.get_logger()
 
@@ -35,11 +40,15 @@ def _is_handler(arg) -> bool:
 
 
 def _is_exception_handler(arg) -> bool:
-    return inspect.iscoroutinefunction(arg) and hasattr(arg, ATTRIBUTE_EXCEPTION_HANDLER)
+    return inspect.iscoroutinefunction(arg) and hasattr(
+        arg, ATTRIBUTE_EXCEPTION_HANDLER
+    )
 
 
 def _is_service(arg) -> bool:
-    return (inspect.isfunction(arg) or inspect.isclass(arg)) and hasattr(arg, DI_ATTRIBUTE_SERVICE)
+    return (inspect.isfunction(arg) or inspect.isclass(arg)) and hasattr(
+        arg, ATTRIBUTE_DI_SERVICE
+    )
 
 
 def _init_settings(settings: Settings | None) -> Settings:
@@ -78,8 +87,8 @@ class Selva:
         self.router = Router()
         self.di.define(Router, self.router)
 
-        self.handler = self._process_request
-        self.exception_handlers: dict[Type[BaseException], ExceptionHandlerType] = {}
+        self.handler = self._request_handler
+        self.exception_handlers: dict[type[BaseException], ExceptionHandlerType] = {}
 
         self._register_modules()
 
@@ -119,14 +128,14 @@ class Selva:
             try:
                 extension_module = import_item(extension_name)
             except ImportError:
-                raise TypeError(f"Extension '{extension_name}' not found")
+                # pylint: disable=raise-missing-from
+                raise ExtensionNotFoundError(extension_name)
 
             try:
                 extension_init = getattr(extension_module, "init_extension")
             except AttributeError:
-                raise TypeError(
-                    f"Extension '{extension_name}' is missing the 'init_extension()' function"
-                )
+                # pylint: disable=raise-missing-from
+                raise ExtensionMissingInitFunctionError(extension_name)
 
             await maybe_async(extension_init, self.di, self.settings)
 
@@ -138,7 +147,9 @@ class Selva:
         middleware_functions = [import_item(name) for name in middleware]
 
         for mid in reversed(middleware_functions):
-            func = functools.partial(self._call_handler, functools.partial(mid, self.handler), skip=2)
+            func = functools.partial(
+                self._call_handler, functools.partial(mid, self.handler), skip=2
+            )
             self.handler = func
 
     async def _lifespan_startup(self):
@@ -181,13 +192,15 @@ class Selva:
             try:
                 await self.handler(request)
             except Exception as err:
-                if handler := self.exception_handlers.get(type(err)):
+                if handler := self._find_exception_handler(type(err)):
                     logger.debug(
                         "Handling exception with handler",
                         module=handler.__module__,
                         handler=handler.__qualname__,
                     )
-                    await self._call_handler(functools.partial(handler, err), request, skip=2)
+                    await self._call_handler(
+                        functools.partial(handler, err), request, skip=2
+                    )
                 else:
                     raise
         except (WebSocketDisconnectError, WebSocketError):
@@ -229,7 +242,7 @@ class Selva:
             request.response.status = HTTPStatus.INTERNAL_SERVER_ERROR
             await respond_text(request.response, traceback.format_exc())
 
-    async def _process_request(self, request: Request):
+    async def _request_handler(self, request: Request):
         path = request.path
 
         logger.debug(
@@ -261,21 +274,27 @@ class Selva:
         elif not response.is_finished:
             await response.end()
 
-
     async def _call_handler(self, handler: Callable, request: Request, *, skip: int):
         actual_handler = handler
-        while type(actual_handler) is functools.partial:
+        while isinstance(actual_handler, functools.partial):
             actual_handler = actual_handler.func
 
         handler_params = parse_handler_params(actual_handler, skip=skip)
-        request_params = await self._params_from_request(request, handler_params.request)
+        request_params = await self._params_from_request(
+            request, handler_params.request
+        )
         request_services = {
-            name: await self.di.get(service_type, name=service_name, optional=has_default)
-            for name, (service_type, service_name, has_default) in handler_params.service
+            name: await self.di.get(
+                service_type, name=service_name, optional=has_default
+            )
+            for name, (
+                service_type,
+                service_name,
+                has_default,
+            ) in handler_params.service
         }
 
         await handler(request, **(request_params | request_services))
-
 
     async def _params_from_request(
         self,
@@ -295,7 +314,12 @@ class Selva:
 
             if from_request_service := await self.di.get(FromRequest[converter_type]):
                 value = await maybe_async(
-                    from_request_service.from_request, request, param_type, name, param_annotation, has_default
+                    from_request_service.from_request,
+                    request,
+                    param_type,
+                    name,
+                    param_annotation,
+                    has_default,
                 )
 
                 if value:
@@ -305,9 +329,18 @@ class Selva:
 
         return result
 
-    async def _find_from_request_converter(
-        self, param_type: type
-    ) -> Any | None:
+    @cache
+    def _find_exception_handler(
+        self, err: type[BaseException]
+    ) -> ExceptionHandlerType | None:
+        for base in get_base_types(err):
+            if handler := self.exception_handlers.get(base):
+                return handler
+
+        return None
+
+    @cache
+    async def _find_from_request_converter(self, param_type: type) -> Any | None:
         if typing.get_origin(param_type) is list:
             (param_type,) = typing.get_args(param_type)
             is_generic = True

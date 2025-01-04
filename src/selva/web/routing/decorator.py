@@ -6,6 +6,14 @@ from typing import NamedTuple
 
 from asgikit.requests import Request
 
+from selva.web.handler import assert_params_annotated
+from selva.web.routing.exception import (
+    HandlerMissingRequestArgumentError,
+    HandlerNotAsyncError,
+    HandlerRequestTypeError,
+    HandlerUntypedParametersError,
+)
+
 ATTRIBUTE_HANDLER = "__selva_web_action__"
 
 
@@ -29,34 +37,27 @@ class HandlerInfo(NamedTuple):
     path: str
 
 
-def route(action: Callable = None, /, *, method: HTTPMethod | None, path: str | None):
+def route(handler: Callable = None, /, *, method: HTTPMethod | None, path: str | None):
     path = path.strip("/") if path else ""
 
     def inner(arg: Callable):
         if not inspect.iscoroutinefunction(arg):
-            raise TypeError("Handler method must be async")
+            raise HandlerNotAsyncError(handler)
+
+        assert_params_annotated(arg, skip=1)
 
         params = list(inspect.signature(arg).parameters.values())
         if len(params) < 1:
-            raise TypeError(
-                "Handler method must have at least 'request' parameter"
-            )
+            raise HandlerMissingRequestArgumentError(handler)
 
         req_param = params[0].annotation
         if req_param is not inspect.Signature.empty and req_param is not Request:
-            raise TypeError(
-                f"Handler request parameter must be of type "
-                f"'{Request.__module__}.{Request.__name__}' "
-                f"({arg.__name__})"
-            )
-
-        if any(p.annotation is inspect.Signature.empty for p in params[1:]):
-            raise TypeError("Handler parameters must be typed")
+            raise HandlerRequestTypeError(handler)
 
         setattr(arg, ATTRIBUTE_HANDLER, HandlerInfo(HandlerType(method), path))
         return arg
 
-    return inner(action) if action else inner
+    return inner(handler) if handler else inner
 
 
 def _route(method: HTTPMethod | None, path_or_action: str | Callable):

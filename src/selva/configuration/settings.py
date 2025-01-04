@@ -41,6 +41,7 @@ class Settings(Mapping[str, Any]):
         try:
             return self.__data[item]
         except KeyError:
+            # pylint: disable=raise-missing-from
             raise AttributeError(item)
 
     def __len__(self) -> int:

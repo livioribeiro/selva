@@ -11,6 +11,7 @@ from redis.backoff import (
 from redis.retry import Retry
 
 from selva.configuration.settings import Settings
+from selva.di.decorator import service
 
 from .settings import BackoffSchema, RedisSettings, RetrySchema
 
@@ -50,6 +51,7 @@ def build_retry(data: RetrySchema):
 
 
 def make_service(name: str):
+    @service(name=name if name != "default" else None)
     async def redis_service(settings: Settings) -> Redis:
         redis_settings = RedisSettings.model_validate(dict(settings.data.redis[name]))
 

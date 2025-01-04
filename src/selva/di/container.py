@@ -7,7 +7,7 @@ from typing import Any, TypeVar
 import structlog
 
 from selva._util.maybe_async import maybe_async
-from selva.di.decorator import DI_ATTRIBUTE_SERVICE
+from selva.di.decorator import ATTRIBUTE_DI_SERVICE
 from selva.di.decorator import service as service_decorator
 from selva.di.error import (
     DependencyLoopError,
@@ -34,7 +34,7 @@ class Container:
         self.interceptors: list[type[Interceptor]] = []
 
     def register(self, injectable: InjectableType):
-        service_info = getattr(injectable, DI_ATTRIBUTE_SERVICE, None)
+        service_info = getattr(injectable, ATTRIBUTE_DI_SERVICE, None)
 
         if not service_info:
             if inspect.isfunction(injectable) or inspect.isclass(injectable):
@@ -107,7 +107,7 @@ class Container:
     def iter_all_services(
         self,
     ) -> Iterable[tuple[type, type | FunctionType | None, str | None]]:
-        for interface, record in self.registry.services.items():
+        for _interface, record in self.registry.services.items():
             for name, definition in record.providers.items():
                 yield definition.service, definition.impl, name
 
@@ -123,9 +123,13 @@ class Container:
     async def _get(
         self,
         dependency: ServiceDependency,
-        stack: list[tuple[type[T], str | None]] = None,
+        stack: list[tuple[type, str | None]] = None,
     ) -> Any | None:
-        service_type, service_name = dependency.service, dependency.name
+        service_type, service_name, optional = (
+            dependency.service,
+            dependency.name,
+            dependency.optional,
+        )
 
         # check if service exists in cache
         if instance := self._get_from_cache(service_type, service_name):
@@ -136,14 +140,14 @@ class Container:
             if not service_spec:
                 raise ServiceNotFoundError(service_type, service_name)
         except ServiceNotFoundError:
-            if dependency.optional:
+            if optional:
                 return None
             raise
 
         stack = stack or []
 
-        if service_type in stack:
-            raise DependencyLoopError(stack + [service_type])
+        if (service_type, service_name) in stack:
+            raise DependencyLoopError(stack, (service_type, service_name))
 
         stack.append((service_type, service_name))
         instance = await self._create_service(service_spec, stack)
@@ -166,8 +170,8 @@ class Container:
         name = service_spec.name
 
         # check if service exists in cache
-        if instance := self._get_from_cache(service_spec.service, name):
-            return instance
+        # if instance := self._get_from_cache(service_spec.service, name):
+        #     return instance
 
         if factory := service_spec.factory:
             dependencies = await self._get_dependent_services(service_spec, stack)

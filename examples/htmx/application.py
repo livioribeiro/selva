@@ -22,9 +22,6 @@ async def clicked(request: Request, template: A[Template, Inject]):
 
     click_count += 1
 
-    rendered = await template.render(
-        "click-count.html",
-        {"click_count": click_count}
-    )
+    rendered = await template.render("click-count.html", {"click_count": click_count})
 
     await respond_text(request.response, rendered + "Clicked!")

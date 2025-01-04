@@ -5,11 +5,11 @@ from http import HTTPMethod
 import structlog
 
 from selva.web.exception import HTTPNotFoundException
-from selva.web.routing.decorator import (
-    ATTRIBUTE_HANDLER,
-    HandlerInfo,
+from selva.web.routing.decorator import ATTRIBUTE_HANDLER, HandlerInfo
+from selva.web.routing.exception import (
+    DuplicateRouteError,
+    HandlerWithoutDecoratorError,
 )
-from selva.web.routing.exception import DuplicateRouteError, HandlerWithoutDecoratorError
 from selva.web.routing.route import Route, RouteMatch
 
 logger = structlog.get_logger()

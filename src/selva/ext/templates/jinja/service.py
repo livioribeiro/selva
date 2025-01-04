@@ -31,13 +31,14 @@ class JinjaTemplate(Template):
 
         self.environment = Environment(enable_async=True, **kwargs)
 
+    # pylint: disable=too-many-arguments
     async def respond(
         self,
         response: Response,
         template_name: str,
         context: dict,
         *,
-        content_type: str = None,
+        content_type: str | None = None,
         stream: bool = False,
     ):
         if content_type:

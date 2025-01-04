@@ -12,6 +12,7 @@ T = TypeVar("T")
 class FromRequest(Protocol[T]):
     """Base class for services that extract values from the request"""
 
+    # pylint: disable=too-many-arguments,too-many-positional-arguments
     def from_request(
         self,
         request: Request,

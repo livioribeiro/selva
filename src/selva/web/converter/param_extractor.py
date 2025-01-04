@@ -8,12 +8,7 @@ T = TypeVar("T")
 
 @runtime_checkable
 class ParamExtractor(Protocol[T]):
-    def extract(
-        self,
-        request: Request,
-        parameter_name: str,
-        metadata: T | type[T]
-    ):
+    def extract(self, request: Request, parameter_name: str, metadata: T | type[T]):
         raise NotImplementedError()
 
 

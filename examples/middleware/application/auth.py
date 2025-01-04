@@ -14,7 +14,12 @@ class User:
 @register_from_request(User)
 class UserFromRequest:
     async def from_request(
-        self, request: Request, original_type, parameter_name: str, metadata, optional: bool
+        self,
+        request: Request,
+        original_type,
+        parameter_name: str,
+        metadata,
+        optional: bool,
     ) -> User | None:
         if user := request.attributes.get("user"):
             return User(user)

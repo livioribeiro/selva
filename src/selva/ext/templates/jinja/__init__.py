@@ -2,6 +2,7 @@ from importlib.util import find_spec
 
 from selva.configuration.settings import Settings
 from selva.di.container import Container
+from selva.ext.templates.jinja.service import JinjaTemplate
 from selva.web.templates import Template
 
 
@@ -25,5 +26,4 @@ async def init_extension(container: Container, settings: Settings):
             "Please define `templates.backend` property."
         )
 
-    from selva.ext.templates.jinja.service import JinjaTemplate
     container.register(JinjaTemplate)

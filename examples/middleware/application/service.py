@@ -28,4 +28,3 @@ class Greeter:
     def greet(self, name: str = None):
         greeted_name = name or self.default_name
         return f"Hello, {greeted_name}!"
-

@@ -6,9 +6,9 @@ from typing import Annotated, TypeVar, dataclass_transform
 from selva.di.inject import Inject
 from selva.di.service.model import InjectableType, ServiceInfo
 
-__all__ = ("service", "DI_ATTRIBUTE_SERVICE")
+__all__ = ("service", "ATTRIBUTE_DI_SERVICE")
 
-DI_ATTRIBUTE_SERVICE = "__selva_di_service__"
+ATTRIBUTE_DI_SERVICE = "__selva_di_service__"
 
 T = TypeVar("T")
 
@@ -90,7 +90,7 @@ def service(
 
     def inner(inner_injectable) -> T:
         return _service(
-            inner_injectable, DI_ATTRIBUTE_SERVICE, ServiceInfo(provides, name, startup)
+            inner_injectable, ATTRIBUTE_DI_SERVICE, ServiceInfo(provides, name, startup)
         )
 
     return inner(injectable) if injectable else inner

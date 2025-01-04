@@ -1,7 +1,7 @@
 from typing import Annotated
 
-from asgikit.responses import respond_text
 from aiomcache import Client
+from asgikit.responses import respond_text
 
 from selva.di import Inject
 from selva.web import get

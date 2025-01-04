@@ -8,8 +8,8 @@ from asgikit.responses import respond_file
 from selva.configuration import Settings
 from selva.di.decorator import service
 from selva.di.inject import Inject
-from selva.web.middleware import CallNext
 from selva.web.exception import HTTPNotFoundException
+from selva.web.middleware import CallNext
 
 
 class BaseFilesMiddleware(ABC):
@@ -85,7 +85,7 @@ class StaticFilesMiddleware(BaseFilesMiddleware):
 async def static_files_middleware(
     callnext: CallNext,
     request: Request,
-    middleware_service: Annotated[StaticFilesMiddleware, Inject]
+    middleware_service: Annotated[StaticFilesMiddleware, Inject],
 ):
     await middleware_service(callnext, request)
 
@@ -93,6 +93,6 @@ async def static_files_middleware(
 async def uploaded_files_middleware(
     callnext: CallNext,
     request: Request,
-    middleware_service: Annotated[UploadedFilesMiddleware, Inject]
+    middleware_service: Annotated[UploadedFilesMiddleware, Inject],
 ):
     await middleware_service(callnext, request)

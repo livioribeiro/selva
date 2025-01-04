@@ -57,4 +57,10 @@ async def logging_middleware(callnext, request: Request, user: User = None):
     request_line = f"{request.method} {request.path} HTTP/{request.http_version}"
     status = request.response.status
 
-    logger.info("request", client=client, request_line=request_line, status=status.value, status_phrase=status.phrase)
+    logger.info(
+        "request",
+        client=client,
+        request_line=request_line,
+        status=status.value,
+        status_phrase=status.phrase,
+    )

@@ -5,6 +5,7 @@ from aiomcache.exceptions import ClientException
 
 from selva.di import service, Inject
 
+
 @service
 class MemcachedService:
     memcached: Annotated[Client, Inject]

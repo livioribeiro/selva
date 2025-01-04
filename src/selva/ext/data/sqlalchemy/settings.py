@@ -14,7 +14,6 @@ from selva._util.pydantic import DottedPath
 class SqlAlchemyExecutionOptions(BaseModel):
     """SQLAlchemy execution options.
 
-    # noqa: E501
     Defined in https://docs.sqlalchemy.org/en/20/core/connections.html#sqlalchemy.engine.Connection.execution_options
     """
 
@@ -83,7 +82,7 @@ class SqlAlchemyEngineSettings(BaseModel):
     options: SqlAlchemyOptions = None
 
     @model_validator(mode="after")
-    def validate(self) -> Self:
+    def verify_either_url_or_components(self) -> Self:
         if self.url and (self.drivername or self.host or self.port or self.database):
             raise ValueError(
                 "Either 'url' should be provided, or 'drivername', 'host', 'port' and 'database'"

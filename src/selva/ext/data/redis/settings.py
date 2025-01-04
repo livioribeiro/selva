@@ -31,7 +31,8 @@ class BackoffSchema(BaseModel):
     decorrelated_jitter: ExponentialBackoffSchema = None
 
     @model_validator(mode="before")
-    def validator(cls, data):
+    @classmethod
+    def verify_backoff(cls, data):
         if len(data) != 1:
             raise ValueError("Only one backoff value can be set")
 
@@ -89,7 +90,7 @@ class RedisSettings(BaseModel):
     options: RedisOptions = None
 
     @model_validator(mode="after")
-    def validator(self) -> Self:
+    def verify_either_url_or_components(self) -> Self:
         if self.url and (self.host or self.port or (self.db is not None)):
             raise ValueError(
                 "Either 'url' should be provided, or 'host', 'port' and 'db'"

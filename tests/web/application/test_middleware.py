@@ -1,7 +1,5 @@
 from asgikit.requests import Request
-from httpx import AsyncClient, ASGITransport
-
-from asgikit.requests import Request
+from httpx import ASGITransport, AsyncClient
 
 from selva.configuration import Settings
 from selva.configuration.defaults import default_settings

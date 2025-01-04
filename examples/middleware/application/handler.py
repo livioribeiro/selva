@@ -19,9 +19,7 @@ async def index(request: Request, greeter: A[Greeter, Inject]):
 
 @get("/protected")
 async def protected(request: Request, user: User):
-    await respond_json(
-        request.response, {"message": f"Access granted to: {user.name}"}
-    )
+    await respond_json(request.response, {"message": f"Access granted to: {user.name}"})
 
 
 @get("/logout")

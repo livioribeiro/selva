@@ -11,4 +11,3 @@ class RedisService:
 
     async def get_incr(self) -> int:
         return await self.redis.incr("number")
-

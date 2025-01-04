@@ -21,7 +21,9 @@ class DependencyInjectionError(Exception):
 
 
 class DependencyLoopError(DependencyInjectionError):
-    def __init__(self, stack: list[tuple[type, str | None]], conflict: tuple[type, str | None]):
+    def __init__(
+        self, stack: list[tuple[type, str | None]], conflict: tuple[type, str | None]
+    ):
         conflict_index = stack.index(conflict)
         last_index = len(stack) - 1
 

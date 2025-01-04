@@ -45,6 +45,7 @@ async def greet_path(
     greeting = greeter.greet(name)
     await respond_json(request.response, {"greeting": greeting})
 
+
 @post
 async def post_data(request: Request, body: A[Json, FromBody]):
     await respond_json(request.response, {"result": body})

@@ -20,6 +20,7 @@ def import_item(name: str):
                 if item := getattr(module, item_name, None):
                     return item
 
+                # pylint: disable=raise-missing-from
                 raise ImportError(
                     f"module '{module.__name__}' does not have item '{item_name}'"
                 )
