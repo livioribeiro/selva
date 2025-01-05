@@ -126,6 +126,29 @@ async def test_binds():
         assert session.binds[BaseB] == engine_b
 
 
+async def test_sessiomaker_without_default_connection():
+    settings = Settings(
+        default_settings
+        | {
+            "data": {
+                "sqlalchemy": {
+                    "connections": {
+                        "conn": {
+                            "url": "sqlite+aiosqlite:///:memory:",
+                        },
+                    },
+                },
+            },
+        }
+    )
+
+    engine = create_async_engine(settings.data.sqlalchemy.connections.conn.url)
+
+    sessionmaker = await sessionmaker_service(settings, {"conn": engine})
+    async with sessionmaker() as session:
+        assert session.bind is engine
+
+
 async def test_binds_model():
     settings = Settings(
         default_settings

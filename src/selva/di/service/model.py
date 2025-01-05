@@ -19,9 +19,9 @@ class ServiceDependency(NamedTuple):
 
 class ServiceSpec(NamedTuple):
     service: type
-    impl: type
-    factory: FunctionType | None
+    impl: type | None
+    factory: Callable | None
     name: str | None
     dependencies: list[tuple[str, ServiceDependency]]
-    initializer: Callable = None
-    finalizer: Callable = None
+    initializer: Callable | None = None
+    finalizer: Callable | None = None

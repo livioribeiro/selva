@@ -102,3 +102,10 @@ class ServiceWithUntypedDependencyError(DependencyInjectionError):
             f"service {service.__module__}.{service.__qualname__}"
             f" must annotate parameter '{param}'"
         )
+
+
+class InvalidDependencyAnnotationError(DependencyInjectionError):
+    def __init__(self, dependency, annotation):
+        super().__init__(
+            f"dependency '{dependency}' has invalid annotation '{annotation}'"
+        )

@@ -5,7 +5,7 @@ import pytest
 
 from selva.configuration import Settings
 from selva.configuration.defaults import default_settings
-from selva.ext.data.memcached.service import make_service
+from selva.ext.data.memcached.service import make_service, parse_memcached_address
 
 MEMCACHED_ADDR = os.getenv("MEMCACHED_ADDR")
 
@@ -63,3 +63,15 @@ async def test_make_service_with_options():
     async for memcached in service:
         assert memcached._pool._maxsize == 10
         assert memcached._pool._minsize == 1
+
+
+def test_parse_memcached_address_with_port():
+    host, port = parse_memcached_address("memcached:11212")
+    assert host == "memcached"
+    assert port == 11212
+
+
+def test_parse_memcached_address_without_port():
+    host, port = parse_memcached_address("memcached")
+    assert host == "memcached"
+    assert port == 11211
