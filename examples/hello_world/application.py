@@ -1,6 +1,6 @@
 from typing import Annotated as A
 
-from asgikit.requests import Request, read_json
+from asgikit.requests import Request
 from asgikit.responses import respond_json
 from pydantic import BaseModel
 

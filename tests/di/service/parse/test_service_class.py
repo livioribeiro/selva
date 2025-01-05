@@ -1,13 +1,8 @@
 from typing import Annotated
 
-import pytest
-
 from selva.di.inject import Inject
-from selva.di.container import Container
-from selva.di.decorator import service
-from selva.di.error import ServiceWithUntypedDependencyError
 from selva.di.service.model import ServiceSpec, ServiceDependency
-from selva.di.service.parse import parse_service_spec, get_dependencies
+from selva.di.service.parse import parse_service_spec
 
 
 def test_parse_service_spec():
@@ -88,7 +83,9 @@ def test_parse_service_spec_optional_dependency():
         impl=ServiceClass,
         factory=None,
         name=None,
-        dependencies=[("dependency", ServiceDependency(service=str, name=None, optional=True))],
+        dependencies=[
+            ("dependency", ServiceDependency(service=str, name=None, optional=True))
+        ],
         initializer=None,
         finalizer=None,
     )
@@ -109,6 +106,7 @@ def test_parse_service_spec_non_inject_dependency():
         initializer=None,
         finalizer=None,
     )
+
 
 def test_parse_service_spec_named_dependency():
     class ServiceClass:

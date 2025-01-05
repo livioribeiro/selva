@@ -9,7 +9,8 @@ from selva.di.error import (
     FactoryMissingReturnTypeError,
     InvalidServiceTypeError,
     TypeVarInGenericServiceError,
-    ServiceWithUntypedDependencyError, NonInjectableTypeError, InvalidDependencyAnnotationError,
+    ServiceWithUntypedDependencyError,
+    InvalidDependencyAnnotationError,
 )
 from selva.di.inject import Inject
 from selva.di.service.model import InjectableType, ServiceDependency, ServiceSpec
@@ -142,6 +143,3 @@ def _parse_definition_factory(service: Callable) -> type:
     provided_service = service_type
 
     return provided_service
-
-
-

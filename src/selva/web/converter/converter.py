@@ -11,4 +11,4 @@ T_INTO = TypeVar("T_INTO")
 @runtime_checkable
 class Converter(Protocol[T_FROM, T_INTO]):
     def convert(self, data: T_FROM, original_type: type) -> T_INTO | Awaitable[T_INTO]:
-        raise NotImplementedError()
+        pass

@@ -1,9 +1,11 @@
+from decimal import Decimal
 from pathlib import PurePath
 
 import pytest
 
 from selva.web.converter.param_converter_impl import (
     BoolParamConverter,
+    DecimalParamConverter,
     FloatParamConverter,
     IntParamConverter,
     PurePathParamConverter,
@@ -49,6 +51,21 @@ def test_float_request_param_with_invalid_value_should_fail():
     converter = FloatParamConverter()
     with pytest.raises(HTTPBadRequestException):
         converter.convert("A", float)
+
+
+async def test_decimal_request_param():
+    converter = DecimalParamConverter()
+    value = "1.1"
+    expected = Decimal("1.1")
+
+    result = converter.convert(value, Decimal)
+    assert result == expected
+
+
+def test_decimal_request_param_with_invalid_value_should_fail():
+    converter = DecimalParamConverter()
+    with pytest.raises(HTTPBadRequestException):
+        converter.convert("A", Decimal)
 
 
 @pytest.mark.parametrize(

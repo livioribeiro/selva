@@ -1,15 +1,12 @@
-from pathlib import Path
 from typing import Annotated as A
 
 from asgikit.errors.websocket import WebSocketDisconnectError
 from asgikit.requests import Request
-from asgikit.responses import respond_file
 from asgikit.websockets import WebSocket
 import structlog
 
-from selva.configuration import Settings
 from selva.di import Inject, service
-from selva.web import get, websocket
+from selva.web import websocket
 from selva.web.exception import WebSocketException
 
 logger = structlog.get_logger()

@@ -1,6 +1,6 @@
 import pytest
 
-from selva.di.error import InvalidServiceTypeError, NonInjectableTypeError
+from selva.di.error import InvalidServiceTypeError
 from selva.di.service.parse import parse_service_spec, _get_service_signature
 
 

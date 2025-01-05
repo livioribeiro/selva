@@ -1,3 +1,4 @@
+import decimal
 from decimal import Decimal
 from pathlib import PurePath
 
@@ -38,7 +39,7 @@ class DecimalParamConverter:
     def convert(value: str, _original_type: type[Decimal]) -> Decimal:
         try:
             return Decimal(value)
-        except ValueError as err:
+        except decimal.InvalidOperation as err:
             raise HTTPBadRequestException() from err
 
 
