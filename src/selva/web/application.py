@@ -53,7 +53,7 @@ def _is_service(arg) -> bool:
 
 def _init_settings(settings: Settings | None) -> Settings:
     if not settings:
-        settings, paths = get_settings()
+        settings = get_settings()
 
     logging_setup = import_item(settings.logging.setup)
     logging_setup(settings)
@@ -118,13 +118,12 @@ class Selva:
     async def _initialize_extensions(self):
         for extension_name in self.settings.extensions:
             try:
-                extension_module = import_item(extension_name)
+                extension_init = import_item(f"{extension_name}:init_extension")
             except ImportError:
                 # pylint: disable=raise-missing-from
                 raise ExtensionNotFoundError(extension_name)
-
-            extension_init = getattr(extension_module, "init_extension", None)
-            if not extension_init:
+            except AttributeError:
+                # pylint: disable=raise-missing-from
                 raise ExtensionMissingInitFunctionError(extension_name)
 
             await maybe_async(extension_init, self.di, self.settings)

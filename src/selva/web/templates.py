@@ -14,12 +14,12 @@ class Template(ABC):
         content_type: str = None,
         stream: bool = False,
     ):
-        raise NotImplementedError()
+        pass
 
     @abstractmethod
     async def render(self, template_name: str, context: dict) -> str:
-        raise NotImplementedError()
+        pass
 
     @abstractmethod
     async def render_str(self, source: str, context: dict) -> str:
-        raise NotImplementedError()
+        pass

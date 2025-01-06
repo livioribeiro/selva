@@ -4,7 +4,7 @@ from selva._util.import_item import import_item
 
 
 def test_import_item():
-    item = import_item("tests.util.package_to_scan.module_to_scan.ClassItem")
+    item = import_item("tests.util.package_to_scan.module_to_scan:ClassItem")
 
     from .package_to_scan.module_to_scan import ClassItem
 
@@ -18,5 +18,5 @@ def test_import_item_invalid_name_should_fail(name):
 
 
 def test_import_missing_item_from_module_should_fail():
-    with pytest.raises(ImportError):
-        import_item("tests.util.package_to_scan.module_to_scan.does_not_exist")
+    with pytest.raises(AttributeError):
+        import_item("tests.util.package_to_scan.module_to_scan:does_not_exist")

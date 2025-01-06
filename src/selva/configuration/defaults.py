@@ -3,7 +3,7 @@ default_settings = {
     "extensions": [],
     "middleware": [],
     "logging": {
-        "setup": "selva.logging.setup",
+        "setup": "selva.logging:setup",
     },
     "templates": {
         "backend": None,

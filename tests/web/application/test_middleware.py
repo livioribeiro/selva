@@ -21,7 +21,7 @@ async def test_middleware():
         default_settings
         | {
             "application": f"{__package__}.application",
-            "middleware": [f"{__package__}.test_middleware.my_middleware"],
+            "middleware": [f"{__package__}.test_middleware:my_middleware"],
         }
     )
     app = Selva(settings)

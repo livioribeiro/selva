@@ -10,7 +10,7 @@ from selva.web.application import Selva
 from selva.web.middleware.files import uploaded_files_middleware
 
 MIDDLEWARE = [
-    f"{uploaded_files_middleware.__module__}.{uploaded_files_middleware.__name__}"
+    f"{uploaded_files_middleware.__module__}:{uploaded_files_middleware.__name__}"
 ]
 
 

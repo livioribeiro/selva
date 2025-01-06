@@ -82,6 +82,7 @@ class RequestParamFromRequest(ABC):
         try:
             extractor = await self.di.get(ParamExtractor[parameter_type])
         except ServiceNotFoundError:
+            # pylint: disable=raise-missing-from
             raise MissingRequestParamExtractorImplError(parameter_type)
 
         converter = await self.di.get(Converter[str, original_type])

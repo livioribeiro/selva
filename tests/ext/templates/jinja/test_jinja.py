@@ -27,10 +27,10 @@ my_bytecode_cache = MyBytecodeCache()
 def test_jinja_settings():
     settings = JinjaTemplateSettings.model_validate(
         {
-            "undefined": f"{MyUndefined.__module__}.{MyUndefined.__qualname__}",
-            "finalize": f"{finalize.__module__}.{finalize.__qualname__}",
-            "autoescape": f"{autoescape.__module__}.{autoescape.__qualname__}",
-            "bytecode_cache": f"{my_bytecode_cache.__module__}.my_bytecode_cache",
+            "undefined": f"{MyUndefined.__module__}:{MyUndefined.__qualname__}",
+            "finalize": f"{finalize.__module__}:{finalize.__qualname__}",
+            "autoescape": f"{autoescape.__module__}:{autoescape.__qualname__}",
+            "bytecode_cache": f"{my_bytecode_cache.__module__}:my_bytecode_cache",
         },
     )
 

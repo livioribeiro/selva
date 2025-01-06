@@ -1,5 +1,5 @@
 middleware:
-  - selva.web.middleware.files.static_files_middleware
+  - selva.web.middleware.files:static_files_middleware
 
 staticfiles:
   mappings:

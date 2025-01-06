@@ -75,7 +75,7 @@ async def test_session_class():
                     },
                     "session": {
                         "options": {
-                            "class": f"{MySession.__module__}.{MySession.__name__}",
+                            "class": f"{MySession.__module__}:{MySession.__name__}",
                         },
                     },
                 },
@@ -106,8 +106,8 @@ async def test_binds():
                     },
                     "session": {
                         "binds": {
-                            f"{BaseA.__module__}.{BaseA.__qualname__}": "conn_a",
-                            f"{BaseB.__module__}.{BaseB.__qualname__}": "conn_b",
+                            f"{BaseA.__module__}:{BaseA.__qualname__}": "conn_a",
+                            f"{BaseB.__module__}:{BaseB.__qualname__}": "conn_b",
                         },
                     },
                 },
@@ -165,8 +165,8 @@ async def test_binds_model():
                     },
                     "session": {
                         "binds": {
-                            f"{BaseA.__module__}.{BaseA.__qualname__}": "conn_a",
-                            f"{BaseB.__module__}.{BaseB.__qualname__}": "conn_b",
+                            f"{BaseA.__module__}:{BaseA.__qualname__}": "conn_a",
+                            f"{BaseB.__module__}:{BaseB.__qualname__}": "conn_b",
                         },
                     },
                 },
@@ -215,7 +215,7 @@ async def test_binds_with_invalid_connection_should_fail():
                     },
                     "session": {
                         "binds": {
-                            f"{BaseA.__module__}.{BaseA.__qualname__}": "invalid",
+                            f"{BaseA.__module__}:{BaseA.__qualname__}": "invalid",
                         },
                     },
                 },
