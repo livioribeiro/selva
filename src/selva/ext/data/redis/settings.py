@@ -53,7 +53,9 @@ class RedisOptions(BaseModel):
     socket_timeout: float = None
     socket_connect_timeout: float = None
     socket_keepalive: bool = None
-    socket_keepalive_options: dict[int, int | bytes] = None
+    socket_keepalive_options: dict[
+        Literal["TCP_KEEPIDLE", "TCP_KEEPCNT", "TCP_KEEPINTVL"], int
+    ] = None
     unix_socket_path: str = None
     encoding: str = None
     encoding_errors: Literal["strict", "ignore", "replace"] = None

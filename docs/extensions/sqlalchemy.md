@@ -267,10 +267,9 @@ data:
         autobegin: true
         twophase: false
         enable_baked_queries: true
-        info:
-          key: value
-        query_cls: sqlalchemy.orm.query.Query
-        join_transaction_mode: conditional_savepoint
+        info: "package.module.variable" # dotted path to a python variable
+        query_cls: "sqlalchemy.orm.query.Query" # dotted path to a python class
+        join_transaction_mode: "conditional_savepoint" # or "rollback_only", "control_fully", "create_savepoint"
         close_resets_only: null
       binds: # (2)
         application.model.Base: default
@@ -279,8 +278,7 @@ data:
       default:
         url: ""
         options: # (3)
-          connect_args: # (4)
-            arg: value
+          connect_args: "package.module.variable" # (4)
           echo: false
           echo_pool: false
           enable_from_linting: false
@@ -324,5 +322,6 @@ data:
 1.  Values are describe in [`sqlalchemy.orm.Session`](https://docs.sqlalchemy.org/orm/session_api.html#sqlalchemy.orm.Session)
 2.  Binds subclasses of `sqlalchemy.orm.DeclarativeBase` to connection names defined in `connections`
 3.  Values are described in [`sqlalchemy.create_engine`](https://docs.sqlalchemy.org/core/engines.html#sqlalchemy.create_engine)
-4.  `connect_args` is a map of args to pass to the `connect` function of the underlying driver
+4.  `connect_args` is a dotted path to a `dict[str, Any]` that will be provided
+    as args to the `connect` function of the underlying driver
 5.  `execution_options` values are describe in [`Sqlalchemy.engine.Connection.execution_options`](https://docs.sqlalchemy.org/core/connections.html#sqlalchemy.engine.Connection.execution_options)

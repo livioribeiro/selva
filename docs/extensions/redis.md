@@ -157,7 +157,10 @@ data:
         socket_timeout: 1.0
         socket_connect_timeout: 1.0
         socket_keepalive: false
-        socket_keepalive_options: {}
+        socket_keepalive_options:
+          TCP_KEEPIDLE: 100,
+          TCP_KEEPCNT: 100,
+          TCP_KEEPINTVL: 100,
         unix_socket_path: ""
         encoding: ""
         encoding_errors: "strict" # or "ignore", "replace"

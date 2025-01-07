@@ -28,6 +28,11 @@ class ModelB(BaseB):
     name: Mapped[str] = mapped_column(String(100))
 
 
+session_info = {
+    "framework": "selva",
+}
+
+
 async def test_options():
     settings = Settings(
         default_settings
@@ -41,9 +46,7 @@ async def test_options():
                     },
                     "session": {
                         "options": {
-                            "info": {
-                                "framework": "selva",
-                            },
+                            "info": f"{test_options.__module__}.session_info",
                         },
                     },
                 },

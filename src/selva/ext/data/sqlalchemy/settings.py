@@ -1,6 +1,6 @@
 from collections.abc import Callable
 from types import ModuleType
-from typing import Any, Literal, Self, Type
+from typing import Any, Literal, Self
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from sqlalchemy import URL, make_url
@@ -37,7 +37,7 @@ class SqlAlchemyOptions(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    connect_args: dict[str, Any] = None
+    connect_args: DottedPath[dict] = None
     echo: bool = None
     echo_pool: bool = None
     enable_from_linting: bool = None
@@ -114,16 +114,16 @@ class SqlAlchemyEngineSettings(BaseModel):
 
 
 class SqlAlchemySessionOptions(BaseModel):
-    class_: DottedPath[Type[AsyncSession]] = Field(default=None, alias="class")
-    autoflush: bool = (None,)
-    expire_on_commit: bool = (None,)
-    autobegin: bool = (None,)
-    twophase: bool = (None,)
-    enable_baked_queries: bool = (None,)
-    info: dict[str, Any] = (None,)
-    query_cls: DottedPath[Type[Query[Any]]] = (None,)
-    join_transaction_mode: JoinTransactionMode = (None,)
-    close_resets_only: bool = (None,)
+    class_: DottedPath[type[AsyncSession]] = Field(default=None, alias="class")
+    autoflush: bool = None
+    expire_on_commit: bool = None
+    autobegin: bool = None
+    twophase: bool = None
+    enable_baked_queries: bool = None
+    info: DottedPath[dict] = None
+    query_cls: DottedPath[type[Query[Any]]] = None
+    join_transaction_mode: JoinTransactionMode = None
+    close_resets_only: bool = None
 
 
 class SqlAlchemySessionSettings(BaseModel):
