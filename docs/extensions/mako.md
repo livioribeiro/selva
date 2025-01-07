@@ -4,7 +4,7 @@ This extension provides support for Mako templates.
 
 ## Usage
 
-To use jinja templates, first install the `mako` extra:
+To use mako templates, first install the `mako` extra:
 
 ```shell
 pip install selva[mako]

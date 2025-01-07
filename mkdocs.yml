@@ -46,7 +46,6 @@ nav:
   - structure.md
   - controllers.md
   - routing.md
-  - templates.md
   - configuration.md
   - logging.md
   - Middleware:
@@ -56,4 +55,6 @@ nav:
     - Overview: extensions/overview.md
     - extensions/sqlalchemy.md
     - extensions/redis.md
+    - extensions/memcached.md
     - extensions/jinja.md
+    - extensions/mako.md

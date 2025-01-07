@@ -8,7 +8,7 @@ This extension provides support for connecting to Memcached servers. It register
 First install the `memcached` extra:
 
 ```shell
-pip install selva[redis]
+pip install selva[memcached]
 ```
 
 Define the configuration properties:
@@ -56,10 +56,10 @@ class MyService:
     data:
       memcached:
         default:
-          url: "${MEMCACHED_URL}" # (1)
+          address: "${MEMCACHED_ADDR}" # (1)
     ```
     
-    1.  Can be define with just the environment variable `SELVA__DATA__MEMCACHED__DEFAULT__URL`
+    1.  Can be define with just the environment variable `SELVA__DATA__MEMCACHED__DEFAULT__ADDRESS`
 
 ## Example
 
@@ -76,10 +76,10 @@ class MyService:
     from selva.web import get
     
     @get
-    async def index(request, redis: Annotated[Memcached, Inject]):
-        if not await self.memcached.get(b"number"):
-            await self.memcached.set(b"number", b"0")
-        number = await redis.incr("number")
+    async def index(request, memcached: Annotated[Memcached, Inject]):
+        if not await memcached.get(b"number"):
+            await memcached.set(b"number", b"0")
+        number = await memcached.incr("number")
         await respond_json(request.response, {"number": number})
     ```
 
@@ -87,9 +87,9 @@ class MyService:
 
     ```yaml
     data:
-      redis:
+      memcached:
         default:
-          url: "redis://localhost:6379/0"
+          address: "localhost:11211"
     ```
 
 ## Configuration options
@@ -101,7 +101,7 @@ The available options are shown below:
 
 ```yaml
 data:
-  redis:
+  memcached:
     default:
       address: ""
       options:

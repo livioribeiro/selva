@@ -211,7 +211,7 @@ configuration, otherwise it is bound to just the `default` connection.
             session.add(my_model)
             await session.commit()
 
-        async with self.sessionmaker() as session:
+        async with sessionmaker() as session:
             my_model = await session.scalar(select(MyModel).limit(1))
             await respond_json(request.response, {
                 "id": my_model.id,

@@ -5,8 +5,13 @@ external libraries into the framework.
 
 Current builtin extensions are:
 
-- [SQLAlchemy](./sqlalchemy.md)
-- [Jinja](./jinja.md)
+- Databases
+    - [SQLAlchemy](./sqlalchemy.md)
+    - [Redis](./redis.md)
+    - [Memcached](./memcached.md)
+- Template engines
+    - [Jinja](./jinja.md)
+    - [Mako](./mako.md)
 
 ## Activating extensions
 
