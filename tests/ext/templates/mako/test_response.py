@@ -11,8 +11,8 @@ settings = Settings(
     default_settings
     | {
         "application": f"{__package__}.application",
-        "extensions": ["selva.ext.templates.jinja"],
-        "templates": default_settings["templates"] | {"paths": [path]},
+        "extensions": ["selva.ext.templates.mako"],
+        "templates": {"mako": {"directories": [path]}},
     }
 )
 
@@ -25,21 +25,9 @@ async def test_render():
     response = await client.get("http://localhost:8000/render")
 
     assert response.status_code == 200
-    assert response.text == "Jinja"
-    assert response.headers["Content-Length"] == str(len("Jinja"))
+    assert response.text == "Mako"
+    assert response.headers["Content-Length"] == str(len("Mako"))
     assert "text/html" in response.headers["Content-Type"]
-
-
-async def test_stream():
-    app = Selva(settings)
-    await app._lifespan_startup()
-
-    client = AsyncClient(transport=ASGITransport(app=app))
-    response = await client.get("http://localhost:8000/stream")
-
-    assert response.status_code == 200
-    assert response.text == "Jinja"
-    assert "Content-Length" not in response.headers
 
 
 async def test_define_content_type():

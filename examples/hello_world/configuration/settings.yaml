@@ -1,6 +1,6 @@
 middleware:
-  - selva.web.middleware.files:static_files_middleware
-  - selva.web.middleware.request_id:request_id_middleware
+  - selva.web.middleware.files.static_files_middleware
+  - selva.web.middleware.request_id.request_id_middleware
 
 logging:
   root: debug

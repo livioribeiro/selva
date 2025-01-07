@@ -18,11 +18,57 @@ Then activate the extension:
       - selva.ext.templates.jinja
     ```
 
-You can view the template usage [in the templates section](../templates.md).
+To render templates, inject the `selva.ext.templates.jinja.JinjaTemplate` dependency
+and call its `respond` method:
+
+=== "application.py"
+
+    ```python
+    from typing import Annotated
+    from selva.di import Inject
+    from selva.ext.templates.jinja import JinjaTemplate
+    from selva.web import get
+    
+    @get
+    async def index(request, template: Annotated[JinjaTemplate, Inject]):
+        context = {"title": "Index"}
+        await template.respond(request.response, "index.html", context)
+    ```
+
+=== "resources/templates/index.html"
+
+    ```html
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>Jinja Templates</title>
+    </head>
+    <body>
+        <h1>{{ title }}</h1>
+    </body>
+    </html>
+    ```
+
+## Render templates to string
+
+The `JinjaTemplate` class provide methods to render templates into a str, instead
+of rendering to the response.
+
+The method `JinjaTempate.render` accepts a template name and returns a string with the
+rendered template.
+
+The method `JinjaTempate.render_str` accepts a template string, compiles it and returns
+the result.
+
+```python
+rendered = template.render("template.html", {"variable": "value"})
+rendered = template.render_str("{{ variable }}", {"variable": "value"})
+```
 
 ## Configuration
 
-Jinja can be configured through the `settings.yaml`. For example, to activate extensions:
+Jinja can be configured through the `settings.yaml`. For example, to activate Jinja extensions:
 
 ```yaml
 templates:
@@ -37,6 +83,8 @@ Full list of settings:
 ```yaml
 templates:
   jinja:
+    paths:
+      - resources/templates
     block_start_string: ""
     block_end_string: ""
     variable_start_string: ""
@@ -53,11 +101,11 @@ templates:
       - extension1
       - extensions2
     optimized: true
-    undefined: "" # dotted path to python class
-    finalize: "" # dotted path to python function
-    autoescape: "" # dotted path to python function
-    loader: "" # dotted path to python object
+    undefined: "package.module.Class" # dotted path to python class
+    finalize: "package.module.function" # dotted path to python function
+    autoescape: "package.module.function" # dotted path to python function
+    loader: "package.module.variable" # dotted path to python variable
     cache_size: 1
     auto_reload: true
-    bytecode_cache: "" # dotted path to python object
+    bytecode_cache: "package.module.variable" # dotted path to python variable
 ```

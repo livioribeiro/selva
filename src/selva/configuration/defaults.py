@@ -6,9 +6,8 @@ default_settings = {
         "setup": "selva.logging:setup",
     },
     "templates": {
-        "backend": None,
-        "paths": ["resources/templates"],
         "jinja": {},
+        "mako": {},
     },
     "data": {
         "memcached": {},

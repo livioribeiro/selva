@@ -15,4 +15,11 @@ def import_item(name: str):
     if ":" in name:
         return resolve_name(name)
 
-    return import_module(name)
+    try:
+        return import_module(name)
+    except ImportError as err:
+        match name.rsplit(".", maxsplit=1):
+            case [mod, item]:
+                return resolve_name(f"{mod}:{item}")
+            case _:
+                raise err

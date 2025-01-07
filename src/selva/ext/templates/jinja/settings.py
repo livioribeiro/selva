@@ -1,8 +1,8 @@
 from collections.abc import Callable
-from typing import Literal, Type
+from typing import Literal, Annotated
 
-from jinja2 import BaseLoader, BytecodeCache, Undefined
-from pydantic import BaseModel, ConfigDict
+from jinja2 import BaseLoader, BytecodeCache, Undefined, select_autoescape
+from pydantic import BaseModel, ConfigDict, Field
 
 from selva._util.pydantic import DottedPath
 
@@ -10,6 +10,7 @@ from selva._util.pydantic import DottedPath
 class JinjaTemplateSettings(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
+    paths: Annotated[list[str], Field(default_factory=lambda: ["resources/templates"])]
     block_start_string: str = None
     block_end_string: str = None
     variable_start_string: str = None
@@ -24,9 +25,12 @@ class JinjaTemplateSettings(BaseModel):
     keep_trailing_newline: bool = None
     extensions: list[str] = None
     optimized: bool = None
-    undefined: DottedPath[Type[Undefined]] = None
+    undefined: DottedPath[type[Undefined]] = None
     finalize: DottedPath[Callable[..., None]] = None
-    autoescape: bool | DottedPath[Callable[[str], bool]] = None
+    autoescape: Annotated[
+        bool | DottedPath[Callable[[str], bool]],
+        Field(default_factory=select_autoescape),
+    ]
     loader: DottedPath[BaseLoader] = None
     cache_size: int = None
     auto_reload: bool = None

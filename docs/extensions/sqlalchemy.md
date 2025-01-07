@@ -252,7 +252,7 @@ configuration, otherwise it is bound to just the `default` connection.
 
 Selva offers several options to configure SQLAlchemy. If you need more control over
 the SQLAlchemy services, you can create your own `AsyncEngine` and `async_sessionmaker`
-outside of the DI context.
+services.
 
 The available options are shown below:
 

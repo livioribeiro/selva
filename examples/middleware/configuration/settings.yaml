@@ -1,7 +1,7 @@
 middleware:
-  - application.middleware:auth_middleware
-  - application.middleware:timing_middleware
-  - application.middleware:logging_middleware
+  - application.middleware.auth_middleware
+  - application.middleware.timing_middleware
+  - application.middleware.logging_middleware
 
 logging:
   root: WARNING

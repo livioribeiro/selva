@@ -33,4 +33,4 @@ class FromRequest(Protocol[T]):
         :param optional: Whether the parameter is optional
         """
 
-        raise NotImplementedError()
+        pass

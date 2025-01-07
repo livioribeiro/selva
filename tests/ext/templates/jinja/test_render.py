@@ -8,9 +8,7 @@ from selva.ext.templates.jinja.service import JinjaTemplate
 
 async def test_render_template():
     path = str(Path(__file__).parent.absolute())
-    settings = Settings(
-        default_settings | {"templates": {"paths": [path], "jinja": {}}}
-    )
+    settings = Settings(default_settings | {"templates": {"jinja": {"paths": [path]}}})
 
     template = JinjaTemplate(settings)
     template.initialize()

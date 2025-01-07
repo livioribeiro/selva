@@ -1,4 +1,5 @@
 from http import HTTPStatus
+from typing import Literal
 
 import pytest
 from asgikit.requests import Request
@@ -187,6 +188,31 @@ async def test_pydantic_model_with_wrong_content_type_should_fail():
     assert err.value.status == HTTPStatus.UNSUPPORTED_MEDIA_TYPE
 
 
+async def test_pydantic_model_with_invalid_data_should_fail():
+    class Model(BaseModel):
+        field: Literal["value"]
+
+    async def receive():
+        return {
+            "type": "http.request",
+            "body": b'{"field": "wrong"}',
+            "more_body": False,
+        }
+
+    scope = {
+        "type": "http",
+        "method": "POST",
+        "headers": [(b"content-type", b"application/json")],
+    }
+
+    request = Request(scope, receive, None)
+    converter = RequestBodyPydanticConverter()
+
+    with pytest.raises(HTTPException) as err:
+        await converter.convert(request.body, Model)
+    assert err.value.status == HTTPStatus.BAD_REQUEST
+
+
 async def test_pydantic_model_list_from_request():
     class Model(BaseModel):
         field: str
@@ -238,3 +264,28 @@ async def test_pydantic_model_list_with_wrong_content_type_should_fail():
         await converter.convert(request.body, list[Model])
 
     assert err.value.status == HTTPStatus.UNSUPPORTED_MEDIA_TYPE
+
+
+async def test_pydantic_model_list_with_invalid_data_should_fail():
+    class Model(BaseModel):
+        field: Literal["value"]
+
+    async def receive():
+        return {
+            "type": "http.request",
+            "body": b'[{"field": "wrong"}]',
+            "more_body": False,
+        }
+
+    scope = {
+        "type": "http",
+        "method": "POST",
+        "headers": [(b"content-type", b"application/json")],
+    }
+
+    request = Request(scope, receive, None)
+    converter = RequestBodyPydanticListConverter()
+
+    with pytest.raises(HTTPException) as err:
+        await converter.convert(request.body, list[Model])
+    assert err.value.status == HTTPStatus.BAD_REQUEST

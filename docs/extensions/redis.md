@@ -27,7 +27,7 @@ Define the configuration properties:
           url: redis://localhost:6379/1
     ```
 
-    1.  Activate the sqlalchemy extension
+    1.  Activate the extension
     2.  "default" connection will be registered without a name
     3.  Connection registered with name "other"
 
@@ -109,7 +109,7 @@ the url, or even with individual components:
 
 ## Example
 
-=== "application/controller.py"
+=== "application/handler.py"
 
     ```python
     from typing import Annotated
@@ -139,8 +139,7 @@ the url, or even with individual components:
 ## Configuration options
 
 Selva offers several options to configure Redis. If you need more control over
-the SQLAlchemy services, you can create your own `redis.asyncio.Redis` outside
-of the DI context.
+the Redis service, you can create your own `redis.asyncio.Redis` service.
 
 The available options are shown below:
 
@@ -182,7 +181,8 @@ data:
         protocol: 3
         retry:
           retries: 1
-          supported_errors: [] # (2)
+          supported_errors: # (2)
+            - package.module:Class
           backoff: # (3)
             no_backoff:
             constant:

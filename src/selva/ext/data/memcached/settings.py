@@ -12,6 +12,7 @@ class MemcachedOptions(BaseModel):
     pool_minsize: int = None
     get_flat_handler: DottedPath[Callable] = None
     set_flat_handler: DottedPath[Callable] = None
+    conn_args: DottedPath[dict] = None
 
 
 class MemcachedSettings(BaseModel):
