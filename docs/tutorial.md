@@ -160,25 +160,29 @@ with `@service`, so in this case we need to create a factory function for it:
     @service # (1)
     async def database_factory() -> Database:
         database = Database("sqlite:///database.sqlite3")
-        query = """
-            create table if not exists greeting_log(
-                greeting text not null,
-                datetime text not null
-            );
-        """
-        await database.execute(query)
-        return database
-    
-    
+        await database.connect()
+
+        yield database
+
+        await database.disconnect()
+
+
     @service
     class GreetingRepository:
         database: Annotated[Database, Inject] # (2)
     
         async def initialize(self): # (3)
-            await self.database.connect()
+            query = """
+                create table if not exists greeting_log(
+                    greeting text not null,
+                    datetime text not null
+                );
+            """
+            await database.execute(query)
     
         async def finalize(self): # (4)
-            await self.database.disconnect()
+            query = "drop table if exists greeting_log;"
+            await database.execute(query)
     
         async def save_greeting(self, greeting: str, date: datetime):
             query = """
@@ -337,6 +341,7 @@ use Pydantic to parse the request body:
 
     ```python
     # ...
+    from selva.web import FromBody
     from .model import GreetingRequest
 
     # ...
@@ -344,7 +349,7 @@ use Pydantic to parse the request body:
     @post("hello")
     async def hello_post(
         request: Request,
-        greeting_request: GreetingRequest,
+        greeting_request: Annotated[GreetingRequest, FromBody],
         greeter: Annotated[Greeter, Inject],
         repository: Annotated[GreetingRepository, Inject],
     ):

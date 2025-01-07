@@ -1,6 +1,5 @@
 # ruff: noqa: F401
 
-from selva.web.application import Selva
 from selva.web.converter.param_extractor import (
     FromBody,
     FromCookie,

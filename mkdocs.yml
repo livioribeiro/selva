@@ -44,7 +44,7 @@ nav:
   - Selva: index.md
   - tutorial.md
   - structure.md
-  - controllers.md
+  - handlers.md
   - routing.md
   - configuration.md
   - logging.md
@@ -53,8 +53,10 @@ nav:
     - middleware/staticfiles_uploads.md
   - Extensions:
     - Overview: extensions/overview.md
-    - extensions/sqlalchemy.md
-    - extensions/redis.md
-    - extensions/memcached.md
-    - extensions/jinja.md
-    - extensions/mako.md
+    - Databases:
+      - extensions/sqlalchemy.md
+      - extensions/redis.md
+      - extensions/memcached.md
+    - Template Engines:
+      - extensions/jinja.md
+      - extensions/mako.md
