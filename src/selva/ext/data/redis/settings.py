@@ -52,27 +52,6 @@ class BackoffSchema(BaseModel):
 
         return data
 
-    def build_backoff(self) -> AbstractBackoff:
-        if "no_backoff" in self.model_fields_set:
-            return NoBackoff()
-
-        if value := self.constant:
-            return ConstantBackoff(**value.model_dump(exclude_unset=True))
-
-        if value := self.exponential:
-            return ExponentialBackoff(**value.model_dump(exclude_unset=True))
-
-        if value := self.full_jitter:
-            return FullJitterBackoff(**value.model_dump(exclude_unset=True))
-
-        if value := self.equal_jitter:
-            return EqualJitterBackoff(**value.model_dump(exclude_unset=True))
-
-        if value := self.decorrelated_jitter:
-            return DecorrelatedJitterBackoff(**value.model_dump(exclude_unset=True))
-
-        raise ValueError("No value defined for 'backoff'")
-
 
 class RetrySchema(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -81,10 +60,32 @@ class RetrySchema(BaseModel):
     retries: int
     supported_errors: tuple[DottedPath[type[Exception]], ...] = None
 
+    @staticmethod
+    def build_backoff(backoff: BackoffSchema) -> AbstractBackoff:
+        if "no_backoff" in backoff.model_fields_set:
+            return NoBackoff()
+
+        if value := backoff.constant:
+            return ConstantBackoff(**value.model_dump(exclude_unset=True))
+
+        if value := backoff.exponential:
+            return ExponentialBackoff(**value.model_dump(exclude_unset=True))
+
+        if value := backoff.full_jitter:
+            return FullJitterBackoff(**value.model_dump(exclude_unset=True))
+
+        if value := backoff.equal_jitter:
+            return EqualJitterBackoff(**value.model_dump(exclude_unset=True))
+
+        if value := backoff.decorrelated_jitter:
+            return DecorrelatedJitterBackoff(**value.model_dump(exclude_unset=True))
+
+        raise ValueError("No value defined for 'backoff'")
+
     @model_serializer(when_used="unless-none")
     def serialize_model(self) -> dict[str, Any]:
         result = {
-            "backoff": self.backoff.build_backoff(),
+            "backoff": self.build_backoff(self.backoff),
             "retries": self.retries,
         }
 
