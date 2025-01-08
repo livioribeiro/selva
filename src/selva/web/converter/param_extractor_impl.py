@@ -1,5 +1,3 @@
-from typing import Type
-
 from asgikit.requests import Request
 
 from selva.web.converter.decorator import register_param_extractor
@@ -25,7 +23,7 @@ class FromPathExtractor:
     def extract(
         request: Request,
         parameter_name: str,
-        metadata: FromPath | Type[FromPath],
+        metadata: FromPath | type[FromPath],
     ) -> str:
         if isinstance(metadata, FromPath):
             name = metadata.name or parameter_name
@@ -45,7 +43,7 @@ class FromQueryExtractor:
     def extract(
         request: Request,
         parameter_name: str,
-        metadata: FromQuery | Type[FromQuery],
+        metadata: FromQuery | type[FromQuery],
     ) -> str:
         if isinstance(metadata, FromQuery):
             name = metadata.name or parameter_name
@@ -61,7 +59,7 @@ class FromHeaderExtractor:
     def extract(
         request: Request,
         parameter_name: str,
-        metadata: FromHeader | Type[FromHeader],
+        metadata: FromHeader | type[FromHeader],
     ) -> str | None:
         if isinstance(metadata, FromHeader):
             name = metadata.name or parameter_name
@@ -88,7 +86,7 @@ class FromCookieExtractor:
     def extract(
         request: Request,
         parameter_name: str,
-        metadata: FromCookie | Type[FromCookie],
+        metadata: FromCookie | type[FromCookie],
     ) -> str:
         if isinstance(metadata, FromCookie):
             name = metadata.name or parameter_name

@@ -15,12 +15,6 @@ from selva.web.routing.route import Route, RouteMatch
 logger = structlog.get_logger()
 
 
-def _path_with_prefix(path: str, prefix: str):
-    path = path.strip("/")
-    prefix = prefix.strip("/")
-    return f"{prefix}/{path}"
-
-
 class Router:
     def __init__(self):
         self.routes: OrderedDict[str, Route] = OrderedDict()
