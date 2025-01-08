@@ -26,12 +26,19 @@ jobs:
       - run: python -m venv $HOME/pdm
       - run: $HOME/pdm/bin/pip install --upgrade pip
       - run: $HOME/pdm/bin/pip install pdm
-      - run: $HOME/pdm/bin/pdm install --with test --with jinja --with mako --with sqlalchemy --with redis --with memcached
-      - run: $HOME/pdm/bin/pdm run pytest --cov
+      - run: $HOME/pdm/bin/pdm install
+          --with test
+          --with jinja
+          --with mako
+          --with sqlalchemy
+          --with redis
+          --with memcached
+      - run: $HOME/pdm/bin/pdm run coverage run
         env:
           POSTGRES_URL: postgresql+psycopg://postgres:postgres@postgres:5432/test
           REDIS_URL: redis://default:password@redis:6379/0
           MEMCACHED_ADDR: memcached:11211
+      - run: $HOME/pdm/bin/pdm run coverage report
     services:
       postgres:
         image: postgres:17.2-alpine
