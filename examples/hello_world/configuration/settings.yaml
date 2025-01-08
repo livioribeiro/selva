@@ -3,7 +3,6 @@ middleware:
   - selva.web.middleware.request_id.request_id_middleware
 
 logging:
-  root: debug
+  format: console
   level:
     application: info
-  format: console
