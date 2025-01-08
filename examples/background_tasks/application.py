@@ -1,8 +1,8 @@
 import asyncio
 
+import structlog
 from asgikit.requests import Request
 from asgikit.responses import respond_json
-import structlog
 
 from selva.web import get
 

@@ -12,13 +12,14 @@ from selva.ext.templates.mako.settings import MakoTemplateSettings
 class MakoTemplate:
     settings: Annotated[Settings, Inject]
 
+    lookup: TemplateLookup = None
+
     def initialize(self):
         mako_settings = MakoTemplateSettings.model_validate(
             self.settings.templates.mako
         )
 
         kwargs = mako_settings.model_dump(exclude_none=True)
-
         self.lookup = TemplateLookup(**kwargs)
 
     # pylint: disable=too-many-arguments

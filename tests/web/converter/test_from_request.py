@@ -5,37 +5,37 @@ from pydantic import BaseModel
 from selva.di.container import Container
 from selva.web.converter import Form, Json
 from selva.web.converter.converter_impl import (
-    RequestBodyJsonConverter,
     RequestBodyFormConverter,
+    RequestBodyJsonConverter,
     RequestBodyPydanticListConverter,
 )
 from selva.web.converter.error import (
-    MissingConverterImplError,
     FromBodyOnWrongHttpMethodError,
-    PathParamNotFoundError,
+    MissingConverterImplError,
     MissingRequestParamExtractorImplError,
+    PathParamNotFoundError,
 )
 from selva.web.converter.from_request import FromRequest
 from selva.web.converter.from_request_impl import (
     BodyFromRequest,
+    CookieParamFromRequest,
+    HeaderParamFromRequest,
     PathParamFromRequest,
     QueryParamFromRequest,
-    HeaderParamFromRequest,
-    CookieParamFromRequest,
-)
-from selva.web.converter.param_extractor import (
-    FromPath,
-    FromQuery,
-    FromHeader,
-    FromCookie,
-)
-from selva.web.converter.param_extractor_impl import (
-    FromPathExtractor,
-    FromQueryExtractor,
-    FromHeaderExtractor,
-    FromCookieExtractor,
 )
 from selva.web.converter.param_converter_impl import StrParamConverter
+from selva.web.converter.param_extractor import (
+    FromCookie,
+    FromHeader,
+    FromPath,
+    FromQuery,
+)
+from selva.web.converter.param_extractor_impl import (
+    FromCookieExtractor,
+    FromHeaderExtractor,
+    FromPathExtractor,
+    FromQueryExtractor,
+)
 
 
 async def test_body_from_request_wrong_http_method_should_fail(ioc: Container):

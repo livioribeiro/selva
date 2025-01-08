@@ -32,5 +32,3 @@ class FromRequest(Protocol[T]):
         :param metadata: Any metadata associated with the type
         :param optional: Whether the parameter is optional
         """
-
-        pass

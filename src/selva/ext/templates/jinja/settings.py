@@ -1,5 +1,5 @@
 from collections.abc import Callable
-from typing import Literal, Annotated
+from typing import Annotated, Literal
 
 from jinja2 import BaseLoader, BytecodeCache, Undefined, select_autoescape
 from pydantic import BaseModel, ConfigDict, Field

@@ -1,6 +1,6 @@
 from asgikit.responses import respond_json, respond_text
 
-from selva.web.exception_handler import exception_handler
+from selva.web.exception_handler.decorator import exception_handler
 from selva.web.routing.decorator import get
 
 
@@ -8,11 +8,11 @@ class MyException(Exception):
     pass
 
 
-class BaseException(Exception):
+class MyBaseException(Exception):
     pass
 
 
-class DerivedException(BaseException):
+class DerivedException(MyBaseException):
     pass
 
 
@@ -35,7 +35,7 @@ async def index(request):
 
 @get("base")
 async def base(request):
-    raise BaseException()
+    raise MyBaseException()
 
 
 @get("derived")

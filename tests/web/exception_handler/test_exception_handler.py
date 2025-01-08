@@ -6,7 +6,7 @@ from selva.configuration import Settings
 from selva.configuration.defaults import default_settings
 from selva.web.application import Selva
 
-from .application import BaseException, DerivedException, MyException
+from .application import DerivedException, MyBaseException, MyException
 
 SETTINGS = Settings(
     default_settings
@@ -36,7 +36,7 @@ async def test_derived_exception_handler():
     client = AsyncClient(transport=ASGITransport(app=app))
 
     response = await client.get("http://localhost:8000/base")
-    assert response.text == f"handler=base; exception={BaseException.__name__}"
+    assert response.text == f"handler=base; exception={MyBaseException.__name__}"
 
     response = await client.get("http://localhost:8000/derived")
     assert response.text == f"handler=base; exception={DerivedException.__name__}"

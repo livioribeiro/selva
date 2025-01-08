@@ -6,7 +6,7 @@ from typing import NamedTuple
 
 from asgikit.requests import Request
 
-from selva.web.handler import assert_params_annotated
+from selva.web.handler.parse import assert_params_annotated
 from selva.web.routing.exception import (
     HandlerMissingRequestArgumentError,
     HandlerNotAsyncError,

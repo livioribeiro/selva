@@ -2,7 +2,7 @@ from typing import Annotated as A
 
 from redis.asyncio import Redis
 
-from selva.di import service, Inject
+from selva.di import Inject, service
 
 
 @service

@@ -1,9 +1,9 @@
 from typing import Annotated as A
 
+import structlog
 from asgikit.errors.websocket import WebSocketDisconnectError
 from asgikit.requests import Request
 from asgikit.websockets import WebSocket
-import structlog
 
 from selva.di import Inject, service
 from selva.web import websocket

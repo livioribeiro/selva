@@ -45,16 +45,15 @@ dev = [
 test = [
     "pytest~=8.3.4",
     "pytest-asyncio~=0.25.0",
-    "pytest-cov~=6.0.0",
     "coverage~=7.6.9",
     "httpx~=0.28.1",
     "aiosqlite~=0.20.0",
     "psycopg[binary]~=3.2.3",
 ]
 lint = [
+    "pylint~=3.3.3",
     "ruff~=0.8",
     "mypy~=1.13",
-    "black~=24.10",
     "isort~=5.13",
 ]
 docs = [

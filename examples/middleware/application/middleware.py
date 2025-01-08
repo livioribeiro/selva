@@ -2,10 +2,9 @@ import base64
 from datetime import datetime
 from http import HTTPStatus
 
+import structlog
 from asgikit.requests import Request
 from asgikit.responses import respond_status
-
-import structlog
 
 from .auth import User
 

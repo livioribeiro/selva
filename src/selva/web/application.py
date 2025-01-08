@@ -1,11 +1,7 @@
 import functools
-import inspect
 import traceback
-import typing
-from collections.abc import Callable
 from functools import cache
 from http import HTTPStatus
-from typing import Any
 
 import structlog
 from asgikit.errors.websocket import WebSocketDisconnectError, WebSocketError
@@ -16,39 +12,16 @@ from asgikit.websockets import WebSocket
 from selva._util.base_types import get_base_types
 from selva._util.import_item import import_item
 from selva._util.maybe_async import maybe_async
-from selva._util.package_scan import scan_packages
 from selva.configuration.settings import Settings, get_settings
 from selva.di.container import Container
-from selva.di.decorator import ATTRIBUTE_DI_SERVICE
-from selva.ext.error import ExtensionNotFoundError, ExtensionMissingInitFunctionError
-from selva.web.converter.error import MissingFromRequestImplError
-from selva.web.converter.from_request import FromRequest
+from selva.ext.error import ExtensionMissingInitFunctionError, ExtensionNotFoundError
 from selva.web.exception import HTTPException, HTTPNotFoundException, WebSocketException
-from selva.web.exception_handler import (
-    ATTRIBUTE_EXCEPTION_HANDLER,
-    ExceptionHandlerType,
-)
-from selva.web.handler import parse_handler_params
-from selva.web.routing.decorator import ATTRIBUTE_HANDLER
+from selva.web.exception_handler.decorator import ExceptionHandlerType
+from selva.web.exception_handler.discover import find_exception_handlers
+from selva.web.handler.call import call_handler
 from selva.web.routing.router import Router
 
 logger = structlog.get_logger()
-
-
-def _is_handler(arg) -> bool:
-    return inspect.iscoroutinefunction(arg) and hasattr(arg, ATTRIBUTE_HANDLER)
-
-
-def _is_exception_handler(arg) -> bool:
-    return inspect.iscoroutinefunction(arg) and hasattr(
-        arg, ATTRIBUTE_EXCEPTION_HANDLER
-    )
-
-
-def _is_service(arg) -> bool:
-    return (inspect.isfunction(arg) or inspect.isclass(arg)) and hasattr(
-        arg, ATTRIBUTE_DI_SERVICE
-    )
 
 
 def _init_settings(settings: Settings | None) -> Settings:
@@ -68,10 +41,10 @@ class Selva:
     Other modules and classes can be registered using the "register" method
     """
 
-    def __init__(self, settings: Settings = None):
+    def __init__(self, settings: Settings = None, container: Container = None):
         self.settings = _init_settings(settings)
 
-        self.di = Container()
+        self.di = Container() if not container else container
         self.di.define(Container, self.di)
 
         self.di.define(Settings, self.settings)
@@ -80,9 +53,14 @@ class Selva:
         self.di.define(Router, self.router)
 
         self.handler = self._request_handler
-        self.exception_handlers: dict[type[BaseException], ExceptionHandlerType] = {}
+        self.exception_handlers = find_exception_handlers(self.settings.application)
 
-        self._register_modules()
+        self.di.scan(
+            self.settings.application,
+            "selva.web.converter",
+            "selva.web.middleware",
+        )
+        self.router.scan(self.settings.application)
 
     async def __call__(self, scope, receive, send):
         match scope["type"]:
@@ -92,28 +70,6 @@ class Selva:
                 await self._handle_lifespan(scope, receive, send)
             case _:
                 raise RuntimeError(f"unknown scope '{scope['type']}'")
-
-    def _register_modules(self):
-        packages_to_scan = [
-            self.settings.application,
-            "selva.web.converter",
-            "selva.web.middleware",
-        ]
-
-        for item in scan_packages(packages_to_scan):
-            if _is_handler(item):
-                self.router.route(item)
-
-            if _is_exception_handler(item):
-                exc_handler_info = getattr(item, ATTRIBUTE_EXCEPTION_HANDLER)
-                exc_type = exc_handler_info.exception_class
-                if exc_type in self.exception_handlers:
-                    raise ValueError("Exception handler already registered")
-
-                self.exception_handlers[exc_type] = item
-
-            if _is_service(item):
-                self.di.register(item)
 
     async def _initialize_extensions(self):
         for extension_name in self.settings.extensions:
@@ -137,7 +93,7 @@ class Selva:
 
         for mid in reversed(middleware_functions):
             self.handler = functools.partial(
-                self._call_handler, functools.partial(mid, self.handler), skip=2
+                call_handler, self.di, functools.partial(mid, self.handler), skip=2
             )
 
     async def _lifespan_startup(self):
@@ -186,8 +142,8 @@ class Selva:
                         module=handler.__module__,
                         handler=handler.__qualname__,
                     )
-                    await self._call_handler(
-                        functools.partial(handler, err), request, skip=2
+                    await call_handler(
+                        self.di, functools.partial(handler, err), request, skip=2
                     )
                 else:
                     raise
@@ -249,7 +205,7 @@ class Selva:
         path_params = match.params
         request["path_params"] = path_params
 
-        await self._call_handler(action, request, skip=1)
+        await call_handler(self.di, action, request, skip=1)
 
         response = request.response
 
@@ -262,61 +218,6 @@ class Selva:
         elif not response.is_finished:
             await response.end()
 
-    async def _call_handler(self, handler: Callable, request: Request, *, skip: int):
-        actual_handler = handler
-        while isinstance(actual_handler, functools.partial):
-            actual_handler = actual_handler.func
-
-        handler_params = parse_handler_params(actual_handler, skip=skip)
-        request_params = await self._params_from_request(
-            request, handler_params.request
-        )
-        request_services = {
-            name: await self.di.get(
-                service_type, name=service_name, optional=has_default
-            )
-            for name, (
-                service_type,
-                service_name,
-                has_default,
-            ) in handler_params.service
-        }
-
-        await handler(request, **(request_params | request_services))
-
-    async def _params_from_request(
-        self,
-        request: Request,
-        params: list[tuple[str, Any, bool]],
-    ) -> dict[str, Any]:
-        result = {}
-
-        for name, (param_type, param_annotation, has_default) in params:
-            if param_annotation:
-                if inspect.isclass(param_annotation):
-                    converter_type = param_annotation
-                else:
-                    converter_type = type(param_annotation)
-            else:
-                converter_type = param_type
-
-            if from_request_service := await self.di.get(FromRequest[converter_type]):
-                value = await maybe_async(
-                    from_request_service.from_request,
-                    request,
-                    param_type,
-                    name,
-                    param_annotation,
-                    has_default,
-                )
-
-                if value:
-                    result[name] = value
-            else:
-                raise MissingFromRequestImplError(param_type)
-
-        return result
-
     @cache
     def _find_exception_handler(
         self, err: type[BaseException]
@@ -324,20 +225,5 @@ class Selva:
         for base in get_base_types(err):
             if handler := self.exception_handlers.get(base):
                 return handler
-
-        return None
-
-    @cache
-    async def _find_from_request_converter(self, param_type: type) -> Any | None:
-        if typing.get_origin(param_type) is list:
-            (param_type,) = typing.get_args(param_type)
-            is_generic = True
-        else:
-            is_generic = False
-
-        for base_type in get_base_types(param_type):
-            search_type = list[base_type] if is_generic else base_type
-            if converter := await self.di.get(FromRequest[search_type], optional=True):
-                return converter
 
         return None

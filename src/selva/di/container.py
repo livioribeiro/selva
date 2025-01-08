@@ -1,12 +1,13 @@
 import asyncio
 import inspect
 from collections.abc import AsyncGenerator, Awaitable, Generator, Iterable
-from types import FunctionType
+from types import FunctionType, ModuleType
 from typing import Any, TypeVar
 
 import structlog
 
 from selva._util.maybe_async import maybe_async
+from selva._util.package_scan import scan_packages
 from selva.di.decorator import ATTRIBUTE_DI_SERVICE
 from selva.di.decorator import service as service_decorator
 from selva.di.error import (
@@ -25,13 +26,23 @@ logger = structlog.get_logger(__name__)
 T = TypeVar("T")
 
 
+def _is_service(arg) -> bool:
+    return (inspect.isfunction(arg) or inspect.isclass(arg)) and hasattr(
+        arg, ATTRIBUTE_DI_SERVICE
+    )
+
+
 class Container:
     def __init__(self):
         self.registry = ServiceRegistry()
-        self.store: dict[tuple[type, str | None], Any] = {}
+        self.cache: dict[tuple[type, str | None], Any] = {}
         self.finalizers: list[Awaitable] = []
         self.startup: list[tuple[type, str | None]] = []
         self.interceptors: list[type[Interceptor]] = []
+
+    def scan(self, *args: str | ModuleType):
+        for item in scan_packages(*args, predicate=_is_service):
+            self.register(item)
 
     def register(self, injectable: InjectableType):
         if not inspect.isfunction(injectable) and not inspect.isclass(injectable):
@@ -64,7 +75,7 @@ class Container:
         logger.debug("service registered", **log_context)
 
     def define(self, service_type: type, instance: Any, *, name: str = None):
-        self.store[service_type, name] = instance
+        self.cache[service_type, name] = instance
 
         log_context = {
             "service": f"{service_type.__module__}.{service_type.__qualname__}"
@@ -128,7 +139,7 @@ class Container:
         self.finalizers.clear()
 
     def _get_from_cache(self, service_type: type[T], name: str | None) -> T | None:
-        return self.store.get((service_type, name))
+        return self.cache.get((service_type, name))
 
     async def _get(
         self,
@@ -196,10 +207,10 @@ class Container:
                 instance = await anext(generator)
                 self._setup_asyncgen_finalizer(generator)
 
-            self.store[service_spec.service, name] = instance
+            self.cache[service_spec.service, name] = instance
         else:
             instance = service_spec.impl()
-            self.store[service_spec.service, name] = instance
+            self.cache[service_spec.service, name] = instance
 
             dependencies = await self._get_dependent_services(service_spec, stack)
 

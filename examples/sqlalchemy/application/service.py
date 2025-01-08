@@ -1,9 +1,9 @@
 from typing import Annotated as A
 
 from sqlalchemy import select, text
-from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncEngine
+from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker
 
-from selva.di import service, Inject
+from selva.di import Inject, service
 
 from .model import Base, MyModel, OtherBase, OtherModel
 

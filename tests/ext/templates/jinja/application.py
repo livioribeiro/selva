@@ -1,8 +1,8 @@
 from typing import Annotated
 
 from selva.di import Inject
-from selva.web import get
 from selva.ext.templates.jinja import JinjaTemplate
+from selva.web import get
 
 
 @get("/render")

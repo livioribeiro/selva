@@ -1,6 +1,6 @@
 import socket
 from types import NoneType
-from typing import Any, Literal, Self, Annotated
+from typing import Annotated, Any, Literal, Self
 
 from pydantic import BaseModel, ConfigDict, Field, model_serializer, model_validator
 from redis.backoff import (

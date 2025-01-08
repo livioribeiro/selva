@@ -1,8 +1,9 @@
 import os
 from functools import cached_property
-from typing import Annotated as A, NamedTuple
+from typing import Annotated as A
+from typing import NamedTuple
 
-from selva.di import service, Inject
+from selva.di import Inject, service
 
 DEFAULT_NAME = "World"
 

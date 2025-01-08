@@ -7,7 +7,7 @@ from selva.ext.templates.mako.service import MakoTemplate
 __all__ = ("MakoTemplate",)
 
 
-async def init_extension(container: Container, settings: Settings):
+async def init_extension(container: Container, _settings: Settings):
     if find_spec("mako") is None:
         raise ModuleNotFoundError("Missing 'mako'. Install 'selva' with 'mako' extra.")
 

@@ -1,8 +1,8 @@
 from typing import Annotated
 
 from selva.di import Inject
-from selva.web import get
 from selva.ext.templates.mako import MakoTemplate
+from selva.web import get
 
 
 @get("/render")

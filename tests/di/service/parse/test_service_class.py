@@ -1,7 +1,7 @@
 from typing import Annotated
 
 from selva.di.inject import Inject
-from selva.di.service.model import ServiceSpec, ServiceDependency
+from selva.di.service.model import ServiceDependency, ServiceSpec
 from selva.di.service.parse import parse_service_spec
 
 

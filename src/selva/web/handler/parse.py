@@ -2,27 +2,11 @@ import inspect
 import typing
 from collections.abc import Callable
 from functools import cache
-from typing import Annotated, Any, NamedTuple
+from typing import Annotated
 
 from selva.di.inject import Inject
+from selva.web.handler.model import HandlerParams, RequestParam, ServiceParam
 from selva.web.routing.exception import HandlerUntypedParametersError
-
-
-class RequestParam(NamedTuple):
-    param_type: type
-    param_meta: type | Any | None
-    has_default: bool
-
-
-class ServiceParam(NamedTuple):
-    param_type: type
-    service_name: str | None
-    has_default: bool
-
-
-class HandlerParams(NamedTuple):
-    request: list[tuple[str, RequestParam]]
-    service: list[tuple[str, ServiceParam]]
 
 
 def assert_params_annotated(handler: Callable, *, skip: int):

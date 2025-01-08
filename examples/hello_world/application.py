@@ -1,10 +1,9 @@
 from typing import Annotated as A
 
+import structlog
 from asgikit.requests import Request
 from asgikit.responses import respond_json
 from pydantic import BaseModel
-
-import structlog
 
 from selva.di import Inject, service
 from selva.web import FromBody, FromPath, FromQuery, get, post

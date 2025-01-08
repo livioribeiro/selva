@@ -17,13 +17,13 @@ def _scan_members(module, predicate):
 
 
 def scan_packages(
-    modules_to_scan: Iterable[str | ModuleType],
+    *args: str | ModuleType,
     predicate: Callable[[Any], bool] = None,
 ) -> Iterable[type | Callable]:
     if predicate and not inspect.isfunction(predicate):
         raise TypeError("invalid predicate")
 
-    for module in modules_to_scan:
+    for module in args:
         if isinstance(module, str):
             module = importlib.import_module(module)
 

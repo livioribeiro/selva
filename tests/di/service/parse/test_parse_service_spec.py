@@ -1,7 +1,7 @@
 import pytest
 
 from selva.di.error import InvalidServiceTypeError
-from selva.di.service.parse import parse_service_spec, _get_service_signature
+from selva.di.service.parse import _get_service_signature, parse_service_spec
 
 
 def test_parse_invalid_service_should_fail():

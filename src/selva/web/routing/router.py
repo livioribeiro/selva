@@ -1,9 +1,11 @@
+import inspect
 from collections import OrderedDict
 from collections.abc import Callable
 from http import HTTPMethod
 
 import structlog
 
+from selva._util.package_scan import scan_packages
 from selva.web.exception import HTTPNotFoundException
 from selva.web.routing.decorator import ATTRIBUTE_HANDLER, HandlerInfo
 from selva.web.routing.exception import (
@@ -15,9 +17,17 @@ from selva.web.routing.route import Route, RouteMatch
 logger = structlog.get_logger()
 
 
+def _is_handler(arg) -> bool:
+    return inspect.iscoroutinefunction(arg) and hasattr(arg, ATTRIBUTE_HANDLER)
+
+
 class Router:
     def __init__(self):
         self.routes: OrderedDict[str, Route] = OrderedDict()
+
+    def scan(self, *args):
+        for item in scan_packages(*args, predicate=_is_handler):
+            self.route(item)
 
     def route(self, handler: Callable):
         handler_info: HandlerInfo = getattr(handler, ATTRIBUTE_HANDLER, None)

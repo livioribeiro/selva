@@ -2,9 +2,8 @@ from typing import Annotated as A
 
 from asgikit.responses import respond_json
 
-from selva.di import service, Inject
-from selva.web import get
-from selva.web.exception_handler import exception_handler
+from selva.di import Inject, service
+from selva.web import exception_handler, get
 
 
 @service

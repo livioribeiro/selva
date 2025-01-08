@@ -7,8 +7,8 @@ from selva.configuration.defaults import default_settings
 from selva.configuration.settings import (
     Settings,
     SettingsError,
-    get_settings,
     _get_settings_nocache,
+    get_settings,
     get_settings_for_profile,
     merge_recursive,
 )

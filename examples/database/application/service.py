@@ -1,8 +1,8 @@
 import os
 from typing import Annotated
 
-from databases import Database
 import structlog
+from databases import Database
 
 from selva.configuration import Settings
 from selva.di import Inject, service

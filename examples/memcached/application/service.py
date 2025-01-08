@@ -3,7 +3,7 @@ from typing import Annotated
 from aiomcache import Client
 from aiomcache.exceptions import ClientException
 
-from selva.di import service, Inject
+from selva.di import Inject, service
 
 
 @service

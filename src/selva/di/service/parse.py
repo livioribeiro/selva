@@ -7,10 +7,10 @@ import structlog
 
 from selva.di.error import (
     FactoryMissingReturnTypeError,
-    InvalidServiceTypeError,
-    TypeVarInGenericServiceError,
-    ServiceWithUntypedDependencyError,
     InvalidDependencyAnnotationError,
+    InvalidServiceTypeError,
+    ServiceWithUntypedDependencyError,
+    TypeVarInGenericServiceError,
 )
 from selva.di.inject import Inject
 from selva.di.service.model import InjectableType, ServiceDependency, ServiceSpec
