@@ -21,7 +21,7 @@ Create a module called `application.py`:
 touch application.py
 ```
 
-Create a controller:
+Create a handler:
 
 ```python
 from asgikit.requests import Request

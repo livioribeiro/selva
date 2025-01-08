@@ -12,12 +12,12 @@ async def middleware(callnext, request): ...
 To demonstrate the middleware system, we will create a timing middleware that will
 output to the console the time spent in the processing of the request:
 
-=== "application/controller.py"
+=== "application/handler.py"
 
     ```python
     from asgikit.requests import Request
     from asgikit.responses import respond_json
-    from selva.web import controller, get
+    from selva.web import get
     
     
     @get

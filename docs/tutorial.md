@@ -37,7 +37,7 @@ project/
 ```
 
 And... that's it! A module or package named `application` will automatically
-be imported and scanned for controllers and services.
+be imported and scanned for handlers and services.
 
 You can structure the `application` package however suits you.
 
@@ -93,7 +93,7 @@ JSON data to the client.
 ## Creating the Greeter service
 
 Our service will have a method that receives a name and returns a greeting. It
-will be injected into the controller we created previously.
+will be injected into the handler we created previously.
 
 === "application/service.py"
 

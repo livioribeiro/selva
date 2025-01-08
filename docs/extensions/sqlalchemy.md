@@ -183,7 +183,7 @@ configuration, otherwise it is bound to just the `default` connection.
 
 ## Example
 
-=== "application/controller.py"
+=== "application/handler.py"
 
     ```python
     from sqlalchemy import select
