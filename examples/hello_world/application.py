@@ -1,3 +1,4 @@
+import asyncio
 from typing import Annotated as A
 
 import structlog
@@ -8,6 +9,7 @@ from pydantic import BaseModel
 from selva.di import Inject, service
 from selva.web import FromBody, FromPath, FromQuery, get, post
 from selva.web.converter import Json
+from selva.web.lifecycle.decorator import background, startup
 
 logger = structlog.get_logger()
 
@@ -21,6 +23,24 @@ class MyModel(BaseModel):
 class Greeter:
     def greet(self, name: str) -> str:
         return f"Hello, {name}!"
+
+
+@startup
+async def startup_hook(greeter: A[Greeter, Inject]):
+    logger.info(greeter.greet("startup"))
+
+
+@background
+async def background_hook(greeter: Greeter):
+    i = 1
+
+    while True:
+        await asyncio.sleep(5)
+        logger.info(greeter.greet(f"background {i}"))
+        if i == 99:
+            i = 1
+        else:
+            i += 1
 
 
 @get

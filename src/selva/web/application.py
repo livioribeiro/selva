@@ -1,3 +1,4 @@
+import asyncio
 import functools
 import traceback
 from functools import cache
@@ -13,12 +14,14 @@ from selva._util.base_types import get_base_types
 from selva._util.import_item import import_item
 from selva._util.maybe_async import maybe_async
 from selva.configuration.settings import Settings, get_settings
+from selva.di.call import call_with_dependencies
 from selva.di.container import Container
 from selva.ext.error import ExtensionMissingInitFunctionError, ExtensionNotFoundError
 from selva.web.exception import HTTPException, HTTPNotFoundException, WebSocketException
 from selva.web.exception_handler.decorator import ExceptionHandlerType
 from selva.web.exception_handler.discover import find_exception_handlers
 from selva.web.handler.call import call_handler
+from selva.web.lifecycle.discover import find_background_services, find_startup_hooks
 from selva.web.routing.router import Router
 
 logger = structlog.get_logger()
@@ -54,6 +57,10 @@ class Selva:
 
         self.handler = self._request_handler
         self.exception_handlers = find_exception_handlers(self.settings.application)
+
+        self.startup = find_startup_hooks(self.settings.application)
+        self.background_services = find_background_services(self.settings.application)
+        self._background_services: set[asyncio.Task] = set()
 
         self.di.scan(
             self.settings.application,
@@ -92,16 +99,40 @@ class Selva:
         middleware_functions = [import_item(name) for name in middleware]
 
         for mid in reversed(middleware_functions):
+            mid_function = functools.partial(mid, self.handler)
             self.handler = functools.partial(
-                call_handler, self.di, functools.partial(mid, self.handler), skip=2
+                call_handler, self.di, mid_function, skip=2
             )
 
     async def _lifespan_startup(self):
-        await self.di.init_startup_services()
+        for hook in self.startup:
+            await call_with_dependencies(self.di, hook)
+
+        for hook in self.background_services:
+
+            async def wrapper():
+                try:
+                    await call_with_dependencies(self.di, hook)
+                except asyncio.CancelledError:
+                    pass
+
+            task = asyncio.create_task(wrapper())
+            self._background_services.add(task)
+
+            def done_callback(task):
+                if err := task.exception():
+                    raise err
+                self._background_services.discard(task)
+
+            task.add_done_callback(done_callback)
+
         await self._initialize_extensions()
         await self._initialize_middleware()
 
     async def _lifespan_shutdown(self):
+        for task in self._background_services:
+            task.cancel()
+
         await self.di.run_finalizers()
 
     async def _handle_lifespan(self, _scope, receive, send):

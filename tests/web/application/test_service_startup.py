@@ -1,26 +1,23 @@
 from selva.configuration.defaults import default_settings
 from selva.configuration.settings import Settings
-from selva.di import service
 from selva.web.application import Selva
+from selva.web.lifecycle.decorator import startup
 
 
-async def test_application():
-    @service(startup=True)
-    class Service:
-        startup_called = False
+@startup
+def startup():
+    print("startup", end="")
 
-        def initialize(self):
-            Service.startup_called = True
 
+async def test_application(capfd):
     settings = Settings(
         default_settings
         | {
-            "application": f"{__package__}.application",
+            "application": f"{test_application.__module__}",
         }
     )
 
     app = Selva(settings)
-    app.di.register(Service)
 
     await app._lifespan_startup()
-    assert Service.startup_called
+    assert capfd.readouterr().out == "startup"

@@ -37,7 +37,6 @@ class Container:
         self.registry = ServiceRegistry()
         self.cache: dict[tuple[type, str | None], Any] = {}
         self.finalizers: list[Awaitable] = []
-        self.startup: list[tuple[type, str | None]] = []
         self.interceptors: list[type[Interceptor]] = []
 
     def scan(self, *args: str | ModuleType):
@@ -53,14 +52,11 @@ class Container:
         if not service_info:
             raise ServiceWithoutDecoratorError(injectable)
 
-        provides, name, startup = service_info
+        provides, name = service_info
         service_spec = parse_service_spec(injectable, provides, name)
         provided_service = service_spec.service
 
         self.registry[provided_service, name] = service_spec
-
-        if startup:
-            self.startup.append((provided_service, name))
 
         log_context = {
             "service": f"{injectable.__module__}.{injectable.__qualname__}",
@@ -128,10 +124,6 @@ class Container:
         dependency = ServiceDependency(service_type, name=name, optional=optional)
         return await self._get(dependency)
 
-    async def init_startup_services(self):
-        for service, name in self.startup:
-            await self.get(service, name=name)
-
     async def run_finalizers(self):
         for finalizer in reversed(self.finalizers):
             await finalizer
@@ -189,10 +181,6 @@ class Container:
         stack: list[tuple[type[T], str]],
     ) -> T:
         name = service_spec.name
-
-        # check if service exists in cache
-        # if instance := self._get_from_cache(service_spec.service, name):
-        #     return instance
 
         if factory := service_spec.factory:
             dependencies = await self._get_dependent_services(service_spec, stack)

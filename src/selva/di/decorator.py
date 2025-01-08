@@ -80,7 +80,6 @@ def service(
     *,
     provides: type = None,
     name: str = None,
-    startup: bool = False,
 ) -> T | Callable[[T], T]:
     """Declare a class or function as a service
 
@@ -90,7 +89,7 @@ def service(
 
     def inner(inner_injectable) -> T:
         return _service(
-            inner_injectable, ATTRIBUTE_DI_SERVICE, ServiceInfo(provides, name, startup)
+            inner_injectable, ATTRIBUTE_DI_SERVICE, ServiceInfo(provides, name)
         )
 
     return inner(injectable) if injectable else inner
