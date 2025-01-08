@@ -2,7 +2,21 @@ import itertools
 
 import pytest
 
-from selva.ext.data.redis.settings import BackoffSchema, RedisOptions, RedisSettings
+from redis.backoff import (
+    ConstantBackoff,
+    DecorrelatedJitterBackoff,
+    EqualJitterBackoff,
+    ExponentialBackoff,
+    FullJitterBackoff,
+    NoBackoff,
+)
+
+from selva.ext.data.redis.settings import (
+    BackoffSchema,
+    RedisOptions,
+    RedisSettings,
+    RetrySchema,
+)
 
 
 @pytest.mark.parametrize(
@@ -25,6 +39,29 @@ from selva.ext.data.redis.settings import BackoffSchema, RedisOptions, RedisSett
 def test_mutually_exclusive_connection_properties(values: dict):
     with pytest.raises(ValueError):
         RedisSettings.model_validate({"url": "url"} | values)
+
+
+@pytest.mark.parametrize(
+    "backoff, cls",
+    [
+        ({"no_backoff": None}, NoBackoff),
+        ({"constant": {"backoff": 1}}, ConstantBackoff),
+        ({"exponential": {"cap": 1, "base": 1}}, ExponentialBackoff),
+        ({"full_jitter": {"cap": 1, "base": 1}}, FullJitterBackoff),
+        ({"equal_jitter": {"cap": 1, "base": 1}}, EqualJitterBackoff),
+        ({"decorrelated_jitter": {"cap": 1, "base": 1}}, DecorrelatedJitterBackoff),
+    ],
+)
+def test_retry_backoff(backoff, cls):
+    model = RetrySchema.model_validate(
+        {
+            "backoff": backoff,
+            "retries": 1,
+        }
+    )
+
+    config = model.model_dump(exclude_none=True)
+    assert isinstance(config["backoff"], cls)
 
 
 @pytest.mark.parametrize(

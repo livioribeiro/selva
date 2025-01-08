@@ -185,7 +185,7 @@ data:
         retry:
           retries: 1
           supported_errors: # (2)
-            - package.module:Class
+            - package.module.Class
           backoff: # (3)
             no_backoff:
             constant:

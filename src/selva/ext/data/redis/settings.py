@@ -1,10 +1,24 @@
+import socket
 from types import NoneType
-from typing import Literal, Self, Type
+from typing import Any, Literal, Self, Annotated
 
-from pydantic import BaseModel, ConfigDict, model_serializer, model_validator
-from redis import RedisError
+from pydantic import BaseModel, ConfigDict, Field, model_serializer, model_validator
+from redis.backoff import (
+    AbstractBackoff,
+    ConstantBackoff,
+    DecorrelatedJitterBackoff,
+    EqualJitterBackoff,
+    ExponentialBackoff,
+    FullJitterBackoff,
+    NoBackoff,
+)
+from redis.retry import Retry
 
 from selva._util.pydantic import DottedPath
+
+
+class NoBackoffSchema(BaseModel):
+    model_config = ConfigDict(extra="forbid")
 
 
 class ConstantBackoffSchema(BaseModel):
@@ -38,13 +52,63 @@ class BackoffSchema(BaseModel):
 
         return data
 
+    def build_backoff(self) -> AbstractBackoff:
+        if "no_backoff" in self.model_fields_set:
+            return NoBackoff()
+
+        if value := self.constant:
+            return ConstantBackoff(**value.model_dump(exclude_unset=True))
+
+        if value := self.exponential:
+            return ExponentialBackoff(**value.model_dump(exclude_unset=True))
+
+        if value := self.full_jitter:
+            return FullJitterBackoff(**value.model_dump(exclude_unset=True))
+
+        if value := self.equal_jitter:
+            return EqualJitterBackoff(**value.model_dump(exclude_unset=True))
+
+        if value := self.decorrelated_jitter:
+            return DecorrelatedJitterBackoff(**value.model_dump(exclude_unset=True))
+
+        raise ValueError("No value defined for 'backoff'")
+
 
 class RetrySchema(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     backoff: BackoffSchema
     retries: int
-    supported_errors: tuple[DottedPath[Type[RedisError]], ...] = None
+    supported_errors: tuple[DottedPath[type[Exception]], ...] = None
+
+    @model_serializer(when_used="unless-none")
+    def serialize_model(self) -> dict[str, Any]:
+        result = {
+            "backoff": self.backoff.build_backoff(),
+            "retries": self.retries,
+        }
+
+        if supported_errors := self.supported_errors:
+            result["supported_errors"] = supported_errors
+
+        return result
+
+
+class SocketKeepaliveOptions(BaseModel):
+    tcp_keepidle: Annotated[int, Field(alias="TCP_KEEPIDLE")] = None
+    tcp_keepcnt: Annotated[int, Field(alias="TCP_KEEPCNT")] = None
+    tcp_keepintvl: Annotated[int, Field(alias="TCP_KEEPINTVL")] = None
+
+    @model_serializer(when_used="unless-none")
+    def serialize_model(self) -> dict[int, int]:
+        result = {}
+        if self.tcp_keepidle:
+            result[socket.TCP_KEEPIDLE] = self.tcp_keepidle
+        if self.tcp_keepcnt:
+            result[socket.TCP_KEEPCNT] = self.tcp_keepcnt
+        if self.tcp_keepintvl:
+            result[socket.TCP_KEEPINTVL] = self.tcp_keepintvl
+        return result
 
 
 class RedisOptions(BaseModel):
@@ -78,6 +142,13 @@ class RedisOptions(BaseModel):
     retry: RetrySchema = None
     auto_close_connection_pool: bool = None
     protocol: int = None
+
+    @model_serializer(when_used="unless-none", mode="wrap")
+    def serialize_model(self, nxt):
+        result = nxt(self)
+        if retry := result.get("retry"):
+            result["retry"] = Retry(**retry)
+        return result
 
 
 class RedisSettings(BaseModel):
