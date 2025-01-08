@@ -28,12 +28,7 @@ class ModelB(BaseB):
     name: Mapped[str] = mapped_column(String(100))
 
 
-session_info = {
-    "framework": "selva",
-}
-
-
-async def test_options():
+async def test_session_options():
     settings = Settings(
         default_settings
         | {
@@ -46,7 +41,40 @@ async def test_options():
                     },
                     "session": {
                         "options": {
-                            "info": f"{test_options.__module__}.session_info",
+                            "info": {"framework": "selva"},
+                        },
+                    },
+                },
+            },
+        }
+    )
+
+    engine = create_async_engine(settings.data.sqlalchemy.connections.default.url)
+
+    sessionmaker = await sessionmaker_service(settings, {"default": engine})
+    async with sessionmaker() as session:
+        assert session.info == {"framework": "selva"}
+
+
+session_info = {
+    "framework": "selva",
+}
+
+
+async def test_session_options_info_dotted_path():
+    settings = Settings(
+        default_settings
+        | {
+            "data": {
+                "sqlalchemy": {
+                    "connections": {
+                        "default": {
+                            "url": "sqlite+aiosqlite:///:memory:",
+                        },
+                    },
+                    "session": {
+                        "options": {
+                            "info": f"{test_session_options_info_dotted_path.__module__}.session_info",
                         },
                     },
                 },

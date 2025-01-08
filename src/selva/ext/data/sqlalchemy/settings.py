@@ -120,7 +120,7 @@ class SqlAlchemySessionOptions(BaseModel):
     autobegin: bool = None
     twophase: bool = None
     enable_baked_queries: bool = None
-    info: DottedPath[dict] = None
+    info: dict | DottedPath[dict] = None
     query_cls: DottedPath[type[Query[Any]]] = None
     join_transaction_mode: JoinTransactionMode = None
     close_resets_only: bool = None
