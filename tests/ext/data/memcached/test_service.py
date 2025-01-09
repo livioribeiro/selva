@@ -2,27 +2,25 @@ import os
 from importlib.util import find_spec
 
 import pytest
-from emcache import ClusterEvents, ClusterManagment, MemcachedHostAddress
 
 from selva.configuration import Settings
 from selva.configuration.defaults import default_settings
-from selva.di import Container
-from selva.ext.data.memcached.service import make_service
+from selva.ext.data.memcached.service import make_service, parse_memcached_address
 
 MEMCACHED_ADDR = os.getenv("MEMCACHED_ADDR")
 
 pytestmark = [
     pytest.mark.skipif(MEMCACHED_ADDR is None, reason="MEMCACHED_ADDR not defined"),
-    pytest.mark.skipif(find_spec("emcache") is None, reason="emcache not present"),
+    pytest.mark.skipif(find_spec("aiomcache") is None, reason="aiomcache not present"),
 ]
 
 
-async def _test_engine_service(settings: Settings, ioc: Container):
-    service = make_service("default")(settings, ioc)
+async def _test_make_service(settings: Settings):
+    service = make_service("default")(settings)
     async for memcached in service:
         await memcached.set(b"test", b"test")
         result = await memcached.get(b"test")
-        assert result.value == b"test"
+        assert result == b"test"
         await memcached.delete(b"test")
 
 
@@ -40,7 +38,7 @@ async def test_make_service_with_address():
         }
     )
 
-    await _test_engine_service(settings, Container())
+    await _test_make_service(settings)
 
 
 async def test_make_service_with_options():
@@ -52,7 +50,8 @@ async def test_make_service_with_options():
                     "default": {
                         "address": MEMCACHED_ADDR,
                         "options": {
-                            "timeout": 1.0,
+                            "pool_size": 10,
+                            "pool_minsize": 1,
                         },
                     },
                 },
@@ -60,40 +59,19 @@ async def test_make_service_with_options():
         }
     )
 
-    service = make_service("default")(settings, Container())
+    service = make_service("default")(settings)
     async for memcached in service:
-        assert memcached._timeout == 1.0
+        assert memcached._pool._maxsize == 10
+        assert memcached._pool._minsize == 1
 
 
-class MyClusterEvents(ClusterEvents):
-    async def on_node_healthy(
-        self, cluster_managment: ClusterManagment, host: MemcachedHostAddress
-    ):
-        pass
-
-    async def on_node_unhealthy(
-        self, cluster_managment: ClusterManagment, host: MemcachedHostAddress
-    ):
-        pass
+def test_parse_memcached_address_with_port():
+    host, port = parse_memcached_address("memcached:11212")
+    assert host == "memcached"
+    assert port == 11212
 
 
-async def test_make_service_with_cluster_events():
-    settings = Settings(
-        default_settings
-        | {
-            "data": {
-                "memcached": {
-                    "default": {
-                        "address": MEMCACHED_ADDR,
-                        "options": {
-                            "cluster_events": f"{__name__}.{MyClusterEvents.__qualname__}"
-                        },
-                    },
-                },
-            },
-        }
-    )
-
-    service = make_service("default")(settings, Container())
-    async for memcached in service:
-        assert isinstance(memcached._cluster._cluster_events, MyClusterEvents)
+def test_parse_memcached_address_without_port():
+    host, port = parse_memcached_address("memcached")
+    assert host == "memcached"
+    assert port == 11211

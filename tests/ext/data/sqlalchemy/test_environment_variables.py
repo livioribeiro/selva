@@ -14,10 +14,9 @@ SA_DB_URL = make_url(POSTGRES_URL) if POSTGRES_URL else None
 async def test_database_url_from_environment_variables(monkeypatch):
     url = "sqlite+aiosqlite:///:memory:"
     monkeypatch.setenv("SELVA__DATA__SQLALCHEMY__CONNECTIONS__DEFAULT__URL", url)
-    settings, _ = _get_settings_nocache()
+    settings = _get_settings_nocache()
 
-    engine_service = make_engine_service("default")(settings)
-    async for engine in engine_service:
+    async for engine in make_engine_service("default")(settings):
         assert str(engine.url) == url
 
 
@@ -35,10 +34,9 @@ async def test_database_url_username_password_from_environment_variables(monkeyp
     monkeypatch.setenv(
         "SELVA__DATA__SQLALCHEMY__CONNECTIONS__DEFAULT__PASSWORD", password
     )
-    settings, _ = _get_settings_nocache()
+    settings = _get_settings_nocache()
 
-    engine_service = make_engine_service("default")(settings)
-    async for engine in engine_service:
+    async for engine in make_engine_service("default")(settings):
         assert engine.url == SA_DB_URL
 
 
@@ -66,8 +64,7 @@ async def test_database_url_components_from_environment_variables(monkeypatch):
     monkeypatch.setenv(
         "SELVA__DATA__SQLALCHEMY__CONNECTIONS__DEFAULT__PASSWORD", password
     )
-    settings, _ = _get_settings_nocache()
+    settings = _get_settings_nocache()
 
-    engine_service = make_engine_service("default")(settings)
-    async for engine in engine_service:
+    async for engine in make_engine_service("default")(settings):
         assert engine.url == SA_DB_URL

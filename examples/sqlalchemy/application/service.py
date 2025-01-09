@@ -1,17 +1,17 @@
-from typing import Annotated
+from typing import Annotated as A
 
 from sqlalchemy import select, text
-from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncEngine
+from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker
 
-from selva.di import service, Inject
+from selva.di import Inject, service
 
 from .model import Base, MyModel, OtherBase, OtherModel
 
 
 @service
-class DefautDBService:
-    engine: Annotated[AsyncEngine, Inject]
-    sessionmaker: Annotated[async_sessionmaker, Inject]
+class DefaultDBService:
+    engine: A[AsyncEngine, Inject]
+    sessionmaker: A[async_sessionmaker, Inject]
 
     async def initialize(self):
         async with self.engine.connect() as conn:
@@ -33,12 +33,13 @@ class DefautDBService:
 
 @service
 class OtherDBService:
-    engine: Annotated[AsyncEngine, Inject(name="other")]
-    sessionmaker: Annotated[async_sessionmaker, Inject]
+    engine: A[AsyncEngine, Inject(name="other")]
+    sessionmaker: A[async_sessionmaker, Inject]
 
     async def initialize(self):
         async with self.engine.connect() as conn:
             await conn.run_sync(OtherBase.metadata.create_all)
+            await conn.commit()
 
         async with self.sessionmaker() as session:
             my_model = OtherModel(name="OtherModel")

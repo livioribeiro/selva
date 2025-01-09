@@ -6,4 +6,7 @@ data:
     default:
       address: "localhost:11211"
       options:
-        cluster_events: application.service.MyClusterEvents
+        pool_size: 10
+
+logging:
+  format: console

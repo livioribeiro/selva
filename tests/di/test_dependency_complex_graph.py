@@ -1,3 +1,4 @@
+import asyncio
 from typing import Annotated
 
 from selva.di.container import Container
@@ -46,20 +47,54 @@ class Service6:
     dep5: Annotated[Service5, Inject]
 
 
-async def test_complex_graph(ioc: Container):
-    ioc.scan("tests.di.test_dependency_complex_graph")
-    service = await ioc.get(Service4)
-    assert isinstance(service, Service4)
+async def test_get_service(ioc: Container):
+    for svc in [Service1, Service2, Service3, Service4]:
+        ioc.register(svc)
+
+    instance = await ioc.get(Service4)
+    assert isinstance(instance, Service4)
 
 
-async def test_complex_graph_with_loop(ioc: Container):
-    ioc.scan("tests.di.test_dependency_complex_graph")
+async def test_dependency_loop(ioc: Container):
+    for svc in [Service1, Service2, Service3, Service4, Service5, Service6]:
+        ioc.register(svc)
 
-    service5 = await ioc.get(Service5)
-    service6 = await ioc.get(Service6)
+    instance5 = await ioc.get(Service5)
+    instance6 = await ioc.get(Service6)
 
-    assert isinstance(service5, Service5)
-    assert isinstance(service6, Service6)
+    assert isinstance(instance5, Service5)
+    assert isinstance(instance6, Service6)
 
-    assert service5.dep6 is service6
-    assert service6.dep5 is service5
+    assert instance5.dep6 is instance6
+    assert instance6.dep5 is instance5
+
+
+async def test_get_simultaneously(ioc: Container):
+    for svc in [Service1, Service2, Service3, Service4, Service5, Service6]:
+        ioc.register(svc)
+
+    (
+        instance1,
+        instance2,
+        instance3,
+        instance4,
+        instance5,
+        instance6,
+    ) = await asyncio.gather(
+        ioc.get(Service1),
+        ioc.get(Service2),
+        ioc.get(Service3),
+        ioc.get(Service4),
+        ioc.get(Service5),
+        ioc.get(Service6),
+    )
+
+    assert isinstance(instance1, Service1)
+    assert isinstance(instance2, Service2)
+    assert isinstance(instance3, Service3)
+    assert isinstance(instance4, Service4)
+    assert isinstance(instance5, Service5)
+    assert isinstance(instance6, Service6)
+
+    assert instance5.dep6 is instance6
+    assert instance6.dep5 is instance5

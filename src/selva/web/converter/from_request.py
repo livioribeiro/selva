@@ -1,5 +1,5 @@
 from collections.abc import Awaitable
-from typing import Any, Protocol, Type, TypeVar, runtime_checkable
+from typing import Any, Protocol, TypeVar, runtime_checkable
 
 from asgikit.requests import Request
 
@@ -12,12 +12,14 @@ T = TypeVar("T")
 class FromRequest(Protocol[T]):
     """Base class for services that extract values from the request"""
 
+    # pylint: disable=too-many-arguments,too-many-positional-arguments
     def from_request(
         self,
         request: Request,
-        original_type: Type[T],
+        original_type: type[T],
         parameter_name: str,
-        metadata: Any = None,
+        metadata: Any,
+        optional: bool,
     ) -> T | Awaitable[T]:
         """Extract values from the request based on the type hint
 
@@ -28,6 +30,5 @@ class FromRequest(Protocol[T]):
         :param original_type: Declared type on handler method signature
         :param parameter_name: Name of the parameter on the handler method
         :param metadata: Any metadata associated with the type
+        :param optional: Whether the parameter is optional
         """
-
-        raise NotImplementedError()

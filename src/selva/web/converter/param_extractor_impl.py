@@ -1,10 +1,13 @@
-import inspect
-from typing import Type
-
 from asgikit.requests import Request
 
 from selva.web.converter.decorator import register_param_extractor
 from selva.web.converter.error import PathParamNotFoundError
+from selva.web.converter.param_extractor import (
+    FromCookie,
+    FromHeader,
+    FromPath,
+    FromQuery,
+)
 
 __all__ = (
     "FromPath",
@@ -14,29 +17,18 @@ __all__ = (
 )
 
 
-class FromRequestParam:
-    name: str = None
-
-    def __init__(self, name: str = None):
-        self.name = name
-
-
-class FromPath(FromRequestParam):
-    pass
-
-
 @register_param_extractor(FromPath)
 class FromPathExtractor:
     @staticmethod
     def extract(
         request: Request,
         parameter_name: str,
-        metadata: FromPath | Type[FromPath],
+        metadata: FromPath | type[FromPath],
     ) -> str:
-        if inspect.isclass(metadata):
-            name = parameter_name
-        else:
+        if isinstance(metadata, FromPath):
             name = metadata.name or parameter_name
+        else:
+            name = parameter_name
 
         param = request["path_params"].get(name)
         if not param:
@@ -45,28 +37,20 @@ class FromPathExtractor:
         return param
 
 
-class FromQuery(FromRequestParam):
-    pass
-
-
 @register_param_extractor(FromQuery)
 class FromQueryExtractor:
     @staticmethod
     def extract(
         request: Request,
         parameter_name: str,
-        metadata: FromQuery | Type[FromQuery],
+        metadata: FromQuery | type[FromQuery],
     ) -> str:
-        if inspect.isclass(metadata):
-            name = parameter_name
-        else:
+        if isinstance(metadata, FromQuery):
             name = metadata.name or parameter_name
+        else:
+            name = parameter_name
 
         return request.query.get(name)
-
-
-class FromHeader(FromRequestParam):
-    pass
 
 
 @register_param_extractor(FromHeader)
@@ -75,12 +59,12 @@ class FromHeaderExtractor:
     def extract(
         request: Request,
         parameter_name: str,
-        metadata: FromHeader | Type[FromHeader],
+        metadata: FromHeader | type[FromHeader],
     ) -> str | None:
-        if inspect.isclass(metadata):
-            name = parameter_name
-        else:
+        if isinstance(metadata, FromHeader):
             name = metadata.name or parameter_name
+        else:
+            name = parameter_name
 
         candidate_names = (
             name,
@@ -96,21 +80,17 @@ class FromHeaderExtractor:
         return None
 
 
-class FromCookie(FromRequestParam):
-    pass
-
-
 @register_param_extractor(FromCookie)
 class FromCookieExtractor:
     @staticmethod
     def extract(
         request: Request,
         parameter_name: str,
-        metadata: FromCookie | Type[FromCookie],
+        metadata: FromCookie | type[FromCookie],
     ) -> str:
-        if inspect.isclass(metadata):
-            name = parameter_name
-        else:
+        if isinstance(metadata, FromCookie):
             name = metadata.name or parameter_name
+        else:
+            name = parameter_name
 
         return request.cookie.get(name)

@@ -14,3 +14,6 @@ data:
 
     other:
       url: "redis://localhost:6379/1"
+
+logging:
+  format: console

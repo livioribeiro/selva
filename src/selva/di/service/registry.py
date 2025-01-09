@@ -1,5 +1,4 @@
 import typing
-import warnings
 from collections import defaultdict
 
 from selva.di.error import ServiceAlreadyRegisteredError, ServiceNotFoundError
@@ -14,7 +13,7 @@ class ServiceRecord:
 
     def add(self, service: ServiceSpec, name: str = None):
         if name in self.providers:
-            raise ServiceAlreadyRegisteredError(service.provides, name)
+            raise ServiceAlreadyRegisteredError(service.impl, name)
 
         self.providers[name] = service
 

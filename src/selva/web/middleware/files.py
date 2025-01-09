@@ -1,4 +1,4 @@
-from abc import ABCMeta, abstractmethod
+from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Annotated
 
@@ -6,15 +6,16 @@ from asgikit.requests import Request
 from asgikit.responses import respond_file
 
 from selva.configuration import Settings
-from selva.di import Inject
-from selva.web.middleware import CallNext, Middleware
+from selva.di.decorator import service
+from selva.di.inject import Inject
 from selva.web.exception import HTTPNotFoundException
+from selva.web.middleware import CallNext
 
 
-class BaseFilesMiddleware(Middleware, metaclass=ABCMeta):
+class BaseFilesMiddleware(ABC):
     settings: Annotated[Settings, Inject]
-    settings_property: str
 
+    settings_property: str
     path: str
     root: Path
 
@@ -40,6 +41,7 @@ class BaseFilesMiddleware(Middleware, metaclass=ABCMeta):
             await call_next(request)
 
 
+@service
 class UploadedFilesMiddleware(BaseFilesMiddleware):
     settings_property = "uploadedfiles"
 
@@ -52,6 +54,7 @@ class UploadedFilesMiddleware(BaseFilesMiddleware):
         return None
 
 
+@service
 class StaticFilesMiddleware(BaseFilesMiddleware):
     settings_property = "staticfiles"
     mappings: dict[str, str]
@@ -60,6 +63,8 @@ class StaticFilesMiddleware(BaseFilesMiddleware):
         super().initialize()
 
         settings = self.settings.get(self.settings_property)
+
+        # TODO: build a map of all files under the staticfiles root directory
         self.mappings = {
             name.lstrip("/"): value.lstrip("/")
             for name, value in settings.get("mappings", {}).items()
@@ -75,3 +80,29 @@ class StaticFilesMiddleware(BaseFilesMiddleware):
             return request_path.removeprefix(self.path).lstrip("/")
 
         return None
+
+    async def __call__(self, call_next: CallNext, request: Request):
+        try:
+            await super().__call__(call_next, request)
+        except HTTPNotFoundException:
+            index_html = self.root / "index.html"
+            if request.path.lstrip("/") == "" and index_html.exists():
+                await respond_file(request.response, index_html)
+            else:
+                raise
+
+
+async def static_files_middleware(
+    callnext: CallNext,
+    request: Request,
+    middleware_service: Annotated[StaticFilesMiddleware, Inject],
+):
+    await middleware_service(callnext, request)
+
+
+async def uploaded_files_middleware(
+    callnext: CallNext,
+    request: Request,
+    middleware_service: Annotated[UploadedFilesMiddleware, Inject],
+):
+    await middleware_service(callnext, request)

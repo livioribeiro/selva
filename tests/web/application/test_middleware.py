@@ -1,24 +1,19 @@
 from asgikit.requests import Request
-from httpx import AsyncClient, ASGITransport
+from httpx import ASGITransport, AsyncClient
 
 from selva.configuration import Settings
 from selva.configuration.defaults import default_settings
-from selva.di import service
 from selva.web.application import Selva
 
 
-@service
-class MyMiddleware:
-    async def __call__(self, call, request):
-        send = request.asgi.send
+async def my_middleware(callnext, request: Request):
+    async def send(f, event: dict):
+        if event["type"] == "http.response.body":
+            event["body"] = b"Middleware Ok"
+        await f(event)
 
-        async def new_send(event: dict):
-            if event["type"] == "http.response.body":
-                event["body"] = b"Middleware Ok"
-            await send(event)
-
-        new_request = Request(request.asgi.scope, request.asgi.receive, new_send)
-        await call(new_request)
+    request.wrap_asgi(send=send)
+    await callnext(request)
 
 
 async def test_middleware():
@@ -26,11 +21,10 @@ async def test_middleware():
         default_settings
         | {
             "application": f"{__package__}.application",
-            "middleware": [f"{__package__}.test_middleware.MyMiddleware"],
+            "middleware": [f"{__package__}.test_middleware:my_middleware"],
         }
     )
     app = Selva(settings)
-    # app.di.register(MyMiddleware)
     await app._lifespan_startup()
 
     client = AsyncClient(transport=ASGITransport(app=app))

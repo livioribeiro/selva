@@ -6,17 +6,17 @@ from typing import NamedTuple
 
 from asgikit.requests import Request
 
-from selva.di import service
+from selva.web.handler.parse import assert_params_annotated
+from selva.web.routing.exception import (
+    HandlerMissingRequestArgumentError,
+    HandlerNotAsyncError,
+    HandlerRequestTypeError,
+)
 
-CONTROLLER_ATTRIBUTE = "__selva_web_controller__"
-ACTION_ATTRIBUTE = "__selva_web_action__"
+ATTRIBUTE_HANDLER = "__selva_web_action__"
 
 
-class ControllerInfo(NamedTuple):
-    path: str
-
-
-class ActionType(Enum):
+class HandlerType(Enum):
     GET = HTTPMethod.GET
     HEAD = HTTPMethod.HEAD
     POST = HTTPMethod.POST
@@ -28,58 +28,35 @@ class ActionType(Enum):
 
     @property
     def is_websocket(self) -> bool:
-        return self is ActionType.WEBSOCKET
+        return self is HandlerType.WEBSOCKET
 
 
-class ActionInfo(NamedTuple):
-    type: ActionType
+class HandlerInfo(NamedTuple):
+    type: HandlerType
     path: str
 
 
-def controller(target: type | str):
-    if inspect.isclass(target):
-        path = ""
-        cls = target
-    elif isinstance(target, str):
-        path = target.strip("/")
-        cls = None
-    else:
-        raise TypeError(f"@controller must be applied to class, '{target}' given")
-
-    def inner(arg: type):
-        setattr(arg, CONTROLLER_ATTRIBUTE, ControllerInfo(path))
-        return service(arg)
-
-    return inner(cls) if cls else inner
-
-
-def route(action: Callable = None, /, *, method: HTTPMethod | None, path: str | None):
+def route(handler: Callable = None, /, *, method: HTTPMethod | None, path: str | None):
     path = path.strip("/") if path else ""
 
     def inner(arg: Callable):
         if not inspect.iscoroutinefunction(arg):
-            raise TypeError("Handler method must be async")
+            raise HandlerNotAsyncError(handler)
+
+        assert_params_annotated(arg, skip=1)
 
         params = list(inspect.signature(arg).parameters.values())
-        if len(params) < 2:
-            raise TypeError(
-                "Handler method must have at least 'self' and 'request' parameters"
-            )
+        if len(params) < 1:
+            raise HandlerMissingRequestArgumentError(handler)
 
-        req_param = params[1].annotation
+        req_param = params[0].annotation
         if req_param is not inspect.Signature.empty and req_param is not Request:
-            raise TypeError(
-                f"Handler request parameter must be of type "
-                f"'{Request.__module__}.{Request.__name__}'"
-            )
+            raise HandlerRequestTypeError(handler)
 
-        if any(p.annotation is inspect.Signature.empty for p in params[2:]):
-            raise TypeError("Handler parameters must be typed")
-
-        setattr(arg, ACTION_ATTRIBUTE, ActionInfo(ActionType(method), path))
+        setattr(arg, ATTRIBUTE_HANDLER, HandlerInfo(HandlerType(method), path))
         return arg
 
-    return inner(action) if action else inner
+    return inner(handler) if handler else inner
 
 
 def _route(method: HTTPMethod | None, path_or_action: str | Callable):

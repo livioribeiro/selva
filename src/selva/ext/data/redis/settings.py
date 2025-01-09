@@ -1,10 +1,24 @@
+import socket
 from types import NoneType
-from typing import Literal, Self, Type
+from typing import Annotated, Any, Literal, Self
 
-from pydantic import BaseModel, ConfigDict, model_serializer, model_validator
-from redis import RedisError
+from pydantic import BaseModel, ConfigDict, Field, model_serializer, model_validator
+from redis.backoff import (
+    AbstractBackoff,
+    ConstantBackoff,
+    DecorrelatedJitterBackoff,
+    EqualJitterBackoff,
+    ExponentialBackoff,
+    FullJitterBackoff,
+    NoBackoff,
+)
+from redis.retry import Retry
 
 from selva._util.pydantic import DottedPath
+
+
+class NoBackoffSchema(BaseModel):
+    model_config = ConfigDict(extra="forbid")
 
 
 class ConstantBackoffSchema(BaseModel):
@@ -31,7 +45,8 @@ class BackoffSchema(BaseModel):
     decorrelated_jitter: ExponentialBackoffSchema = None
 
     @model_validator(mode="before")
-    def validator(cls, data):
+    @classmethod
+    def verify_backoff(cls, data):
         if len(data) != 1:
             raise ValueError("Only one backoff value can be set")
 
@@ -43,7 +58,58 @@ class RetrySchema(BaseModel):
 
     backoff: BackoffSchema
     retries: int
-    supported_errors: tuple[DottedPath[Type[RedisError]], ...] = None
+    supported_errors: tuple[DottedPath[type[Exception]], ...] = None
+
+    @staticmethod
+    def build_backoff(backoff: BackoffSchema) -> AbstractBackoff:
+        if "no_backoff" in backoff.model_fields_set:
+            return NoBackoff()
+
+        if value := backoff.constant:
+            return ConstantBackoff(**value.model_dump(exclude_unset=True))
+
+        if value := backoff.exponential:
+            return ExponentialBackoff(**value.model_dump(exclude_unset=True))
+
+        if value := backoff.full_jitter:
+            return FullJitterBackoff(**value.model_dump(exclude_unset=True))
+
+        if value := backoff.equal_jitter:
+            return EqualJitterBackoff(**value.model_dump(exclude_unset=True))
+
+        if value := backoff.decorrelated_jitter:
+            return DecorrelatedJitterBackoff(**value.model_dump(exclude_unset=True))
+
+        raise ValueError("No value defined for 'backoff'")
+
+    @model_serializer(when_used="unless-none")
+    def serialize_model(self) -> dict[str, Any]:
+        result = {
+            "backoff": self.build_backoff(self.backoff),
+            "retries": self.retries,
+        }
+
+        if supported_errors := self.supported_errors:
+            result["supported_errors"] = supported_errors
+
+        return result
+
+
+class SocketKeepaliveOptions(BaseModel):
+    tcp_keepidle: Annotated[int, Field(alias="TCP_KEEPIDLE")] = None
+    tcp_keepcnt: Annotated[int, Field(alias="TCP_KEEPCNT")] = None
+    tcp_keepintvl: Annotated[int, Field(alias="TCP_KEEPINTVL")] = None
+
+    @model_serializer(when_used="unless-none")
+    def serialize_model(self) -> dict[int, int]:
+        result = {}
+        if self.tcp_keepidle:
+            result[socket.TCP_KEEPIDLE] = self.tcp_keepidle
+        if self.tcp_keepcnt:
+            result[socket.TCP_KEEPCNT] = self.tcp_keepcnt
+        if self.tcp_keepintvl:
+            result[socket.TCP_KEEPINTVL] = self.tcp_keepintvl
+        return result
 
 
 class RedisOptions(BaseModel):
@@ -52,7 +118,9 @@ class RedisOptions(BaseModel):
     socket_timeout: float = None
     socket_connect_timeout: float = None
     socket_keepalive: bool = None
-    socket_keepalive_options: dict[int, int | bytes] = None
+    socket_keepalive_options: dict[
+        Literal["TCP_KEEPIDLE", "TCP_KEEPCNT", "TCP_KEEPINTVL"], int
+    ] = None
     unix_socket_path: str = None
     encoding: str = None
     encoding_errors: Literal["strict", "ignore", "replace"] = None
@@ -76,6 +144,13 @@ class RedisOptions(BaseModel):
     auto_close_connection_pool: bool = None
     protocol: int = None
 
+    @model_serializer(when_used="unless-none", mode="wrap")
+    def serialize_model(self, nxt):
+        result = nxt(self)
+        if retry := result.get("retry"):
+            result["retry"] = Retry(**retry)
+        return result
+
 
 class RedisSettings(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -89,7 +164,7 @@ class RedisSettings(BaseModel):
     options: RedisOptions = None
 
     @model_validator(mode="after")
-    def validator(self) -> Self:
+    def verify_either_url_or_components(self) -> Self:
         if self.url and (self.host or self.port or (self.db is not None)):
             raise ValueError(
                 "Either 'url' should be provided, or 'host', 'port' and 'db'"

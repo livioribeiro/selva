@@ -18,11 +18,30 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        version: ["3.11", "3.12"]
+        version: [ "3.11", "3.12", "3.13" ]
     container: python:${{ matrix.version }}
+    steps:
+      - run: pip install --upgrade pip
+      - uses: actions/checkout@v4
+      - run: python -m venv $HOME/pdm
+      - run: $HOME/pdm/bin/pip install --upgrade pip
+      - run: $HOME/pdm/bin/pip install pdm
+      - run: $HOME/pdm/bin/pdm install
+          --with test
+          --with jinja
+          --with mako
+          --with sqlalchemy
+          --with redis
+          --with memcached
+      - run: $HOME/pdm/bin/pdm run coverage run
+        env:
+          POSTGRES_URL: postgresql+psycopg://postgres:postgres@postgres:5432/test
+          REDIS_URL: redis://default:password@redis:6379/0
+          MEMCACHED_ADDR: memcached:11211
+      - run: $HOME/pdm/bin/pdm run coverage report
     services:
       postgres:
-        image: postgres:16.1-alpine
+        image: postgres:17.2-alpine
         env:
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: test
@@ -32,7 +51,7 @@ jobs:
           --health-timeout 5s
           --health-retries 5
       redis:
-        image: bitnami/redis:7.2.4
+        image: bitnami/redis:7.4
         env:
           REDIS_PASSWORD: password
         options: >-
@@ -41,24 +60,9 @@ jobs:
           --health-timeout 5s
           --health-retries 5
       memcached:
-        image: memcached:1.6.23-alpine
+        image: memcached:1.6-alpine
         options: >-
           --health-cmd "echo 'stats' | nc 127.0.0.1 11211"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
-    steps:
-      - uses: actions/checkout@v4
-      - run: pip install poetry
-      - run: poetry install
-          --with test
-          --extras jinja
-          --extras sqlalchemy
-          --extras redis
-          --extras memcached
-          --no-interaction
-      - env:
-          POSTGRES_URL: postgresql+psycopg://postgres:postgres@postgres:5432/test
-          REDIS_URL: redis://default:password@redis:6379/0
-          MEMCACHED_ADDR: memcached:11211
-        run: poetry run pytest

@@ -1,13 +1,22 @@
-from typing import Annotated
+import asyncio
+from typing import Annotated as A
 
-from asgikit.requests import Request, read_json
+import structlog
+from asgikit.requests import Request
 from asgikit.responses import respond_json
 from pydantic import BaseModel
 
-import structlog
-
 from selva.di import Inject, service
-from selva.web import FromPath, FromQuery, controller, get, post
+from selva.web import (
+    FromBody,
+    FromPath,
+    FromQuery,
+    Json,
+    get,
+    post,
+    background,
+    startup,
+)
 
 logger = structlog.get_logger()
 
@@ -23,35 +32,56 @@ class Greeter:
         return f"Hello, {name}!"
 
 
-@controller
-class Controller:
-    greeter: Annotated[Greeter, Inject]
+@startup
+async def startup_hook(greeter: A[Greeter, Inject]):
+    logger.info(greeter.greet("startup"))
 
-    @get
-    async def greet_query(
-        self,
-        request: Request,
-        name: Annotated[str, FromQuery("name")] = "World",
-        number: Annotated[int, FromQuery] = 1,
-    ):
-        greeting = self.greeter.greet(name)
-        logger.info(greeting, name=name, number=number)
-        await respond_json(request.response, {"greeting": greeting, "number": number})
 
-    @get("/:name")
-    async def greet_path(self, request: Request, name: Annotated[str, FromPath]):
-        greeting = self.greeter.greet(name)
-        await respond_json(request.response, {"greeting": greeting})
+@background
+async def background_hook(greeter: Greeter):
+    i = 1
 
-    @post
-    async def post_data(self, request: Request):
-        body = await read_json(request)
-        await respond_json(request.response, {"result": body})
+    while True:
+        await asyncio.sleep(5)
+        logger.info(greeter.greet(f"background {i}"))
+        if i == 99:
+            i = 1
+        else:
+            i += 1
 
-    @post("pydantic")
-    async def post_data_pydantic(self, request: Request, data: MyModel):
-        await respond_json(request.response, {"name": data.name, "region": data.region})
 
-    @post("pydantic/list")
-    async def post_data_pydantic_list(self, request: Request, data: list[MyModel]):
-        await respond_json(request.response, {"data": [d.model_dump() for d in data]})
+@get
+async def greet_query(
+    request: Request,
+    greeter: A[Greeter, Inject],
+    name: A[str, FromQuery("name")] = "World",
+    number: A[int, FromQuery] = 1,
+):
+    greeting = greeter.greet(name)
+    logger.info(greeting, name=name, number=number)
+    await respond_json(request.response, {"greeting": greeting, "number": number})
+
+
+@get("/:name")
+async def greet_path(
+    request: Request,
+    greeter: A[Greeter, Inject],
+    name: A[str, FromPath],
+):
+    greeting = greeter.greet(name)
+    await respond_json(request.response, {"greeting": greeting})
+
+
+@post
+async def post_data(request: Request, body: A[Json, FromBody]):
+    await respond_json(request.response, {"result": body})
+
+
+@post("pydantic")
+async def post_data_pydantic(request: Request, data: A[MyModel, FromBody]):
+    await respond_json(request.response, data.model_dump())
+
+
+@post("pydantic/list")
+async def post_data_pydantic_list(request: Request, data: A[list[MyModel], FromBody]):
+    await respond_json(request.response, {"data": [d.model_dump() for d in data]})

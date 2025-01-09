@@ -8,7 +8,6 @@ InjectableType = type | FunctionType
 class ServiceInfo(NamedTuple):
     provides: type | None
     name: str | None
-    startup: bool = False
 
 
 class ServiceDependency(NamedTuple):
@@ -19,9 +18,9 @@ class ServiceDependency(NamedTuple):
 
 class ServiceSpec(NamedTuple):
     service: type
-    provides: type
-    factory: FunctionType | None
+    impl: type | None
+    factory: Callable | None
     name: str | None
     dependencies: list[tuple[str, ServiceDependency]]
-    initializer: Callable = None
-    finalizer: Callable = None
+    initializer: Callable | None = None
+    finalizer: Callable | None = None

@@ -7,9 +7,11 @@ from httpx import ASGITransport, AsyncClient
 from selva.configuration import Settings
 from selva.configuration.defaults import default_settings
 from selva.web.application import Selva
-from selva.web.middleware.files import UploadedFilesMiddleware
+from selva.web.middleware.files import uploaded_files_middleware
 
-MIDDLEWARE = [f"{UploadedFilesMiddleware.__module__}.{UploadedFilesMiddleware.__name__}"]
+MIDDLEWARE = [
+    f"{uploaded_files_middleware.__module__}:{uploaded_files_middleware.__name__}"
+]
 
 
 @pytest.fixture(autouse=True)

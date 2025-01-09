@@ -35,12 +35,13 @@ class Settings(Mapping[str, Any]):
 
         for key, value in data.items():
             if isinstance(value, dict):
-                data[key] = Settings(value)
+                self.__data[key] = Settings(value)
 
     def __getattr__(self, item: str):
         try:
             return self.__data[item]
         except KeyError:
+            # pylint: disable=raise-missing-from
             raise AttributeError(item)
 
     def __len__(self) -> int:
@@ -70,6 +71,9 @@ class Settings(Mapping[str, Any]):
 
         return False
 
+    def __hash__(self):
+        return hash(repr(self._original_data))
+
     def __str__(self):
         return str(self.__data)
 
@@ -84,39 +88,34 @@ class SettingsError(Exception):
 
 
 @cache
-def get_settings() -> tuple[Settings, list[tuple[Path, bool]]]:
+def get_settings() -> Settings:
     return _get_settings_nocache()
 
 
-def _get_settings_nocache() -> tuple[Settings, list[tuple[Path, bool]]]:
+def _get_settings_nocache() -> Settings:
     # get default settings
     settings = deepcopy(default_settings)
-    paths = []
 
     # merge with main settings file (settings.yaml)
-    profile_settings, path = get_settings_for_profile()
+    profile_settings = get_settings_for_profile()
     merge_recursive(settings, profile_settings)
-    paths.append(path)
 
     # merge with profile settings files (settings_$SELVA_PROFILE.yaml)
     if active_profile_list := os.getenv(SELVA_PROFILE):
         for active_profile in active_profile_list.split(","):
             active_profile = active_profile.strip()
-            profile_settings, path = get_settings_for_profile(active_profile)
+            profile_settings = get_settings_for_profile(active_profile)
             merge_recursive(settings, profile_settings)
-            paths.append(path)
 
     # merge with environment variables (SELVA_*)
     from_env_vars = parse_settings_from_env(os.environ)
     merge_recursive(settings, from_env_vars)
 
     settings = replace_variables_recursive(settings, os.environ)
-    return Settings(settings), paths
+    return Settings(settings)
 
 
-def get_settings_for_profile(
-    profile: str = None,
-) -> tuple[dict[str, Any], tuple[Path, bool]]:
+def get_settings_for_profile(profile: str = None) -> dict:
     settings_file = os.getenv(SETTINGS_FILE_ENV, DEFAULT_SETTINGS_FILE)
     settings_dir_path = Path(os.getenv(SETTINGS_DIR_ENV, DEFAULT_SETTINGS_DIR))
     settings_file_path = settings_dir_path / settings_file
@@ -129,18 +128,15 @@ def get_settings_for_profile(
     settings_file_path = settings_file_path.absolute()
 
     try:
-        # logger.info("settings loaded", file=str(settings_file_path))
         yaml = YAML(typ="safe")
-        return yaml.load(settings_file_path) or {}, (settings_file_path, True)
+        result = yaml.load(settings_file_path) or {}
+        logger.info("settings loaded", settings_file=settings_file_path)
+        return result
     except FileNotFoundError:
-        # if profile:
-        #     logger.warning(
-        #         "settings file not found",
-        #         profile=profile,
-        #         file=str(settings_file_path),
-        #     )
+        if profile:
+            logger.warning("settings file not found", settings_file=settings_file_path)
 
-        return {}, (settings_file_path, False)
+        return {}
     except Exception as err:
         raise SettingsError(settings_file_path) from err
 

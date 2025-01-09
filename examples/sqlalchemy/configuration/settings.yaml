@@ -24,3 +24,9 @@ data:
           pool_size: 10
           pool_recycle: 3600
           echo: true
+
+logging:
+  format: console
+  root: debug
+  level:
+    application: info

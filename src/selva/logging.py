@@ -3,7 +3,6 @@ import logging.config
 import sys
 
 import structlog
-from uvicorn.config import LOGGING_CONFIG
 
 from selva.configuration.settings import Settings
 

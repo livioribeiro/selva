@@ -26,6 +26,7 @@ site/
 # Environments
 .env
 .venv
+.venv*
 env/
 venv/
 ENV/
@@ -37,8 +38,9 @@ venv.bak/
 .dmypy.json
 dmypy.json
 
-# poetry
-poetry.lock
+# pdm
+pdm.lock
+.pdm-python
 
 # IDEs
 .idea/

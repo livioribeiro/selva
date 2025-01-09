@@ -1,5 +1,7 @@
 import os
-from typing import Annotated, NamedTuple
+from functools import cached_property
+from typing import Annotated as A
+from typing import NamedTuple
 
 from selva.di import Inject, service
 
@@ -18,9 +20,9 @@ def settings_factory() -> Config:
 
 @service
 class Greeter:
-    config: Annotated[Config, Inject]
+    config: A[Config, Inject]
 
-    @property
+    @cached_property
     def default_name(self):
         return self.config.default_name
 

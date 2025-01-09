@@ -1,0 +1,5 @@
+extensions:
+  - selva.ext.templates.mako
+
+logging:
+  format: console

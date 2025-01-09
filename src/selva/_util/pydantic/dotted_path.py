@@ -9,6 +9,7 @@ from selva._util.import_item import import_item
 T = TypeVar("T")
 
 
+# pylint: disable=too-few-public-methods
 class DottedPath(Generic[T]):
     @classmethod
     def __get_pydantic_core_schema__(

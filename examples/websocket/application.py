@@ -1,15 +1,12 @@
-from pathlib import Path
-from typing import Annotated
+from typing import Annotated as A
 
+import structlog
 from asgikit.errors.websocket import WebSocketDisconnectError
 from asgikit.requests import Request
-from asgikit.responses import respond_file
 from asgikit.websockets import WebSocket
-import structlog
 
-from selva.configuration import Settings
 from selva.di import Inject, service
-from selva.web import controller, get, websocket
+from selva.web import websocket
 from selva.web.exception import WebSocketException
 
 logger = structlog.get_logger()
@@ -49,17 +46,7 @@ class WebSocketService:
                 logger.info("client disconnected", client=repr(client))
 
 
-@controller
-class WebSocketController:
-    handler: Annotated[WebSocketService, Inject]
-    settings: Annotated[Settings, Inject]
-    index_html = (Path() / "resources" / "static" / "index.html").absolute()
-
-    @get
-    async def index(self, request: Request):
-        await respond_file(request.response, self.index_html)
-
-    @websocket("/chat")
-    async def chat(self, request: Request):
-        await request.websocket.accept()
-        await self.handler.handle_websocket(request)
+@websocket("/chat")
+async def chat(request: Request, handler: A[WebSocketService, Inject]):
+    await request.websocket.accept()
+    await handler.handle_websocket(request)

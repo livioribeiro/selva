@@ -1,10 +1,9 @@
-import inspect
 import re
 import typing
 from collections import Counter
 from http import HTTPMethod
 from re import Pattern
-from typing import Annotated, Any, Callable, NamedTuple
+from typing import Callable, NamedTuple
 
 __all__ = ("Route", "RouteMatch")
 
@@ -18,14 +17,14 @@ PATH_PARAM_PATTERN = {
 
 
 def build_path_regex_and_params(
-    action: Callable, path: str
+    handler: Callable, path: str
 ) -> tuple[Pattern, dict[str, type]]:
     """parse path and build regex for route matching
 
     :returns: compiled regex and tuple of mapping param name to type
     """
 
-    type_hints = typing.get_type_hints(action)
+    type_hints = typing.get_type_hints(handler)
     type_hints.pop("return", None)
 
     regex = RE_MULTI_SLASH.sub("/", path)
@@ -59,42 +58,19 @@ def build_path_regex_and_params(
     return re.compile(regex), param_types
 
 
-def build_request_params(action: Callable) -> dict[str, tuple[type, Any | None]]:
-    type_hints = [
-        (name, param.annotation)
-        for name, param in inspect.signature(action).parameters.items()
-    ]
-
-    result = {}
-
-    for name, type_hint in type_hints[2:]:  # skip self and request parameters
-        if typing.get_origin(type_hint) is Annotated:
-            # Annotated is garanteed to have at least 2 args
-            param_type, param_meta, *_ = typing.get_args(type_hint)
-            result[name] = (param_type, param_meta)
-        else:
-            result[name] = (type_hint, None)
-
-    return result
-
-
 class Route:
     def __init__(
         self,
         method: HTTPMethod | None,
         path: str,
-        controller: type,
         action: Callable,
         name: str,
     ):
         self.method = method
         self.path = path
-        self.controller = controller
         self.action = action
         self.name = name
-
         self.regex, self.path_params = build_path_regex_and_params(action, path)
-        self.request_params = build_request_params(action)
 
     def match(self, method: HTTPMethod | None, path: str) -> dict[str, str] | None:
         if method is self.method and (match := self.regex.match(path)):

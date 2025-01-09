@@ -1,6 +1,6 @@
 # Static and uploaded files
 
-The `StaticFilesMiddleware` and `UploadedFilesMiddleware` provide a way of serving
+The `static_files_middleware` and `uploaded_files_middleware` provide a way of serving
 static content and user uploaded files.
 
 There are two separate middlewares to allow distinct handling in the middleware
@@ -14,8 +14,8 @@ First you need to activate the middlewares in the `settings.yaml`
 ```yaml
 middleware:
   # ...
-  - selva.web.middleware.files.StaticFilesMiddleware
-  - selva.web.middleware.files.UploadedFilesMiddleware
+  - selva.web.middleware.files.static_files_middleware
+  - selva.web.middleware.files.uploaded_files_middleware
   # ...
 ```
 
@@ -29,7 +29,7 @@ the favicon at `/favicon.ico` pointing to a file in `resources/static/`:
 
 ```yaml
 middleware:
-  - selva.web.middleware.files.StaticFilesMiddleware
+  - selva.web.middleware.files.static_files_middleware
 staticfiles:
   mappings:
     favicon.ico: my-icon.ico
@@ -37,7 +37,7 @@ staticfiles:
 
 ## Configuration options
 
-The available options to configure the `StaticFilesMiddleware` and `UploadedFilesMiddleware`
+The available options to configure the `static_files_middleware` and `uploaded_files_middleware`
 are shown below:
 
 ```yaml

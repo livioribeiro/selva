@@ -1,4 +1,4 @@
-from typing import Annotated, Optional
+from typing import Annotated
 
 from selva.di.container import Container
 from selva.di.decorator import service
@@ -12,12 +12,7 @@ class DependentService:
 
 @service
 class ServiceWithOptionalDep:
-    dependent: Annotated[Optional[DependentService], Inject]
-
-
-@service
-class ServiceWithOptionalDepOrNone:
-    dependent: Annotated[DependentService | None, Inject]
+    dependent: Annotated[DependentService, Inject] = None
 
 
 async def test_optional_dependency(ioc: Container):
@@ -25,20 +20,9 @@ async def test_optional_dependency(ioc: Container):
     instance = await ioc.get(ServiceWithOptionalDep)
     assert instance.dependent is None
 
-    ioc.store.clear()
 
+async def test_optional_dependency_with_provided_dependency(ioc: Container):
+    ioc.register(ServiceWithOptionalDep)
     ioc.register(DependentService)
     instance = await ioc.get(ServiceWithOptionalDep)
     assert isinstance(instance.dependent, DependentService)
-
-
-async def test_optional_dependency_with_or_none(ioc: Container):
-    ioc.register(ServiceWithOptionalDepOrNone)
-    service = await ioc.get(ServiceWithOptionalDepOrNone)
-    assert service.dependent is None
-
-    ioc.store.clear()
-
-    ioc.register(DependentService)
-    service = await ioc.get(ServiceWithOptionalDepOrNone)
-    assert isinstance(service.dependent, DependentService)
