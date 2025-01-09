@@ -1,8 +1,23 @@
 from abc import ABC
 from collections.abc import Mapping
 
+from selva.web.converter.decorator import (
+    register_converter,
+    register_from_request,
+    register_param_extractor,
+)
 
-class Json(Mapping, ABC):
+
+__all__ = (
+    "register_converter",
+    "register_from_request",
+    "register_param_extractor",
+    "Json",
+    "Form",
+)
+
+
+class Json(ABC):
     pass
 
 
