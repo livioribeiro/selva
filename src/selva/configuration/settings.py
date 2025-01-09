@@ -128,11 +128,13 @@ def get_settings_for_profile(profile: str = None) -> dict:
     settings_file_path = settings_file_path.absolute()
 
     try:
-        logger.info("settings loaded", settings_file=settings_file_path)
         yaml = YAML(typ="safe")
-        return yaml.load(settings_file_path) or {}
+        result = yaml.load(settings_file_path) or {}
+        logger.info("settings loaded", settings_file=settings_file_path)
+        return result
     except FileNotFoundError:
-        logger.warning("settings file not found", settings_file=settings_file_path)
+        if profile:
+            logger.warning("settings file not found", settings_file=settings_file_path)
 
         return {}
     except Exception as err:
