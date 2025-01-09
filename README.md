@@ -30,7 +30,7 @@ from selva.web import get
 
 
 @get
-async def hello(self, request: Request):
+async def hello(request: Request):
     await respond_text(request.response, "Hello, World!")
 ```
 
