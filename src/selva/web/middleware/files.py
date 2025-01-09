@@ -81,6 +81,16 @@ class StaticFilesMiddleware(BaseFilesMiddleware):
 
         return None
 
+    async def __call__(self, call_next: CallNext, request: Request):
+        try:
+            await super().__call__(call_next, request)
+        except HTTPNotFoundException:
+            index_html = self.root / "index.html"
+            if request.path.lstrip("/") == "" and index_html.exists():
+                await respond_file(request.response, index_html)
+            else:
+                raise
+
 
 async def static_files_middleware(
     callnext: CallNext,
