@@ -1,5 +1,4 @@
 logging:
-  root: debug
+  format: console
   level:
     application: info
-  format: console

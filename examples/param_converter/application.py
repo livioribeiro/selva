@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from decimal import Decimal
 from pathlib import PurePath
 from typing import Annotated as A
 
@@ -27,6 +28,11 @@ async def handler_int(request: Request, param: A[int, FromPath]):
 
 @get("/float/:param")
 async def handler_float(request: Request, param: A[float, FromPath]):
+    await respond_text(request.response, str(param))
+
+
+@get("/decimal/:param")
+async def handler_decimal(request: Request, param: A[Decimal, FromPath]):
     await respond_text(request.response, str(param))
 
 

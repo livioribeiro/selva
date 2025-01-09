@@ -1,20 +1,18 @@
 from typing import Annotated
 
-from aiomcache import Client
-from aiomcache.exceptions import ClientException
+from aiomcache import Client as Memcached
 
 from selva.di import Inject, service
 
 
 @service
 class MemcachedService:
-    memcached: Annotated[Client, Inject]
+    memcached: Annotated[Memcached, Inject]
+
+    async def initialize(self):
+        if not await self.memcached.get(b"number"):
+            await self.memcached.add(b"number", b"0")
 
     async def get_incr(self) -> int:
-        try:
-            value = await self.memcached.incr(b"number")
-        except ClientException:
-            await self.memcached.add(b"number", b"0")
-            value = await self.memcached.incr(b"number")
-
+        value = await self.memcached.incr(b"number")
         return int(value)
