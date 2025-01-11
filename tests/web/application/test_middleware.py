@@ -1,4 +1,3 @@
-from asgikit.requests import Request
 from httpx import ASGITransport, AsyncClient
 
 from selva.configuration import Settings
@@ -6,14 +5,16 @@ from selva.configuration.defaults import default_settings
 from selva.web.application import Selva
 
 
-async def my_middleware(callnext, request: Request):
-    async def send(f, event: dict):
-        if event["type"] == "http.response.body":
-            event["body"] = b"Middleware Ok"
-        await f(event)
+def my_middleware(app, settings, di):
+    async def inner(scope, receive, send):
+        async def new_send(event: dict):
+            if event["type"] == "http.response.body":
+                event["body"] = b"Middleware Ok"
+            await send(event)
 
-    request.wrap_asgi(send=send)
-    await callnext(request)
+        await app(scope, receive, new_send)
+
+    return inner
 
 
 async def test_middleware():

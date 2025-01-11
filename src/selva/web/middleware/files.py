@@ -1,6 +1,9 @@
+import asyncio
+import mimetypes
 import os
 from abc import ABC, abstractmethod
 from collections.abc import Callable
+from email.utils import formatdate
 from pathlib import Path
 
 import structlog
@@ -50,7 +53,12 @@ class UploadedFilesMiddleware(BaseFilesMiddleware):
 
 class StaticFilesMiddleware(BaseFilesMiddleware):
     def __init__(
-        self, app, path: str, root: Path, filelist: set[str], mappings: dict[str, str]
+        self,
+        app,
+        path: str,
+        root: Path,
+        filelist: dict[str, tuple[str, int, str]],
+        mappings: dict[str, str],
     ):
         super().__init__(app, path, root)
         self.filelist = filelist
@@ -59,14 +67,25 @@ class StaticFilesMiddleware(BaseFilesMiddleware):
     def get_file_to_serve(self, scope: dict) -> str | None:
         request_path = scope["path"].lstrip("/")
 
-        if file := self.mappings.get(request_path):
-            return file
+        file_to_serve = None
+        if file_path := self.mappings.get(request_path):
+            file_to_serve = file_path
+        elif request_path.startswith(self.path):
+            file_path = os.path.join(self.root, request_path.removeprefix(self.path))
+            if file_path in self.filelist:
+                file_to_serve = file_path
 
-        if request_path.startswith(self.path):
-            filename = request_path.removeprefix(self.path)
-            file = os.path.join(self.root, filename)
-            if file in self.filelist:
-                return file
+        if file_to_serve:
+            file_data = self.filelist[file_to_serve]
+            content_type, content_length, last_modified = file_data
+
+            # use Request to set response headers
+            request = Request(scope, None, None)
+            request.response.content_type = content_type
+            request.response.content_length = content_length
+            request.response.header("last-modified", last_modified)
+
+            return file_to_serve
 
         return None
 
@@ -74,23 +93,35 @@ class StaticFilesMiddleware(BaseFilesMiddleware):
         try:
             await super().__call__(scope, receive, send)
         except HTTPNotFoundException:
-            index_html = self.root / "index.html"
-            if scope["path"].lstrip("/") == "" and index_html.exists():
-                request = Request(scope, receive, send)
-                await respond_file(request.response, index_html)
+            if scope["path"] == "/":
+                new_scope = scope | {"path": f"{self.path}/index.html"}
+                await super().__call__(new_scope, receive, send)
             else:
                 raise
 
 
-def static_files_middleware(app, settings: Settings, di: Container):
+async def static_files_middleware(app, settings: Settings, di: Container):
     settings = settings.staticfiles
     path = settings.path.lstrip("/")
     root = Path(settings.root).resolve().absolute()
 
-    filelist = set()
+    # dict of file path to (content-type, content-length, last-modified)
+    filelist: dict[str, tuple[str, int, str]] = {}
+
     for dirpath, _dirnames, filenames in os.walk(root):
         for filename in filenames:
-            filelist.add(os.path.join(dirpath, filename))
+            file = os.path.join(dirpath, filename)
+            stat = await asyncio.to_thread(os.stat, file)
+
+            m_type, _ = mimetypes.guess_type(filename, strict=False)
+            m_type = m_type or "application/octet-stream"
+            last_modified = formatdate(stat.st_mtime, usegmt=True)
+
+            filelist[os.path.join(dirpath, filename)] = (
+                m_type,
+                stat.st_size,
+                last_modified,
+            )
 
     mappings = {
         name.lstrip("/"): os.path.join(root, value.lstrip("/"))
@@ -105,7 +136,7 @@ def static_files_middleware(app, settings: Settings, di: Container):
 
 
 def uploaded_files_middleware(app, settings: Settings, di: Container):
-    settings = settings.staticfiles
+    settings = settings.uploadedfiles
     path = settings.path.lstrip("/")
     root = Path(settings.root).resolve()
     return UploadedFilesMiddleware(app, path, root)

@@ -1,3 +1,4 @@
+import copy
 from http import HTTPStatus
 from pathlib import Path
 
@@ -24,7 +25,7 @@ async def test_uploaded_file():
         default_settings
         | {
             "application": f"{__package__}.application",
-            "middleware": MIDDLEWARE,
+            "middleware": copy.copy(MIDDLEWARE),
         }
     )
     app = Selva(settings)
@@ -43,7 +44,7 @@ async def test_uploaded_files_path():
         default_settings
         | {
             "application": f"{__package__}.application",
-            "middleware": MIDDLEWARE,
+            "middleware": copy.copy(MIDDLEWARE),
             "uploadedfiles": default_settings["uploadedfiles"]
             | {
                 "path": "media",
@@ -68,7 +69,7 @@ async def test_uploaded_files_root():
         default_settings
         | {
             "application": f"{__package__}.application",
-            "middleware": MIDDLEWARE,
+            "middleware": copy.copy(MIDDLEWARE),
             "uploadedfiles": default_settings["uploadedfiles"]
             | {
                 "root": Path(__file__).parent / "resources" / "media",

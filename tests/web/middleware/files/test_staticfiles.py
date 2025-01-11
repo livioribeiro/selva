@@ -1,3 +1,4 @@
+import copy
 from http import HTTPStatus
 from pathlib import Path
 
@@ -24,7 +25,7 @@ async def test_static_file():
         default_settings
         | {
             "application": f"{__package__}.application",
-            "middleware": MIDDLEWARE,
+            "middleware": copy.copy(MIDDLEWARE),
         }
     )
     app = Selva(settings)
@@ -43,7 +44,7 @@ async def test_static_file_mapping():
         default_settings
         | {
             "application": f"{__package__}.application",
-            "middleware": MIDDLEWARE,
+            "middleware": copy.copy(MIDDLEWARE),
             "staticfiles": default_settings["staticfiles"]
             | {
                 "mappings": {
@@ -69,7 +70,7 @@ async def test_static_files_path():
         default_settings
         | {
             "application": f"{__package__}.application",
-            "middleware": MIDDLEWARE,
+            "middleware": copy.copy(MIDDLEWARE),
             "staticfiles": default_settings["staticfiles"]
             | {
                 "path": "assets",
@@ -94,7 +95,7 @@ async def test_static_files_root():
         default_settings
         | {
             "application": f"{__package__}.application",
-            "middleware": MIDDLEWARE,
+            "middleware": copy.copy(MIDDLEWARE),
             "staticfiles": default_settings["staticfiles"]
             | {
                 "root": Path(__file__).parent / "resources" / "assets",
