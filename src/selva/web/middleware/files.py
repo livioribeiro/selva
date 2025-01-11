@@ -1,52 +1,46 @@
+import os
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from pathlib import Path
-from typing import Annotated
 
+import structlog
 from asgikit.requests import Request
 from asgikit.responses import respond_file
 
 from selva.configuration import Settings
-from selva.di.decorator import service
-from selva.di.inject import Inject
+from selva.di import Container
 from selva.web.exception import HTTPNotFoundException
-from selva.web.middleware import CallNext
+
+logger = structlog.get_logger()
 
 
 class BaseFilesMiddleware(ABC):
-    settings: Annotated[Settings, Inject]
-
-    settings_property: str
-    path: str
-    root: Path
-
-    def initialize(self):
-        settings = self.settings.get(self.settings_property)
-        self.path = settings.path.lstrip("/")
-        self.root = Path(settings.root).resolve()
+    def __init__(self, app: Callable, path: str, root: Path):
+        self.app = app
+        self.path = path if path.endswith("/") else path + "/"
+        self.root = root
 
     @abstractmethod
-    def get_file_to_serve(self, request: Request) -> str | None:
+    def get_file_to_serve(self, scope: dict) -> str | None:
         pass
 
-    async def __call__(self, call_next: CallNext, request: Request):
-        if file_to_serve := self.get_file_to_serve(request):
+    async def __call__(self, scope, receive, send):
+        if file_to_serve := self.get_file_to_serve(scope):
             file_to_serve = (self.root / file_to_serve).resolve()
             if not (
                 file_to_serve.is_file() and file_to_serve.is_relative_to(self.root)
             ):
                 raise HTTPNotFoundException()
 
+            request = Request(scope, receive, send)
             await respond_file(request.response, file_to_serve)
         else:
-            await call_next(request)
+            await self.app(scope, receive, send)
 
 
-@service
 class UploadedFilesMiddleware(BaseFilesMiddleware):
-    settings_property = "uploadedfiles"
-
-    def get_file_to_serve(self, request: Request) -> str | None:
-        request_path = request.path.lstrip("/")
+    def get_file_to_serve(self, scope: dict) -> str | None:
+        request_path = scope["path"].lstrip("/")
 
         if request_path.startswith(self.path):
             return request_path.removeprefix(self.path).lstrip("/")
@@ -54,55 +48,64 @@ class UploadedFilesMiddleware(BaseFilesMiddleware):
         return None
 
 
-@service
 class StaticFilesMiddleware(BaseFilesMiddleware):
-    settings_property = "staticfiles"
-    mappings: dict[str, str]
+    def __init__(
+        self, app, path: str, root: Path, filelist: set[str], mappings: dict[str, str]
+    ):
+        super().__init__(app, path, root)
+        self.filelist = filelist
+        self.mappings = mappings
 
-    def initialize(self):
-        super().initialize()
+    def get_file_to_serve(self, scope: dict) -> str | None:
+        request_path = scope["path"].lstrip("/")
 
-        settings = self.settings.get(self.settings_property)
-
-        # TODO: build a map of all files under the staticfiles root directory
-        self.mappings = {
-            name.lstrip("/"): value.lstrip("/")
-            for name, value in settings.get("mappings", {}).items()
-        }
-
-    def get_file_to_serve(self, request: Request) -> str | None:
-        request_path = request.path.lstrip("/")
-
-        if file_to_serve := self.mappings.get(request_path):
-            return file_to_serve.lstrip("/")
+        if file := self.mappings.get(request_path):
+            return file
 
         if request_path.startswith(self.path):
-            return request_path.removeprefix(self.path).lstrip("/")
+            filename = request_path.removeprefix(self.path)
+            file = os.path.join(self.root, filename)
+            if file in self.filelist:
+                return file
 
         return None
 
-    async def __call__(self, call_next: CallNext, request: Request):
+    async def __call__(self, scope, receive, send):
         try:
-            await super().__call__(call_next, request)
+            await super().__call__(scope, receive, send)
         except HTTPNotFoundException:
             index_html = self.root / "index.html"
-            if request.path.lstrip("/") == "" and index_html.exists():
+            if scope["path"].lstrip("/") == "" and index_html.exists():
+                request = Request(scope, receive, send)
                 await respond_file(request.response, index_html)
             else:
                 raise
 
 
-async def static_files_middleware(
-    callnext: CallNext,
-    request: Request,
-    middleware_service: Annotated[StaticFilesMiddleware, Inject],
-):
-    await middleware_service(callnext, request)
+def static_files_middleware(app, settings: Settings, di: Container):
+    settings = settings.staticfiles
+    path = settings.path.lstrip("/")
+    root = Path(settings.root).resolve().absolute()
+
+    filelist = set()
+    for dirpath, _dirnames, filenames in os.walk(root):
+        for filename in filenames:
+            filelist.add(os.path.join(dirpath, filename))
+
+    mappings = {
+        name.lstrip("/"): os.path.join(root, value.lstrip("/"))
+        for name, value in settings.get("mappings", {}).items()
+    }
+
+    if difference := set(mappings.values()).difference(filelist):
+        files = ", ".join(difference)
+        raise ValueError(f"Static files mappings not found: {files}")
+
+    return StaticFilesMiddleware(app, path, root, filelist, mappings)
 
 
-async def uploaded_files_middleware(
-    callnext: CallNext,
-    request: Request,
-    middleware_service: Annotated[UploadedFilesMiddleware, Inject],
-):
-    await middleware_service(callnext, request)
+def uploaded_files_middleware(app, settings: Settings, di: Container):
+    settings = settings.staticfiles
+    path = settings.path.lstrip("/")
+    root = Path(settings.root).resolve()
+    return UploadedFilesMiddleware(app, path, root)

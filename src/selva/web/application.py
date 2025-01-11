@@ -1,7 +1,5 @@
 import asyncio
-import functools
 import traceback
-from functools import cache
 from http import HTTPStatus
 
 import structlog
@@ -10,7 +8,6 @@ from asgikit.requests import Request
 from asgikit.responses import respond_status, respond_text
 from asgikit.websockets import WebSocket
 
-from selva._util.base_types import get_base_types
 from selva._util.import_item import import_item
 from selva._util.maybe_async import maybe_async
 from selva.configuration.settings import Settings, get_settings
@@ -18,10 +15,10 @@ from selva.di.call import call_with_dependencies
 from selva.di.container import Container
 from selva.ext.error import ExtensionMissingInitFunctionError, ExtensionNotFoundError
 from selva.web.exception import HTTPException, HTTPNotFoundException, WebSocketException
-from selva.web.exception_handler.decorator import ExceptionHandlerType
 from selva.web.exception_handler.discover import find_exception_handlers
 from selva.web.handler.call import call_handler
 from selva.web.lifecycle.discover import find_background_services, find_startup_hooks
+from selva.web.middleware.exception_handler import exception_handler_middleware
 from selva.web.routing.router import Router
 
 logger = structlog.get_logger()
@@ -94,14 +91,17 @@ class Selva:
     async def _initialize_middleware(self):
         middleware = self.settings.middleware
         if not middleware:
-            return
+            middleware_functions = [exception_handler_middleware]
+        else:
+            middleware_functions = [import_item(name) for name in middleware]
+            if exception_handler_middleware in middleware_functions:
+                middleware_functions.remove(exception_handler_middleware)
 
-        middleware_functions = [import_item(name) for name in middleware]
+            middleware.append(exception_handler_middleware)
 
-        for mid in reversed(middleware_functions):
-            mid_function = functools.partial(mid, self.handler)
-            self.handler = functools.partial(
-                call_handler, self.di, mid_function, skip=2
+        for factory in reversed(middleware_functions):
+            self.handler = await maybe_async(
+                factory, self.handler, self.settings, self.di
             )
 
     async def _lifespan_startup(self):
@@ -164,20 +164,7 @@ class Selva:
         request = Request(scope, receive, send)
 
         try:
-            try:
-                await self.handler(request)
-            except Exception as err:
-                if handler := self._find_exception_handler(type(err)):
-                    logger.debug(
-                        "Handling exception with handler",
-                        module=handler.__module__,
-                        handler=handler.__qualname__,
-                    )
-                    await call_handler(
-                        self.di, functools.partial(handler, err), request, skip=2
-                    )
-                else:
-                    raise
+            await self.handler(scope, receive, send)
         except (WebSocketDisconnectError, WebSocketError):
             logger.exception("websocket error")
             await request.websocket.close()
@@ -217,7 +204,8 @@ class Selva:
             request.response.status = HTTPStatus.INTERNAL_SERVER_ERROR
             await respond_text(request.response, traceback.format_exc())
 
-    async def _request_handler(self, request: Request):
+    async def _request_handler(self, scope, receive, send):
+        request = Request(scope, receive, send)
         path = request.path
 
         logger.debug(
@@ -248,13 +236,3 @@ class Selva:
             await respond_status(response, HTTPStatus.INTERNAL_SERVER_ERROR)
         elif not response.is_finished:
             await response.end()
-
-    @cache
-    def _find_exception_handler(
-        self, err: type[BaseException]
-    ) -> ExceptionHandlerType | None:
-        for base in get_base_types(err):
-            if handler := self.exception_handlers.get(base):
-                return handler
-
-        return None
