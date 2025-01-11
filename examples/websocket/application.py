@@ -36,7 +36,7 @@ class WebSocketService:
 
     async def broadcast(self, message: str):
         if message.lower() == "ping":
-            message = "Pong"
+            message = message.replace("i", "o").replace("I", "O")
 
         for client, ws in self.clients.items():
             try:

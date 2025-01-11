@@ -1,11 +1,37 @@
 # Middleware
 
 The middleware pipeline is configured with the `middleware` configuration property.
-It must contain a list of functions that have the following signature:
+It must contain a list of functions that receive the next app in the pipeline, the
+settings object and the dependency injection container and must return a plain asgi
+middleware instance:
 
 ```python
-async def middleware(callnext, request): ...
+def middleware_factory(app, settings, di): ...
 ```
+
+Any asgi middleware can be used in the middleware pipeline. For instance, it is
+possible to use the SessionMiddleware from starlette:
+
+
+=== "application/middleware.py"
+
+    ```python
+    from starlette.middleware.sessions import SessionMiddleware
+    
+    
+    def session_middleware(app, settings, di):
+        return SessionMiddleware(app, secret_key=settings.session.secret_key)
+    ```
+
+=== "configuration/settings.yaml"
+
+    ```yaml
+    middleware:
+      - application.middleware:session_middleware
+
+    session:
+      secret_key: super_secret_key
+    ```
 
 ## Usage
 
@@ -32,21 +58,22 @@ output to the console the time spent in the processing of the request:
     from datetime import datetime
     
     import structlog
+    
     from selva.di import service
     
     logger = structlog.get_logger()
     
     
-    async def timing_middleware(callnext, request):
-        request_start = datetime.now()
-        await callnext(request) # (1)
-        request_end = datetime.now()
+    def timing_middleware(app, settings, di):
+        async def inner(scope, receive, send):
+            request_start = datetime.now()
+            await app(scope, receive, send)
+            request_end = datetime.now()
 
-        delta = request_end - request_start
-        logger.info("request duration", duration=str(delta))
+            delta = request_end - request_start
+            logger.info("request duration", duration=str(delta))
+        return inner
     ```
-
-    1. Invoke the middleware chain to process the request
 
 === "configuration/settings.yaml"
 
@@ -57,9 +84,34 @@ output to the console the time spent in the processing of the request:
 
 ## Middleware dependencies
 
-Middleware functions are called using the same machinery as handlers, and therefore
-can have services injected. Our `timing_middleware`, for instance, could persist
+Middleware functions can use the provided dependency injection container to get
+services the middleware might need. We could rewrite the timing middleware to persist
 the timings using a service instead of printing to the console:
+
+=== "application/middleware.py"
+
+    ```python
+    from datetime import datetime
+    
+    from application.service import TimingService
+    
+    
+    class TimingMiddleware:
+        def __init__(self, app, timing_service: TimingService):
+            self.timing_service = timing_service
+
+        async def __call__(self, scope, receive, send):
+            request_start = datetime.now()
+            await app(scope, receive, send)
+            request_end = datetime.now()
+
+            await self.timing_service.save(request_start, request_end)
+
+
+    async def timing_middleware(app, settings, di):
+        timing_service = await di.get(TimingService)
+        return TimingMiddleware(app, timing_service)
+    ```
 
 === "application/service.py"
 
@@ -72,26 +124,4 @@ the timings using a service instead of printing to the console:
     class TimingService:
         async def save(start: datetime, end: datetime):
             ...
-    ```
-
-=== "application/middleware.py"
-
-    ```python
-    from datetime import datetime
-    from typing import Annotated
-    
-    from selva.di import service, Inject
-    
-    from application.service import TimingService
-    
-    
-    async def __call__(
-        call_next, request,
-        timing_service: Annotated[TimingService, Inject]
-    ):
-        request_start = datetime.now()
-        await call_next(request)
-        request_end = datetime.now()
-
-        await timing_service.save(request_start, request_end)
     ```

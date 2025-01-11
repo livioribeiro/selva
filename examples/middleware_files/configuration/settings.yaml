@@ -3,7 +3,6 @@ middleware:
   - selva.web.middleware.files.uploaded_files_middleware
 staticfiles:
   mappings:
-#    /: index.html
     favicon.ico: python.ico
 
 logging:

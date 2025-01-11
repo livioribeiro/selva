@@ -1,6 +1,6 @@
 # ruff: noqa: F401
 
-from selva.web.converter import Json, Form
+from selva.web.converter import Form, Json
 from selva.web.converter.param_extractor import (
     FromBody,
     FromCookie,
