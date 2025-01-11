@@ -12,9 +12,9 @@ from selva.web import (
     FromPath,
     FromQuery,
     Json,
+    background,
     get,
     post,
-    background,
     startup,
 )
 

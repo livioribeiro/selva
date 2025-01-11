@@ -1,3 +1,7 @@
+auth:
+  username: admin
+  password: "123"
+
 middleware:
   - application.middleware.auth_middleware
   - application.middleware.timing_middleware
