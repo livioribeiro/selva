@@ -1,9 +1,26 @@
 site_name: Selva
 site_description: Selva, elegant web framework
 site_url: https://livioribeiro.github.io/selva/
+repo_name: livioribeiro/selva
+repo_url: https://github.com/livioribeiro/selva
+edit_uri: ''
+
+plugins:
+  - search:
+  - i18n:
+      docs_structure: folder
+      languages:
+        - locale: en
+          default: true
+          name: English
+          build: true
+        - locale: pt
+          name: Português
+          build: true
 
 theme:
   name: material
+  language: en
   palette:
     # Palette toggle for light mode
     - scheme: default
@@ -25,10 +42,6 @@ theme:
     - content.code.copy
     - content.code.select
 
-repo_name: livioribeiro/selva
-repo_url: https://github.com/livioribeiro/selva
-edit_uri: ''
-
 markdown_extensions:
   - admonition
   - pymdownx.details
@@ -45,6 +58,7 @@ nav:
   - tutorial.md
   - structure.md
   - handlers.md
+  - lifecycle.md
   - routing.md
   - services.md
   - configuration.md

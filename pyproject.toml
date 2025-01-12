@@ -57,7 +57,8 @@ lint = [
     "isort~=5.13",
 ]
 docs = [
-    "mkdocs-material~=9.5.49"
+    "mkdocs-material~=9.5.49",
+    "mkdocs-static-i18n[material]~=1.2.3",
 ]
 
 [project.optional-dependencies]
