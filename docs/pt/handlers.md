@@ -1,12 +1,13 @@
-# Handlers
+# Tratadores
 
-## Overview
+## Visão geral
 
-Handlers are functions responsible for handling requests through handler methods.
-They are defined using the `@get`, `@post`, `@put`, `@patch`, `@delete` and `@websocket` decorators.
+Tratadores são funções responsáveis por tratar as requisições recebidas.
+Eles são definidos com os decoradores `@get`, `@post`, `@put`, `@patch`, `@delete`
+and `@websocket`.
 
-Handler methods must receive, at least, the `Request` as the first parameter.
-It is not needed to annotate the request parameter, but it should be the first parameter.
+Tratadores devem receber, pelo menos, o objeto da requisição como primeiro parâmetro.
+Não é necessário anotar o parêmetro, mas ele deve ser o primeiro.
 
 ```python
 from asgikit.requests import Request, read_json
@@ -30,10 +31,10 @@ async def handle_data(request: Request):
 ```
 
 !!! note
-    Defining a path on `@get @post etc...` is optional and defaults to an empty string `""`.
+    Definir um caminho em `@get @post etc...` é opcional e tem valor padrão de string vazia `""`.
 
-Handler function can be defined with path parameters, which can be bound to the
-handler with the annotation `FromPath`:
+Funções tratadoras podem ser definidas com parâmetros de caminho, que serão ligadas
+ao tratador com a anotação `FromPath`:
 
 ```python
 from typing import Annotated
@@ -45,8 +46,7 @@ def handler(request, path_param: Annotated[str, FromPath]):
     ...
 ```
 
-It is also possible to explicitly declare from which parameter the value will
-be retrieved from:
+Também é possível declarar explicitamente de qual parâmetro o valor será recuperado:
 
 ```python
 from typing import Annotated
@@ -58,12 +58,12 @@ def handler(request, value: Annotated[str, FromPath("path_param")]):
     ...
 ```
 
-The [routing section](routing.md) provides more information about path parameters
+A [seção de roteamento](routing.md) provê mais informações sobre parâmetros de caminho.
 
-## Responses
+## Respostas
 
-Inheriting the `asgikit.responses.Response` from `asgikit`, the handler methods
-do not return a response, instead they write to the response.
+Herdando o `asgikit.responses.Response` de `asgikit`, as funções tratadoras não
+retornam uma resposta, ao invés disso elas escrevem os dados na resposta.
 
 ```python
 from asgikit.requests import Request
@@ -76,7 +76,7 @@ async def handler(request: Request):
     await respond_json(request.response, {"data": "The response"})
 ```
 
-`asgikit` provides function to write data to the response:
+`asgikit` provê funções para escrever dados na resposta:
 
 ```python
 from collections.abc import AsyncIterable
@@ -94,9 +94,10 @@ async def stream_writer(response: Response): ...
 async def respond_stream(response: Response, stream: AsyncIterable[bytes | str]): ...
 ```
 
-## Dependencies
+## Dependências
 
-Handler functions can receive services as parameters that will be injected when the handler is called.
+Funções tratadoras podem receber serviços como parâmetros que serão injetados quando
+o tratador é chamado:
 
 ```python
 from typing import Annotated
@@ -114,13 +115,13 @@ def my_handler(request, my_service: Annotated[MyService, Inject]):
     ...
 ```
 
-## Request Information
+## Informações da requisição
 
-Handler functions receive an object of type `asgikit.requests.Request` as the first
-parameter that provides access to request information (path, method, headers, query
-string, request body). It also provides the `asgikit.responses.Response` or
-`asgikit.websockets.WebSocket` objects to either respond the request or interact
-with the client via websocket.
+Funções tratadoras recebem um objeto do tipo `asgikit.requests.Request` como primeiro
+parâmetro que provê acesso às informações da requisição (caminho, método, cabeçalhos,
+query string, corpo da requisição). Ele também provê o objeto `asgikit.responses.Response`
+ou `asgikit.websockets.WebSocket` para responder à requisição ou interagir com o
+cliente através do websocket.
 
 !!! attention
 
@@ -155,9 +156,9 @@ async def ws_handler(request: Request):
         await ws.send(data)
 ```
 
-## Request body
+## Corpo da requisição
 
-`asgikit` provides several functions to retrieve the request body:
+`asgikit` provê várias funções para recuperar o corpo da requisição:
 
 ```python
 from asgikit.requests import Body, Request
@@ -172,7 +173,7 @@ async def read_form(request: Body | Request) -> dict[str, str | multipart.File]:
 
 ## Websockets
 
-For websocket, there are the following methods:
+Para websockets, há as seguintes funções:
 
 ```python
 from collections.abc import Iterable
@@ -184,15 +185,15 @@ async def send(self, data: bytes | str): ...
 async def close(self, code: int = 1000, reason: str = ""): ...
 ```
 
-## Request Parameters
+## Parâmetros da requisição
 
-Handler functions can receive additional parameters, which will be extracted from
-the request using an implementation of `selva.web.FromRequest[T]`.
-If there is no direct implementation of `FromRequest[T]`, Selva will iterate
-over the base types of `T` until an implementation is found or an error will
-be returned if there is none.
+Funções tratadoras podem receber parâmetros adicionais, os quais serão extraídos
+da requisição utilizando uma implementação de `selva.web.FromRequest[T]`.
+Se n5ão houver uma implementação direta de `FromRequest[T]`, Selva procurará nos
+tipos base de `T` até que uma implementação seja encontrada ou um erro será retornado.
 
-You can use the `register_from_request` decorator to register an `FromRequest` implementation.
+Você pode usar o decorador `register_from_request` para registrar uma implementação
+de `FromRequest`.
 
 ```python
 from asgikit.requests import Request
@@ -224,11 +225,12 @@ async def handler(request: Request, param: Param):
     await respond_text(request.response, param.request_path)
 ```
 
-If the `FromRequest` implementation raise an error, the handler is not called.
-And if the error is a subclass of `selva.web.error.HTTPError`, for instance
-`HTTPUnauthorizedException`, a response will be produced according to the error.
+Se a implementação de `FromRequest` lançar um erro, o tratador não é chamado.
+E se o erro for uma subclassse de `selva.web.error.HTTPError`, por exemplo `HTTPUnauthorizedException`,
+uma resposta será produzida de acordo como o erro.
 
 ```python
+# ...
 from selva.web.exception import HTTPUnauthorizedException
 
 
@@ -247,15 +249,15 @@ class ParamFromRequest:
         return Param(context.path)
 ```
 
-### Annotated parameters
+### Parâmetros anotados
 
-If the parameter is annotated (`Annotated[T, U]`) the framework will look for an
-implementation of `FromRequest[U]`, with `T` being passed as the `original_type`
-parameter and `U` as the `metadata` parameter.
+Se o parâmetro for anotado (`Annotated[T, U]`) o framework procurará for uma implementação
+de `FromRequest[U]`, com `T` sendo passado como o parâmetro `original_type` e `U`
+como o parâmetro `metadata`.
 
 ### Pydantic
 
-Selva already implements `FromRequest[pydantic.BaseModel]` by reading the request
-body and parsing the input into the pydantic model, if the content type is json
-or form, otherwise raising an `HTTPError` with status code 415. It is also implemented
-for `list[pydantic.BaseModel]`.
+Selva já implementa `FromRequest[pydantic.BaseModel]` lendo o corpo da requisição
+e carregando os dados no modelo pydantic, se o tipo de conteúdo for json ou formulário,
+caso contrário será lançado um `HTTPError` com código de status 415. Também é fornecida
+uma implementação para `list[pydantic.BaseModel]`.

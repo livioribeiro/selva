@@ -14,9 +14,18 @@ plugins:
           default: true
           name: English
           build: true
+          link: /
         - locale: pt
           name: Português
           build: true
+          link: /pt/
+          nav_translations:
+            Extensions: Extensões
+            Databases: Bancos de Dados
+          admonition_translations:
+            tip: Dica
+            note: Nota
+            attention: Atenção
 
 theme:
   name: material
@@ -72,6 +81,6 @@ nav:
       - extensions/data/sqlalchemy.md
       - extensions/data/redis.md
       - extensions/data/memcached.md
-    - Template Engines:
+    - Template:
       - extensions/templates/jinja.md
       - extensions/templates/mako.md

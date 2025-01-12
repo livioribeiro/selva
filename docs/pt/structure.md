@@ -1,21 +1,21 @@
 # Estrutura do projeto
 
-In a Selva project, you need to define at least the `application`.
+Em um projeto Selva, você precisa definir pelo menos o `application`.
 
-It can be a Python module or package and represents the main code of the project.
-Any handlers and services defined under it will be discovered and registered.
+Pode ser um módulo ou um pacote Python e representa o código principal do projeto.
+Quaisquer tratadores e serviços definidos sob ele serão descobertos e registrados.
 
-If your project is small, you can just define the `aplication.py` module, but you
-can have any structure you need inside the `application` package.
+Se o seu projeto é pequeno, você pode apenas definir o módulo `application.py`,
+mas você pode ter qualquer estrutura que quiser dentro do pacote `application`.
 
-For example:
+Por exemplo:
 
 ```
-# minimal
+# mínimo
 project/
 └── application.py
 
-# with modules
+# com módulos
 project/
 └── application/
     ├── __init__.py
@@ -24,7 +24,7 @@ project/
     ├── repository.py
     └── service.py
 
-# complex structure
+# estrutura complexa
 project/
 └── application/
     ├── __init__.py

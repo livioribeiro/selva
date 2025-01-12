@@ -2,10 +2,11 @@
 
 ## Overview
 
-Handlers are functions responsible for handling requests through handler methods.
-They are defined using the `@get`, `@post`, `@put`, `@patch`, `@delete` and `@websocket` decorators.
+Handlers are functions responsible for handling received requests.
+They are defined using the `@get`, `@post`, `@put`, `@patch`, `@delete` and `@websocket`
+decorators.
 
-Handler methods must receive, at least, the `Request` as the first parameter.
+Handlers must receive, at least, the request object as the first parameter.
 It is not needed to annotate the request parameter, but it should be the first parameter.
 
 ```python
@@ -62,7 +63,7 @@ The [routing section](routing.md) provides more information about path parameter
 
 ## Responses
 
-Inheriting the `asgikit.responses.Response` from `asgikit`, the handler methods
+Inheriting the `asgikit.responses.Response` from `asgikit`, the handler functions
 do not return a response, instead they write to the response.
 
 ```python
@@ -172,7 +173,7 @@ async def read_form(request: Body | Request) -> dict[str, str | multipart.File]:
 
 ## Websockets
 
-For websocket, there are the following methods:
+For websockets, there are the following functions:
 
 ```python
 from collections.abc import Iterable
