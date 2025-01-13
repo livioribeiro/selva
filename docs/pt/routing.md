@@ -1,11 +1,11 @@
 # Roteamento
 
-Routing is defined by the decorators in the handler functions.
+Roteamento é definido pelos decoradores nas funções tratadoras.
 
-## Path parameters
+## Parâmetros de caminho
 
-Parameters can be defined in the handler's path using the syntax `:parameter_name`,
-where `parameter_name` must be the name of the argument on the handler's signature.
+Parâmetros podem ser definidos no caminho dos tratadores utilizando a sintaxe `:parameter_name`,
+onde `parameter_name` deve ser o nome do argumento na assinatura do tratador.
 
 ```python
 from typing import Annotated
@@ -19,15 +19,15 @@ async def handler(request: Request, name: Annotated[str, FromPath]):
     await respond_text(request.response, f"Hello, {name}!")
 ```
 
-Here was used `Annotated` and `FromPath` to indicated that the handler argument
-is to be bound to the parameter from the request path. More on that will be explained
-in the following sections.
+Aqui foi usado `Annotated` e `FromPath` para indicar que o argumento do tratador
+deve ser vinculado ao parâmetro do caminho da requisição. Mais sobre isso será explicado
+nas seções seguintes.
 
-## Path matching
+## Correspondência de caminho
 
-The default behavior is for a path parameter to match a single path segment.
-If you want to match the whole path, or a subpath of the request path,
-use the syntax `*parameter_name`.
+O comportamento padrão é o parâmetro de caminho corresponder a apenas um único seguimento.
+Se você quiser corresponder ao caminho completo, ou a um subcaminho do caminho da
+requisição, utilize a sintaxe `*parameter_name`.
 
 ```python
 from typing import Annotated
@@ -42,21 +42,21 @@ async def handler(request: Request, path: Annotated[str, FromPath]):
     await respond_text(request.response, f"Hello, {name}!")
 ```
 
-For a request like `GET hello/Python/World`, the handler will output
+Para uma requisição como `GET hello/Python/World`, o tratador retornará
 `Hello, Python World!`.
 
-You can mix both types of parameters with no problem:
+Você pode combinar ambos os tipos de parâmetros sem problemas:
 
 - `*path`
 - `*path/literal_segment`
 - `:normal_param/*path`
 - `:normal_param/*path/:other_path`
 
-## Parameter conversion
+## Conversão de parâmetros
 
-Parameter conversion is done through the type annotation on the parameter. The framework
-will try to find a converter suitable for the parameter type and then convert
-the value before calling the handler method.
+A conversão de parâmetros é realizada através de anotações de tipo nos parâmetros.
+O framework tentará encontrar um conversor adequado ao tipo do parâmetro e então
+converter o valor antes de chamar o tratador.
 
 ```python
 from typing import Annotated
@@ -70,17 +70,17 @@ async def handler(request: Request, amount: Annotated[int, FromPath]):
     await respond_json(request.response, {f"repeat {i}": i for i in range(amount)})
 ```
 
-The framework will look for a service implementing `selva.web.converter.from_request.FromRequest[FromPath]`
-in order to get the data from the request, then this service will look for a converter,
-a service implementing `selva.web.converter.Converter[str, int]` to convert the
-data to the requested type.
+O framework procurará por um serviço que implementa `selva.web.converter.from_request.FromRequest[FromPath]`
+para recuperar os dados da requisição, então esse serviço procurará por um conversor,
+um serviço que implementa `selva.web.converter.Converter[str, int]` para converter
+os dados para o tipo requisitado.
 
-Selva already provide converters for the types `str`, `int`, `float`, `bool` and `pathlib.PurePath`.
+Selva provê conversores para os tipos `str`, `int`, `float`, `bool` e `pathlib.PurePath`.
 
-## Custom parameter conversion
+## Coversão de parâmetros customizada
 
-Conversion can be customized by providing an implementing of `selva.web.converter.Converter`.
-You normally use the shortcut decorator `selva.web.converter.decorator.register_converter.`
+A conversão pode ser customizada ao prover uma implementação de `selva.web.converter.Converter`.
+Você normalmente utilizará como atalho o decorador `selva.web.converter.decorator.register_converter.`
 
 ```python
 from dataclasses import dataclass
@@ -104,10 +104,10 @@ class MyModelParamConverter:
 
 
 @get("/:model")
-async def handler(self, request: Request, model: Annotated[MyModel, FromPath]):
+async def handler(request: Request, model: Annotated[MyModel, FromPath]):
     await respond_text(request.response, str(model))
 ```
 
-If the `Converter` implementation raise an error, the handler is not called.
-And if the error is a subclass of `selva.web.error.HTTPError`, for instance
-`HTTPUnauthorizedException`, a response will be produced according to the error.
+Se a implementação de `Converter` lançar um erro, o tratador não será chamado.
+E se o erro for uma subclasse de `selva.web.error.HTTPError`, por exemplo,
+`HTTPUnauthorizedException`, uma resposta será produzida de acordo com o erro.
