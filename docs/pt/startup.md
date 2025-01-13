@@ -1,8 +1,8 @@
-# Lifecycle hooks
+# Funções de inicialização
 
-Selva provides decorators to mark functions as hooks that will be called when the
-application starts. The functions will be called in the order they are discovered
-and if any of them raise en error, the application will not start.
+Selva provê decoradores para marcas funções como ganchos que serão chamadas quando
+a aplicação iniciar. As funções serão chamadas na ordem em que foram descobertas
+e, se alguma lançar um erro, a aplicação não será iniciada.
 
 ```python
 from selva.web import startup
@@ -13,8 +13,8 @@ def my_startup_hook():
     ...
 ```
 
-Startup functions can receive services as parameters through the dependency injection
-system.
+Funções de inicialização podem receber serviços como parâmetros através do sistema
+de injeção de dependências.
 
 ```python
 from selva.di import service
@@ -32,7 +32,7 @@ async def my_startup_hook(oidc_service: OIDCService):
     await oidc_service.oidc_discovey()
 ```
 
-You can use the `Inject` annotation if you need a named service.
+Você pode usar a anotação `Inject` se precisar de um serviço nomeado.
 
 ```python
 from typing import Annotated

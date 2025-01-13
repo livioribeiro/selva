@@ -67,7 +67,8 @@ nav:
   - tutorial.md
   - structure.md
   - handlers.md
-  - lifecycle.md
+  - startup.md
+  - background.md
   - routing.md
   - services.md
   - configuration.md
