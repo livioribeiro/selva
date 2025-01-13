@@ -105,33 +105,27 @@ class Selva:
             )
 
     async def _lifespan_startup(self):
+        await self._initialize_extensions()
+        await self._initialize_middleware()
+
         for hook in self.startup:
             await call_with_dependencies(self.di, hook)
 
         for hook in self.background_services:
-
-            async def wrapper():
-                try:
-                    await call_with_dependencies(self.di, hook)
-                except asyncio.CancelledError:
-                    pass
-
-            task = asyncio.create_task(wrapper())
+            task = asyncio.create_task(call_with_dependencies(self.di, hook))
             self._background_services.add(task)
 
-            def done_callback(task):
-                if err := task.exception():
-                    raise err
-                self._background_services.discard(task)
+            def done_callback(done):
+                if err := done.exception():
+                    logger.exception(err, exc_info=err)
+                self._background_services.discard(done)
 
             task.add_done_callback(done_callback)
 
-        await self._initialize_extensions()
-        await self._initialize_middleware()
-
     async def _lifespan_shutdown(self):
         for task in self._background_services:
-            task.cancel()
+            if not task.done():
+                task.cancel()
 
         await self.di.run_finalizers()
 
