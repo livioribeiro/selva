@@ -1,11 +1,10 @@
 # Configuração
 
-Settings in Selva are handled through YAML files.
-Internally it uses [ruamel.yaml](https://yaml.readthedocs.io),
-so it supports YAML 1.2.
+Configurações em Selva são definidas através de arquivos YAML. Internamente é utilizado
+a biblioteca [ruamel.yaml](https://yaml.readthedocs.io), então YAML 1.2 é suportado.
 
-Settings files are located by default in the `configuration` directory with the
-base name `settings.yaml`:
+Arquivos de configuração são localizados por padrão no diretório `configuration`
+com o nome base de `settings.yaml`:
 
 ```
 project/
@@ -17,10 +16,9 @@ project/
     └── settings_prod.yaml
 ```
 
-## Accessing the configuration
+## Acessando as configurações
 
-The configuration values can be accessed by injecting `selva.configuration.Settings`.
-
+Os valores de configuração pode ser acessados ao injetar `selva.configuration.Settings`.
 
 ```python
 from typing import Annotated
@@ -33,8 +31,8 @@ class MyService:
     settings: Annotated[Settings, Inject]
 ```
 
-The `selva.configuration.Settings` is a dict like object that can also be accessed
-using property syntax:
+O objeto `Settings` funciona como um `dict` que pode ser acessado com a sintaxe
+de acesso à propriedades:
 
 ```python
 from selva.configuration import Settings
@@ -44,10 +42,11 @@ assert settings["config"] == "value"
 assert settings.config == "value"
 ```
 
-### Typed settings
+### Configurações tipadas
 
-Configuration loaded from are all `dict`s. However, we can use `pydantic` and Selva
-dependency injection system to provide access to settings in a more typed manner:
+Configurações carregadas de arquivos YAML são todos `dict`. Entretando, nós podemos
+utilizar o `pydantic` e o sistema de injeção de dependências para prover acesso
+às configurações de uma forma mais tipada.
 
 === "application.py"
 
@@ -75,40 +74,42 @@ dependency injection system to provide access to settings in a more typed manner
       bool_property: true
     ```
 
-## Environment substitution
+## Substituição de ambiente
 
-The settings files can include references to environment variables that takes the
-format `${ENV_VAR:default_value}`. The default value is optional and an error will
-be raised if neither the environment variable nor the default value are defined.
+Os arquivos de configurações podem incluir referências a variáveis de ambiente no
+formato `${ENV_VAR:default_value}`. O valor padrão é opcional e um erro será lançado
+se ambos variável de ambiente e valor padrão não forem definidos.
 
 ```yaml
-required: ${ENV_VAR}         # required environment variable
-optional: ${OPT_VAR:default} # optional environment variable
+required: ${ENV_VAR}         # variável de ambiente requerida
+optional: ${OPT_VAR:default} # variável de ambiente opcional
 ```
 
-## Profiles
+## Perfis
 
-Optional profiles can be activated by settings the environment variable `SELVA_PROFILE`.
-The framework will look for a file named `settings_${SELVA_PROFILE}.yaml` and merge
-the values with the main `settings.yaml`. Values from the profile settings take
-precedence over the values from the main settings.
+Perfis opcionais podem ser ativados ao definir a variável de ambiente `SELVA_PROFILE`.
+O framework procurará por um arquivos chamado `settings_${SELVA_PROFILE}.yaml` e
+combinará os valores com aqueles do `settings.yaml`. Valores do perfil tem precedência
+sobre os valores da configuração principal.
 
-As an example, if we define `SELVA_PROFILE=dev`, the file `settings_dev.yaml` will
-be loaded. If instead we define `SELVA_PROFILE=prod`, then the file `settings_prod.yaml`
-will be loaded.
+Por exemplo, se nós definirmos `SELVA_PROFILE=dev`, o arquivos `settings_dev.yaml`
+será carregado. Mas se ao invés nós definirmos `SELVA_PROFILE=prod`, então o arquivo
+`settings_prod.yaml` será carregado.
 
-Multiple profiles can be activated by setting `SELVA_PROFILE` with a comma separated
-list of profiles, for example `SELVA_PROFILE=dev,prod`. The framework will iterate
-over the list and merge the settings found on each one. The precedence is from last
-to first, so settings from one profile overwrite settings from the previous ones.
+Múltiplos perfis podem ser ativados ao definir `SELVA_PROFILE` com uma lista separada
+por vírgula de pergis, por exemplo `SELVA_PROFILE=dev,prod`. O framework vai iterar
+pela lista de combinar as configurações encontradas em cada um. A precedêcia é do
+último para o primeiro, então as configurações do primeiro perfil sobrescrevem as
+do perfil anterior.
 
-## Environment variables
+## Variáveis de ambiente
 
-Settings can also be defined with environment variables whose names start with `SELVA__`,
-where subsequent double undercores (`__`) indicates nesting (variable is a mapping).
-Also, variable names will be lowercased.
+Configurações também podem ser definidas em variáveis de ambiente cujos nomes começam
+com `SELVA__`, onde subsequentes _underscores_ duplos (`__`) indicam aninhamento
+(a variável é um mapeamento). Além disso, nomes de variáveis serão transformados em
+letras minúsculas.
 
-For example, consider the following environment variables:
+Por exemplo, considere as seguintes variáveis de ambiente:
 
 ```dotenv
 SELVA__PROPERTY=1
@@ -116,7 +117,7 @@ SELVA__MAPPING__PROPERTY=2
 SELVA__MAPPING__ANOTHER_PROPERTY=3
 ```
 
-Those variables will be collected as the following:
+Essas variáveis serão coletadas da seguinte forma:
 
 ```python
 {
@@ -130,9 +131,9 @@ Those variables will be collected as the following:
 
 ### DotEnv
 
-If running you project using `selva.run.app`, for example `uvicorn selva.run:app`,
-environment variables can be loaded from a `.env` file. The parsing is done using
-the [python-dotenv](https://pypi.org/project/python-dotenv/) library.
+Se estiver executando seu projeto usando `selva.run:app`, por exemplo, `uvicorn selva.run:app`,
+variáveis de ambiente seráo carregadas do arquivo `.env`. O _parsing_ é realizado
+com a biblioteca [python-dotenv](https://pypi.org/project/python-dotenv/).
 
-By default, a `.env` file in the current working directory will be loaded, but it
-can be customized with the environment variable `SELVA_DOTENV` pointing to a `.env` file.
+Por padrão, o arquivos`.env` no diretório atual será carregado, mas ele pode ser
+customizado com a variável de ambiente `SELVA_DOTENV` apontando para o arquivo `.env`.

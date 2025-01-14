@@ -21,7 +21,6 @@ project/
 
 The configuration values can be accessed by injecting `selva.configuration.Settings`.
 
-
 ```python
 from typing import Annotated
 from selva.configuration import Settings
@@ -33,7 +32,7 @@ class MyService:
     settings: Annotated[Settings, Inject]
 ```
 
-The `selva.configuration.Settings` is a dict like object that can also be accessed
+The `Settings` object is a `dict` like object that can also be accessed
 using property syntax:
 
 ```python
@@ -46,8 +45,9 @@ assert settings.config == "value"
 
 ### Typed settings
 
-Configuration loaded from are all `dict`s. However, we can use `pydantic` and Selva
-dependency injection system to provide access to settings in a more typed manner:
+Configuration loaded from YAML files are all `dict`s. However, we can use `pydantic`
+and the dependency injection system to provide access to settings in a more typed
+manner:
 
 === "application.py"
 
@@ -88,7 +88,7 @@ optional: ${OPT_VAR:default} # optional environment variable
 
 ## Profiles
 
-Optional profiles can be activated by settings the environment variable `SELVA_PROFILE`.
+Optional profiles can be activated by setting the environment variable `SELVA_PROFILE`.
 The framework will look for a file named `settings_${SELVA_PROFILE}.yaml` and merge
 the values with the main `settings.yaml`. Values from the profile settings take
 precedence over the values from the main settings.
