@@ -1,10 +1,8 @@
 # Serviços
 
-Services are types registered with the dependency injection container that can be
-injected in other services and handlers.
-
-They can be defined as classes or functions decorated with `@service`. Classes have
-dependencies as annotations while functions have dependencies as parameters.
+Serviços são tipos registrados no contêiner de injeção de dependências que podem
+ser injetados em outros serviços e tratadores. Eles são definidos com o decorador
+`@service`.
 
 ```python
 from typing import Annotated
@@ -40,9 +38,9 @@ async def other_factory(dependency: SomeClass) -> OtherClass:
     return OtherClass(dependency)
 ```
 
-## Service classes
+## Serviços como classes
 
-Services defined as classes have dependencies as class annotations.
+Serviços definidos como classes tem dependências como anotações da classe.
 
 ```python
 from typing import Annotated
@@ -51,20 +49,25 @@ from selva.di import Inject, service
 
 @service
 class MyService:
-    property: Annotated[OtherService, Inject]
+    pass
+
+
+@service
+class OtherService:
+    property: Annotated[MyService, Inject]
 ```
 
-When the service type is requested in the dependency injection container, the class
-will be inspected for the annotated dependencies that will be created and then injected
-into the requested service.
+Quando um serviço de um tipo é requisitado no contêiner de injeção de dependências,
+a classe será inspecionada pelas dependências anotadas que serão criadas e injetadas
+no serviço requisitado.
 
-Annotations without `Inject` will be ignored.
+Anotações sem `Inject` serão ignoradas.
 
-### Initializers and finalizers
+### Inicializadores e finalizadores
 
-Optionally, service classes can define two methods: `initialize()`, that will be
-called after service creation and dependency injection; and `finalize()`, that will
-be called on application shutdown.
+Opcionalmente, classes de serviços podem definir dois métodos: `initialize()`, que
+será chamado após a criação do serviço e injeção das dependências; e `finalize()`,
+que será chamado na finalização da aplicação.
 
 ```python
 from selva.di import service
@@ -73,18 +76,18 @@ from selva.di import service
 @service
 class MyService:
     async def initialize(self):
-        """perform initialization logic"""
+        """executa lógica de inicialização"""
 
     async def finalize(self):
-        """perform finalization logic"""
+        """executa lógica de finalização"""
 ```
 
-The `initialize()` and `finalize()` methods do not need to be async.
+Os métodos `initialize()` e `finalize()` não precisam ser `async`.
 
-### Services providing an interface
+### Serviços que proveem uma interface
 
-You can have services that provide an interface instead of their own type, so we
-request the interface as dependency instead of the concrete type.
+Você pode ter serviços que proveem uma interface ao invés do seu próprio tipo, de
+forma que você requisita a interface como dependência ao invés do tipo concreto.
 
 ```python
 from typing import Annotated
@@ -106,14 +109,14 @@ class OtherService:
     dependency: Annotated[Interface, Inject]
 ```
 
-When `OtherService` is created, the dependency injection container look for a dependency
-of type `Interface` and will produce an instance of the `MyService` class.
+Quando `OtherService` for criado, o contêiner de injeção de dependências procurará
+por um serviço do tipo `Interface` e produzirá uma instância da classe `MyService`.
 
-### Named services
+### Serviços nomeados
 
-Services can be registered with a name, so you can have more than one service of
-the same type, given they have distinct names. Without a name, a service is registered
-as the default for that type.
+Serviços podem ser registrados com um nome, de forma que você pode ter mais de um
+serviço do mesmo tipo, desde que tenham nomes distintos. Sem um nome, o serviço
+é registrado como o padrão para aquele tipo.
 
 ```python
 from typing import Annotated
@@ -138,16 +141,21 @@ class OtherService:
     dependency_b: Annotated[Interface, Inject(name="B")]
 ```
 
-### Optional dependencies
+### Dependências opcionais
 
-If a requested dependency is not registered, an error is raised, unless there is
-a default value declared, in the case the property will have that value when the
-service is created.
+Se uma dependência requisitada não for registrada, um erro é lançado, a não ser
+que haja um valor padrão declarado, onde a propriedade terá esse valor quando o
+serviço for criado.
 
 ```python
 from typing import Annotated
 
 from selva.di import Inject, service
+
+
+@service
+class SomeService:
+    pass
 
 
 @service
@@ -159,10 +167,10 @@ class MyService:
             ...
 ```
 
-## Services as factory functions
+## Serviços como funções geradoras
 
-In order to register a type that we do not own, for example, a type from an external
-library, we can use a factory function:
+Para registrar um tipo que nós não temos controle, por exemplo, um tipo de uma biblioteca
+externa, nós podemos uma uma função geradora:
 
 ```python
 from selva.di import service
@@ -174,15 +182,15 @@ async def some_class_factory() -> SomeClass:
     return SomeClass()
 ```
 
-The return type annotation is required in factory functions, as that will be the
-service provided by function. If the return type annotation is not provided, an
-error is raised.
+A anotação de tipo de retorno é requirida em funções geradoras, já que esta será o
+serviço provido pela função. Se a anotação de tipo de retorno não for provida, um
+erro será lançado.
 
-The value of the parameter `provides` in `@service` is ignored when decorating a
-factory function, and a warning will be raised.
+O valor do parâmetro `provides` em `@service` é ignorado quando estiver decorando
+uma função geradora, e um _warning_ será lançado.
 
-Factory function parameters do not need the `Inject` annotation, unless they need
-to specify a named dependency:
+Parâmetros de funções geradoras não precisam da anotação `Inject`, a não ser que elas
+precisem especificar uma dependência nomeada.
 
 ```python
 from typing import Annotated
@@ -199,13 +207,17 @@ async def some_class_factory(
     return SomeClass()
 ```
 
-### Initialization and finalization
+### Inicialização e finalização
 
-To perform initialization on factory functions, you just execute the logic before
-returning the service.
+Para executar inicialização em funções geradoras, você apenas executa a lógica antes
+de retornar o serviço.
 
 ```python
 from selva.di import service
+
+
+class SomeClass:
+    pass
 
 
 @service
@@ -215,11 +227,15 @@ async def factory() -> SomeClass:
     return some_service
 ```
 
-To perform finalization, you convert your factory function into a generator by `yield`ing
-the object and executing the finalization logic afterward.
+Para executar finalização, você usa `yield` ao invés de `return` e executa a lógica
+de finalização logo após
 
 ```python
 from selva.di import service
+
+
+class SomeClass:
+    pass
 
 
 @service
@@ -230,9 +246,9 @@ async def factory() -> SomeClass:
     # perform finalization logic
 ```
 
-### Named services
+### Serviços nomeados
 
-Named services work the same as in service classes.
+Serviços nomeados funcionam da mesma forma que nas classes.
 
 ```python
 from typing import Annotated
@@ -252,10 +268,10 @@ class MyService:
     dependency: Annotated[SomeClass, Inject(name="service_name")]
 ```
 
-### Optional dependencies
+### Dependências opcionais
 
-Optional dependencies work the same as in service classes, in that you specify a
-default value for the argument.
+Dependências opcionais funcionam da mesma forma que nas classes, onde você especifica
+um valor padrão para o argumento.
 
 ```python
 from typing import Annotated

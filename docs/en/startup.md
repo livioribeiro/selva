@@ -48,6 +48,8 @@ class OIDCService:
 
 
 @startup
-async def my_startup_hook(oidc_service: Annotated[OIDCService, Inject(name="provider")]):
+async def my_startup_hook(
+    oidc_service: Annotated[OIDCService, Inject(name="provider")]
+):
     await oidc_service.oidc_discovey()
 ```

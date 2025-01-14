@@ -6,8 +6,6 @@ import structlog
 from asgikit.requests import Request
 from asgikit.responses import respond_status
 
-from .auth import User
-
 logger = structlog.get_logger()
 
 

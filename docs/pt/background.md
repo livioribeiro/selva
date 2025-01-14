@@ -33,6 +33,9 @@ async def listen_channel(redis: Redis):
     async with redis.pubsub() as pubsub:
         await pubsub.psubscribe("chat")
         while True:
-            if message := await pubsub.get_message(ignore_subscribe_messages=True, timeout=None):
+            if message := await pubsub.get_message(
+                ignore_subscribe_messages=True,
+                timeout=None
+            ):
                 logger.info("chat", message=message["data"].decode())
 ```
