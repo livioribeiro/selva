@@ -1,15 +1,15 @@
-# Static and uploaded files
+# Arquivos estáticos e uploads
 
-The `static_files_middleware` and `uploaded_files_middleware` provide a way of serving
-static content and user uploaded files.
+Os middlewares `static_files_middleware` e `uploaded_files_middleware` provêem uma
+forma de servir conteúdo estático e uploads de usuários.
 
-There are two separate middlewares to allow distinct handling in the middleware
-pipeline. For example, you could set the uploaded files to be served after authorization,
-while the static files remain publicly accessible.
+Há dois middlewares separados que permitem tratamentos distintos na linha de middleware.
+Por exemplo, você poderia definir que os uploads deve ser servidos após autorização,
+enquanto os arquivos estáticos permanecer com acesso público.
 
-## Usage
+## Utilização
 
-First you need to activate the middlewares in the `settings.yaml`
+Primeiro você deve ativar os middlewares no `settings.yaml`.
 
 ```yaml
 middleware:
@@ -19,13 +19,13 @@ middleware:
   # ...
 ```
 
-After that, files located in the directories `resources/static` and `resources/uploads`
-will be served at `/static/` and `/uploads/`, respectively.
+Após isto, arquivos localizados nos diretórios `resources/static` e `resources/uploads`
+serão servidos em `/static/` e `/uploads/`, respectivamente.
 
-## Static files mappings
+## Mapeamentos de arquivos estáticos
 
-You can map specific paths to single static files in order to, for example, serve
-the favicon at `/favicon.ico` pointing to a file in `resources/static/`:
+Você pode mapear caminhos específicos para um arquivo estático em particular para,
+por exemplo, servir o favicon em `/favicon.ico` apontando para um arquivo em `resources/static/`:
 
 ```yaml
 middleware:
@@ -35,10 +35,10 @@ staticfiles:
     favicon.ico: my-icon.ico
 ```
 
-## Configuration options
+## Configurações
 
-The available options to configure the `static_files_middleware` and `uploaded_files_middleware`
-are shown below:
+As opções disponíveis para configurar `static_files_middleware` e `uploaded_files_middleware`
+são mostradas abaixo:
 
 ```yaml
 staticfiles:
@@ -51,7 +51,7 @@ uploadedfiles:
     root: resources/uploads # (4)
 ```
 
-1.  Path where static files are served
-2.  Directory where static files are located
-3.  Path where uploaded files are served
-4.  Directory where uploaded files are located
+1.  Caminho onde os arquivos estáticos são servidos
+2.  Diretório onde os arquivos estáticos são localizados
+3.  Caminho onde os uploads são servidos
+4.  Diretório onde os uploads são localizados

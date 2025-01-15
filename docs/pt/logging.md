@@ -1,24 +1,24 @@
 # Logging
 
-Selva uses [Structlog](https://www.structlog.org) for logging and provides
-some facilities on top of it to make its usage a bit closer to other frameworks
-like Spring Boot.
+Selva usa [Structlog](https://www.structlog.org) para logging e provê algumas facilidades
+para tornar seu uso mais próximo de outros frameworks como Spring Boot.
 
-It is integrated with the standard library logging, so libraries that use it are logged
-through Structlog. It also enables filtering by logger name using the standard library.
+Ele é integrado com o logging da biblioteca padrão, então bibliotecas que a usam
+realizarão logging com Structlog. Ele também permite filtrar pelo nome do logger
+usando a biblioteca padrão.
 
-## Why?
+## Porque?
 
-Nowadays, it is very likely that your application is deployed to a cloud and its
-logs are sent to an aggregator like Graylog, so a structured logging format seems
-to be the logical choice.
+Atualmente, é muito provável que sua aplicação seja implantada em uma nuvem e os
+logs enviados para um agregador como Greylog, então um formato de logging estruturado
+parece ser a escolha mais lógica.
 
-For more information on why use structured logging, refer to the
+Para mais informações sobre o porquê de usar logging estruturado, veja
 [Structlog documentation](https://www.structlog.org/en/stable/why.html).
 
-## Configure logging
+## Configure o logging
 
-Logging is configured in the Selva configuration:
+O logging é configurado através da configuração do Selva:
 
 ```yaml
 logging:
@@ -30,28 +30,30 @@ logging:
   setup: selva.logging.setup # (4)
 ```
 
-1.  Log level of the root logger.
-2.  Mapping of logger names to log level.
-3.  Log format. Possible values are `"json"`, `"logfmt"`, `"keyvalue""` and `"console"`.
+1.  Nível de log do logger raiz.
+2.  Mapa de nomes de loggers para o nível de log.
+3.  Formato do log. Possíveis valores são `"json"`, `"logfmt"`, `"keyvalue"` e `"console"`.
 4.  Setup function to configure logging.
 
-The `format` config defines which renderer will be used. The possible values map to:
+A configuração `format` define quanl _renderer_ será utilizado. Os possível valores
+apontam para o seguinte:
 
-| value    | renderer                                                 |
-|----------|----------------------------------------------------------|
+| value      | renderer                                                 |
+|------------|----------------------------------------------------------|
 | `json`     | `structlog.processors.JSONRenderer()`                    |
 | `logfmt`   | `structlog.processors.LogfmtRenderer(bool_as_flag=True)` |
 | `keyvalue` | `structlog.processors.KeyValueRenderer()`                |
 | `console`  | `structlog.dev.ConsoleRenderer()`                        |
 
-If not defined, `format` defaults to `"json"` if `sys.stderr.isatty() == False`,
-or `"console"` otherwise. This is done to use the `ConsoleRenderer` during development
-and the `JSONRenderer` when deploying to production.
+Se não definido, `format` terá o valor de `"json"` se `sys.stderr.isatty() == False`,
+caso contrário terá o valor `"console"`. Isto é feito para utilizar `ConsoleRenderer`
+em desenvolvimento e `JSONRenderer` quando implantado em produção
 
-## Manual logger setup
+## Definição manual do logger
 
-If you need full control of how Structlog is configured, you can provide a logger setup
-function. You just need to reference it in the configuration file:
+Se você precisar de controle total de como o Structlog é configurado, você pode
+fornecer uma função de definição de logger. Você precisa apenas referenciá-la no
+arquivo de configuração:
 
 === "configuration/settings.yaml"
 
@@ -71,5 +73,5 @@ function. You just need to reference it in the configuration file:
         structlog.configure(...)
     ```
 
-The setup function receives a parameter of type `selva.configuration.Settings`,
-so you can have access to the whole settings.
+A função de definição recebe um parâmetro do tipo `selva.configuration.Settings`,
+então você terá acesso a todas as configurações.

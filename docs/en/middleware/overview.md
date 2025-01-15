@@ -6,7 +6,11 @@ settings object and the dependency injection container and must return a plain a
 middleware instance:
 
 ```python
-def middleware_factory(app, settings, di): ...
+def middleware_factory(app, settings, di):
+    async def inner(scope, receive, send):
+        await app(scope, receive, send)
+
+    return inner
 ```
 
 Any asgi middleware can be used in the middleware pipeline. For instance, it is

@@ -32,13 +32,13 @@ logging:
 
 1.  Log level of the root logger.
 2.  Mapping of logger names to log level.
-3.  Log format. Possible values are `"json"`, `"logfmt"`, `"keyvalue""` and `"console"`.
+3.  Log format. Possible values are `"json"`, `"logfmt"`, `"keyvalue"` and `"console"`.
 4.  Setup function to configure logging.
 
 The `format` config defines which renderer will be used. The possible values map to:
 
-| value    | renderer                                                 |
-|----------|----------------------------------------------------------|
+| value      | renderer                                                 |
+|------------|----------------------------------------------------------|
 | `json`     | `structlog.processors.JSONRenderer()`                    |
 | `logfmt`   | `structlog.processors.LogfmtRenderer(bool_as_flag=True)` |
 | `keyvalue` | `structlog.processors.KeyValueRenderer()`                |
