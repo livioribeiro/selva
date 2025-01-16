@@ -5,7 +5,7 @@ The SQLAlchemy extension makes it easy to set up database connections, providing
 
 ## Usage
 
-Install SQLAlchemy extra and a database driver that supports async:
+Install `sqlalchemy` extra and a database driver that supports async:
 
 ```shell
 pip install selva[sqlalchemy] aiosqlite asyncpg aiomysql oracledb
@@ -107,7 +107,7 @@ data:
 
 ## Using environment variables
 
-It is a good pratctice to externalize configuration through environment variables.
+It is a good practice to externalize configuration through environment variables.
 We can either reference the variables in the configuration or use variables with
 the `SELVA__` prefix, for example, `SELVA__DATA__SQLALCHEMY__CONNECTIONS__DEFAULT__URL`.
 
@@ -160,6 +160,7 @@ configuration, otherwise it is bound to just the `default` connection.
     
     class Base(DeclarativeBase):
         pass
+    
     
     class OtherBase(DeclarativeBase):
         pass

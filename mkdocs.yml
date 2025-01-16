@@ -22,6 +22,7 @@ plugins:
           nav_translations:
             Extensions: Extensões
             Databases: Bancos de Dados
+            Overview: Visão Geral
           admonition_translations:
             tip: Dica
             note: Nota
@@ -82,6 +83,6 @@ nav:
       - extensions/data/sqlalchemy.md
       - extensions/data/redis.md
       - extensions/data/memcached.md
-    - Template:
+    - Templates:
       - extensions/templates/jinja.md
       - extensions/templates/mako.md

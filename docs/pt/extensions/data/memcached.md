@@ -1,17 +1,17 @@
 # Memcached
 
-This extension provides support for connecting to Memcached servers. It registers the
-`aiomcache.Client` service.
+Essa extensão provê suporte para conectar a servidores Memcached. Ela registra o
+serviço `aiomcache.Client`.
 
-## Usage
+## Utilização
 
-First install the `memcached` extra:
+Primeiro instale o extra `memcached`:
 
 ```shell
 pip install selva[memcached]
 ```
 
-Define the configuration properties:
+Defina as propriedade de configuração:
 
 === "configuration/settings.yaml"
 
@@ -27,11 +27,11 @@ Define the configuration properties:
           address: "localhost:11212"
     ```
 
-    1.  Activate the extension
-    2.  "default" connection will be registered without a name
-    3.  Connection registered with name "other"
+    1.  Ativar a extensão
+    2.  A conexão "default" será registrada sem um nome
+    3.  Conexão registrada com nome "other"
 
-Inject the `aiomcache.Client` service:
+Injete o serviço `aiomcache.Client`:
 
 ```python
 from typing import Annotated
@@ -48,7 +48,7 @@ class MyService:
     other_memcached: Annotated[Memcached, Inject(name="other")]
 ```
 
-## Using environment variables
+## Utilizando variáveis de ambiente
 
 === "configuration/settings.yaml"
 
@@ -59,9 +59,9 @@ class MyService:
           address: "${MEMCACHED_ADDR}" # (1)
     ```
     
-    1.  Can be define with just the environment variable `SELVA__DATA__MEMCACHED__DEFAULT__ADDRESS`
+    1.  Pode ser definido com a variável de ambiente `SELVA__DATA__MEMCACHED__DEFAULT__ADDRESS`
 
-## Example
+## Examplo
 
 === "application/handler.py"
 
@@ -92,12 +92,12 @@ class MyService:
           address: "localhost:11211"
     ```
 
-## Configuration options
+## Opções de configuração
 
-Selva offers several options to configure Redis. If you need more control over
-the Memcached service, you can create your own `aiomcache.Client` service.
+Selva oferece várias opções para configurar Memcached. Se você precisar de mais
+controle sobre o serviço do Memcached, você pode criar o seu próprio serviço `aiomcache.Client`.
 
-The available options are shown below:
+As opções disponíveis são exibidas abaixo:
 
 ```yaml
 data:
@@ -107,7 +107,11 @@ data:
       options:
         pool_size: 10
         pool_minsize: 1
-        get_flat_handler: "package.module.function" # dotted path to a python function
-        set_flat_handler: "package.module.function" # dotted path to a python function
-        conn_args: "package.module:variable" # dotted path to a python variable
+        get_flat_handler: "package.module.function" # (1)
+        set_flat_handler: "package.module.function" # (2)
+        conn_args: "package.module:variable" # (3)
 ```
+
+1.  caminho para uma função python
+2.  caminho para uma função python
+3.  caminho para uma variável python

@@ -1,17 +1,17 @@
 # Redis
 
-This extension provides support for connecting to Redis servers. It registers the
-`redis.asyncio.Redis` service.
+Esta extensão provê suporte para conectar a servidores Redis. Ela registra o serviço
+`redis.asyncio.Redis`.
 
-## Usage
+## Utilização
 
-First install the `redis` extra:
+Primeiro instale o extra `redis`:
 
 ```shell
 pip install selva[redis]
 ```
 
-Define the configuration properties:
+Defina as propriedades de configuração:
 
 === "configuration/settings.yaml"
 
@@ -27,11 +27,11 @@ Define the configuration properties:
           url: redis://localhost:6379/1
     ```
 
-    1.  Activate the extension
-    2.  "default" connection will be registered without a name
-    3.  Connection registered with name "other"
+    1.  Ativar a extensão
+    2.  A conexão "default" será registrada sem um nome
+    3.  Conexão registrada com nome "other"
 
-Inject the `Redis` service:
+Injete o serviço `Redis`:
 
 ```python
 from typing import Annotated
@@ -48,8 +48,8 @@ class MyService:
     other_redis: Annotated[Redis, Inject(name="other")]
 ```
 
-Redis connections can also be defined with username and password separated from
-the url, or even with individual components:
+Conexões Redis também podem ser definidas com nome de usuário e senha separados
+da url, ou até como componentes individuais:
 
 === "configuration/settings.yaml"
 
@@ -69,10 +69,10 @@ the url, or even with individual components:
           password: pass
     ```
 
-    1.  Username and password separated from the redis url
-    2.  Each component defined individually
+    1.  Nome de usuário e senha separados da url
+    2.  Cada componente definido individualmente
 
-## Using environment variables
+## Utilizando variáveis de ambiente
 
 === "configuration/settings.yaml"
 
@@ -95,19 +95,19 @@ the url, or even with individual components:
           password: "${REDIS_PASSWORD}"
     ```
     
-    1.  Can be define with just the environment variable `SELVA__DATA__REDIS__DEFAULT__URL`
-    2.  Can be defined with just the environment variables:
+    1.  Pode ser definido com a variável de ambiente `SELVA__DATA__REDIS__DEFAULT__URL`
+    2.  Pode ser definido com as variáveis de ambiente:
         - `SELVA__DATA__REDIS__OTHER__URL`
         - `SELVA__DATA__REDIS__OTHER__USERNAME`
         - `SELVA__DATA__REDIS__OTHER__PASSWORD`
-    3.  Can be defined with just the environment variables:
+    3.  Pode ser definido com as variáveis de ambiente:
         - `SELVA__DATA__REDIS__ANOTHER__HOST`
         - `SELVA__DATA__REDIS__ANOTHER__PORT`
         - `SELVA__DATA__REDIS__ANOTHER__DB`
         - `SELVA__DATA__REDIS__ANOTHER__USERNAME`
         - `SELVA__DATA__REDIS__ANOTHER__PASSWORD`
 
-## Example
+## Exemplo
 
 === "application/handler.py"
 
@@ -136,12 +136,12 @@ the url, or even with individual components:
           url: "redis://localhost:6379/0"
     ```
 
-## Configuration options
+## Opções de configuração
 
-Selva offers several options to configure Redis. If you need more control over
-the Redis service, you can create your own `redis.asyncio.Redis` service.
+Selva ofecere várias opções para configura o Redis. Se você precisar de mais controle
+sobre o serviço Redis, você pode criar o seu próprio serviço `redis.asyncio.Redis`.
 
-The available options are shown below:
+As opções disponíveis são mostradas abaixo:
 
 ```yaml
 data:
@@ -163,7 +163,7 @@ data:
           TCP_KEEPINTVL: 100,
         unix_socket_path: ""
         encoding: ""
-        encoding_errors: "strict" # or "ignore", "replace"
+        encoding_errors: "strict" # ou "ignore", "replace"
         decode_responses: false
         retry_on_timeout: false
         retry_on_error: []
@@ -204,6 +204,6 @@ data:
               base: 1
 ```
 
-1.  `options` values are described in [`redis.asyncio.Redis`](https://redis.readthedocs.io/en/stable/connections.html#async-client).
-2.  Dotted path to python classes.
-3.  Only one option in `backoff` should be set.
+1.  Valores de `options` são descritos em [`redis.asyncio.Redis`](https://redis.readthedocs.io/en/stable/connections.html#async-client).
+2.  Caminho para classes python.
+3.  Apenas uma opção em `backoff` deve ser definida.

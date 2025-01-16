@@ -1,21 +1,21 @@
 # Extensões
 
-Extensions are python packages that provide additional functionality or integrate
-external libraries into the framework.
+Extensões são pacotes python que provêem funcionalidade adicional ou integram bibliotecas
+externas com o framework.
 
-Current builtin extensions are:
+As extensões providas são:
 
-- Databases
+- Bancos de dados
     - [SQLAlchemy](data/sqlalchemy.md)
     - [Redis](data/redis.md)
     - [Memcached](data/memcached.md)
-- Template engines
+- Templates
     - [Jinja](templates/jinja.md)
     - [Mako](templates/mako.md)
 
-## Activating extensions
+## Ativando extensões
 
-Extensions need to be activated in `settings.yaml`, in the `extensions` property:
+Extensões precisam ser ativada no `settings.yaml`, na propriedade `extensions`:
 
 ```yaml
 extensions:
@@ -23,11 +23,11 @@ extensions:
 - selva.ext.templates.jinja
 ```
 
-## Creating extensions
+## Criando extensões
 
-An extension is a python package or module that contains a function named `init_extension`
-with arguments `selva.di.Container` and `selva.configuration.Settings`. It is called
-during the startup phase of the application and may also be a coroutine.
+Uma extensão é um pacote ou módulo que contém uma função chamada `init_extension`
+que recebe os argumentos `selva.di.Container` e `selva.configuration.Settings`.
+Ela é chamada durante a inicialização da aplicação e pode ser uma função assíncrona.
 
 ```python
 from selva.configuration import Settings
@@ -36,9 +36,9 @@ from selva.di import Container
 async def init_extension(container: Container, settings: Settings):
     pass
 
-# # init_extension can also be sync
+# # init_extension não precisa ser assíncrona
 # def init_extension(container: Container, settings: Settings): ...
 ```
 
-The function can then access values in the settings object, register new services,
-retrieve the router service to register new routes, etc.
+A função pode então acessar valores no objeto de configuração, registrar serviços,
+recuperar o serviço roteador para registrar novas rotas, etc.
