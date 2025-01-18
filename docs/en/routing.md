@@ -56,7 +56,7 @@ You can mix both types of parameters with no problem:
 
 Parameter conversion is done through the type annotation on the parameter. The framework
 will try to find a converter suitable for the parameter type and then convert
-the value before calling the handler method.
+the value before calling the handler.
 
 ```python
 from typing import Annotated
@@ -104,7 +104,7 @@ class MyModelParamConverter:
 
 
 @get("/:model")
-async def handler(self, request: Request, model: Annotated[MyModel, FromPath]):
+async def handler(request: Request, model: Annotated[MyModel, FromPath]):
     await respond_text(request.response, str(model))
 ```
 

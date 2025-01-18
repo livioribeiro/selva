@@ -94,7 +94,7 @@ class MyService:
 
 ## Configuration options
 
-Selva offers several options to configure Redis. If you need more control over
+Selva offers several options to configure Memcached. If you need more control over
 the Memcached service, you can create your own `aiomcache.Client` service.
 
 The available options are shown below:
@@ -107,7 +107,11 @@ data:
       options:
         pool_size: 10
         pool_minsize: 1
-        get_flat_handler: "package.module.function" # dotted path to a python function
-        set_flat_handler: "package.module.function" # dotted path to a python function
-        conn_args: "package.module:variable" # dotted path to a python variable
+        get_flat_handler: "package.module.function" # (1)
+        set_flat_handler: "package.module.function" # (2)
+        conn_args: "package.module:variable" # (3)
 ```
+
+1.  dotted path to a python function
+2.  dotted path to a python function
+3.  dotted path to a python variable

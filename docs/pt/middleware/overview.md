@@ -1,16 +1,20 @@
 # Middleware
 
-The middleware pipeline is configured with the `middleware` configuration property.
-It must contain a list of functions that receive the next app in the pipeline, the
-settings object and the dependency injection container and must return a plain asgi
-middleware instance:
+A linha de pipeline é configurada com a propriedade de configuração `middleware`.
+Ela deve conter uma lista de funções que recebem a próxima aplicação na linha, o
+objeto de configurações e o contêiner de injeção de dependências e deve retornar
+uma instância de middleware asgi.
 
 ```python
-def middleware_factory(app, settings, di): ...
+def middleware_factory(app, settings, di):
+    async def inner(scope, receive, send):
+        await app(scope, receive, send)
+
+    return inner
 ```
 
-Any asgi middleware can be used in the middleware pipeline. For instance, it is
-possible to use the SessionMiddleware from starlette:
+Qualquer middleware asgi pode ser usado na linha de middleware. Por exemplo, é possível
+utilizar o SessionMiddleware do starlette:
 
 
 === "application/middleware.py"
@@ -33,10 +37,10 @@ possible to use the SessionMiddleware from starlette:
       secret_key: super_secret_key
     ```
 
-## Usage
+## Utilização
 
-To demonstrate the middleware system, we will create a timing middleware that will
-output to the console the time spent in the processing of the request:
+Para demonstrar o systema de middleware, nós criaremos um middleware temporizador
+que exibirá no console o tempo gasto no processamento da requisição::
 
 === "application/handler.py"
 
@@ -82,11 +86,11 @@ output to the console the time spent in the processing of the request:
       - application.middleware.timing_middleware
     ```
 
-## Middleware dependencies
+## Dependências do middleware
 
-Middleware functions can use the provided dependency injection container to get
-services the middleware might need. We could rewrite the timing middleware to persist
-the timings using a service instead of printing to the console:
+Funções de middleware pode usar o contêiner de injeção de dependências para recuperar
+serviços que o middleware possa precisar. Nós podemos reescrever o middleware temporizador
+para persistir os tempos usando um serviço ao invés de exibir no console:
 
 === "application/middleware.py"
 

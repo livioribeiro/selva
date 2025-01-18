@@ -1,10 +1,7 @@
 # Services
 
 Services are types registered with the dependency injection container that can be
-injected in other services and handlers.
-
-They can be defined as classes or functions decorated with `@service`. Classes have
-dependencies as annotations while functions have dependencies as parameters.
+injected in other services and handlers. They are defined with the decorator `@service`.
 
 ```python
 from typing import Annotated
@@ -51,7 +48,12 @@ from selva.di import Inject, service
 
 @service
 class MyService:
-    property: Annotated[OtherService, Inject]
+    pass
+
+
+@service
+class OtherService:
+    property: Annotated[MyService, Inject]
 ```
 
 When the service type is requested in the dependency injection container, the class
@@ -106,7 +108,7 @@ class OtherService:
     dependency: Annotated[Interface, Inject]
 ```
 
-When `OtherService` is created, the dependency injection container look for a dependency
+When `OtherService` is created, the dependency injection container look for a service
 of type `Interface` and will produce an instance of the `MyService` class.
 
 ### Named services
@@ -148,6 +150,11 @@ service is created.
 from typing import Annotated
 
 from selva.di import Inject, service
+
+
+@service
+class SomeService:
+    pass
 
 
 @service
@@ -208,6 +215,10 @@ returning the service.
 from selva.di import service
 
 
+class SomeClass:
+    pass
+
+
 @service
 async def factory() -> SomeClass:
     some_service = SomeClass()
@@ -215,11 +226,15 @@ async def factory() -> SomeClass:
     return some_service
 ```
 
-To perform finalization, you convert your factory function into a generator by `yield`ing
-the object and executing the finalization logic afterward.
+To perform finalization, you use the `yield` instead of `return` and execute the
+finalization logic afterward.
 
 ```python
 from selva.di import service
+
+
+class SomeClass:
+    pass
 
 
 @service

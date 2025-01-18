@@ -1,25 +1,24 @@
 # Jinja
 
-This extension provides support for Jinja templates.
+Esta estensão provê suport para templates Jinja.
 
-## Usage
+## Utilização
 
-To use jinja templates, first install the `jinja` extra:
+Para utilizar templates Jinja, primeiro instale o extra `jinja`:
 
 ```shell
 pip install selva[jinja]
 ```
 
-Then activate the extension:
+Depois ative a extensão no arquivo de configurações:
 
-=== "configuration/settings.yaml"
-    ```yaml
-    extensions:
-      - selva.ext.templates.jinja
-    ```
+```yaml
+extensions:
+  - selva.ext.templates.jinja
+```
 
-To render templates, inject the `selva.ext.templates.jinja.JinjaTemplate` dependency
-and call its `respond` method:
+Para renderizar templates, injet o a dependência `selva.ext.templates.jinja.JinjaTemplate`
+e chame o método `respond`:
 
 === "application.py"
 
@@ -50,25 +49,26 @@ and call its `respond` method:
     </html>
     ```
 
-## Render templates to string
+## Renderizar templates para string
 
-The `JinjaTemplate` class provide methods to render templates into a str, instead
-of rendering to the response.
+A classe `JinjaTemplate` provê métodos para renderizar templates para `str`, ao
+invés de renderizar para a resposta.
 
-The method `JinjaTempate.render` accepts a template name and returns a string with the
-rendered template.
+O método `JinjaTempate.render` aceita um nome de template e retorna uma string com
+o template renderizado.
 
-The method `JinjaTempate.render_str` accepts a template string, compiles it and returns
-the result.
+O método `JinjaTempate.render_str` aceita um template como string, o compila e retorna
+o resultado.
 
 ```python
 rendered = template.render("template.html", {"variable": "value"})
 rendered = template.render_str("{{ variable }}", {"variable": "value"})
 ```
 
-## Configuration
+## Configuração
 
-Jinja can be configured through the `settings.yaml`. For example, to activate Jinja extensions:
+Jinja pode ser configurado através do `settings.yaml`. Por exemplo, para ativar
+extensões do Jinja:
 
 ```yaml
 templates:
@@ -78,7 +78,7 @@ templates:
       - jinja2.ext.debug
 ```
 
-Full list of settings:
+Lista completa de configurações:
 
 ```yaml
 templates:
@@ -101,11 +101,16 @@ templates:
       - extension1
       - extensions2
     optimized: true
-    undefined: "package.module.Class" # dotted path to python class
-    finalize: "package.module.function" # dotted path to python function
-    autoescape: "package.module.function" # dotted path to python function
-    loader: "package.module.variable" # dotted path to python variable
+    # caminho para uma classe python
+    undefined: "package.module.Class"
+    # caminho para uma função python
+    finalize: "package.module.function"
+    # caminho para uma função python
+    autoescape: "package.module.function"
+    # caminho para uma variável python
+    loader: "package.module:variable"
     cache_size: 1
     auto_reload: true
-    bytecode_cache: "package.module.variable" # dotted path to python variable
+    # caminho para uma variável python
+    bytecode_cache: "package.module:variable"
 ```

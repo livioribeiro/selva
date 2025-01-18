@@ -9,7 +9,7 @@ We will create a greeting api that logs the greet requests.
 Before going any further, we need to install Selva and [Uvicorn](https://www.uvicorn.org/).
 
 ```shell
-pip install selva uvicorn
+pip install selva uvicorn[standard]
 ```
 
 ## Structure of the application
@@ -87,8 +87,8 @@ $ curl localhost:8000/hello/World
 {"greeting": "Hello, World!"}
 ```
 
-Right now our handler just get a name from the query string and responding with
-JSON data to the client.
+Right now our handler just get a name from the path and respond with JSON data to
+the client.
 
 ## Creating the Greeter service
 
@@ -135,11 +135,11 @@ will be injected into the handler we created previously.
 
 ## Adding a database
 
-Our greeting application is working fine, but we might want to add register
+Our greeting application is working fine, but we might want to register
 the greeting requests in a persistent database, for auditing purposes.
 
 To do this we need to create the database service and inject it into the
-Greeter service. For this we can use the [Databases](https://www.encode.io/databases/)
+`Greeter` service. For this we can use the [Databases](https://www.encode.io/databases/)
 library with SQLite support:
 
 ```shell
@@ -198,10 +198,10 @@ with `@service`, so in this case we need to create a factory function for it:
 
     2.  Inject the `Database` service in the `GreetingRepository`
 
-    3.  A method called `initialize` will be invoked after the service is
+    3.  A method called `initialize` will be called after the service is
         constructed in order to run any initialization logic
 
-    4.  A method called `finalize` will be invoked before the service is
+    4.  A method called `finalize` will be called before the service is
         destroyed in order to run any cleanup logic
 
 === "application/handler.py"

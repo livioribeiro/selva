@@ -1,14 +1,41 @@
 site_name: Selva
 site_description: Selva, elegant web framework
 site_url: https://livioribeiro.github.io/selva/
+repo_name: livioribeiro/selva
+repo_url: https://github.com/livioribeiro/selva
+edit_uri: ''
+
+plugins:
+  - search:
+  - i18n:
+      docs_structure: folder
+      languages:
+        - locale: en
+          default: true
+          name: English
+          build: true
+          link: /
+        - locale: pt
+          name: Português
+          build: true
+          link: /pt/
+          nav_translations:
+            Extensions: Extensões
+            Databases: Bancos de Dados
+            Overview: Visão Geral
+          admonition_translations:
+            tip: Dica
+            note: Nota
+            attention: Atenção
 
 theme:
   name: material
+  language: en
   palette:
     # Palette toggle for light mode
     - scheme: default
       primary: green
-      accent: light green
+      accent: orange
       toggle:
         icon: material/brightness-7
         name: Switch to dark mode
@@ -16,7 +43,7 @@ theme:
     # Palette toggle for dark mode
     - scheme: slate
       primary: green
-      accent: light green
+      accent: orange
       toggle:
         icon: material/brightness-4
         name: Switch to light mode
@@ -24,10 +51,6 @@ theme:
     - content.code.annotate
     - content.code.copy
     - content.code.select
-
-repo_name: livioribeiro/selva
-repo_url: https://github.com/livioribeiro/selva
-edit_uri: ''
 
 markdown_extensions:
   - admonition
@@ -45,6 +68,8 @@ nav:
   - tutorial.md
   - structure.md
   - handlers.md
+  - startup.md
+  - background.md
   - routing.md
   - services.md
   - configuration.md
@@ -58,6 +83,6 @@ nav:
       - extensions/data/sqlalchemy.md
       - extensions/data/redis.md
       - extensions/data/memcached.md
-    - Template Engines:
+    - Templates:
       - extensions/templates/jinja.md
       - extensions/templates/mako.md
