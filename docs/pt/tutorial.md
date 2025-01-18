@@ -37,7 +37,7 @@ project/
 ```
 
 E é isso! Um módulo ou pacote chamado `application` será automaticamente importado
-e escaneado para encontrar os tratadores e serviços.
+e escaneado para encontrar os handlers e serviços.
 
 Você ainda pode estruturar o `application` da forma que melhor te atender.
 
@@ -56,9 +56,9 @@ INFO:     Waiting for application startup.
 INFO:     Application startup complete.
 ```
 
-## Funções tratadoras
+## Handlers
 
-Funções tratadoras responderão a requisições HTTP ou WebSocket. Elas podem receber
+Handlers responderão a requisições HTTP ou WebSocket. Elas podem receber
 serviços através do sistema de injeção de dependências.
 
 === "application/handler.py"
@@ -74,11 +74,11 @@ serviços através do sistema de injeção de dependências.
         await respond_json(request.response, {"greeting": f"Hello, {name}!"})
     ```
 
-    1.  `@get("hello/:name")` define a função como um tratador no caminho informado.
+    1.  `@get("hello/:name")` define a função como um handler no caminho informado.
         Se um caminho não for fornecido, o caminho raiz ("/") será utilizado.
 
         `:name` define um parâmetro de caminho que será ligado ao parâmetro
-        `name` no tratador, indicado por `Annotated[str, FromPath]`.
+        `name` no handler, indicado por `Annotated[str, FromPath]`.
 
 E agora nós testamos se nosso handler está funcionando:
 

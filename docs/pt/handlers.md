@@ -1,12 +1,12 @@
-# Tratadores
+# Handlers
 
 ## Visão geral
 
-Tratadores são funções responsáveis por tratar as requisições recebidas.
+Handlers são funções responsáveis por tratar as requisições recebidas.
 Eles são definidos com os decoradores `@get`, `@post`, `@put`, `@patch`, `@delete`
 and `@websocket`.
 
-Tratadores devem receber, pelo menos, o objeto da requisição como primeiro parâmetro.
+Handlers devem receber, pelo menos, o objeto da requisição como primeiro parâmetro.
 Não é necessário anotar o parêmetro, mas ele deve ser o primeiro.
 
 ```python
@@ -33,8 +33,8 @@ async def handle_data(request: Request):
 !!! note
     Definir um caminho em `@get @post etc...` é opcional e tem valor padrão de string vazia `""`.
 
-Funções tratadoras podem ser definidas com parâmetros de caminho, que serão ligadas
-ao tratador com a anotação `FromPath`:
+Handlers podem ser definidas com parâmetros de caminho, que serão ligadas
+ao handler com a anotação `FromPath`:
 
 ```python
 from typing import Annotated
@@ -62,7 +62,7 @@ A [seção de roteamento](routing.md) provê mais informações sobre parâmetro
 
 ## Respostas
 
-Herdando o `asgikit.responses.Response` de `asgikit`, as funções tratadoras não
+Herdando o `asgikit.responses.Response` de `asgikit`, os handlers não
 retornam uma resposta, ao invés disso elas escrevem os dados na resposta.
 
 ```python
@@ -96,8 +96,8 @@ async def respond_stream(response: Response, stream: AsyncIterable[bytes | str])
 
 ## Dependências
 
-Funções tratadoras podem receber serviços como parâmetros que serão injetados quando
-o tratador é chamado:
+Handlers podem receber serviços como parâmetros que serão injetados quando
+o handler é chamado:
 
 ```python
 from typing import Annotated
@@ -117,7 +117,7 @@ def my_handler(request, my_service: Annotated[MyService, Inject]):
 
 ## Informações da requisição
 
-Funções tratadoras recebem um objeto do tipo `asgikit.requests.Request` como primeiro
+Handlers recebem um objeto do tipo `asgikit.requests.Request` como primeiro
 parâmetro que provê acesso às informações da requisição (caminho, método, cabeçalhos,
 query string, corpo da requisição). Ele também provê o objeto `asgikit.responses.Response`
 ou `asgikit.websockets.WebSocket` para responder à requisição ou interagir com o
@@ -187,7 +187,7 @@ async def close(self, code: int = 1000, reason: str = ""): ...
 
 ## Parâmetros da requisição
 
-Funções tratadoras podem receber parâmetros adicionais, os quais serão extraídos
+Handlers podem receber parâmetros adicionais, os quais serão extraídos
 da requisição utilizando uma implementação de `selva.web.FromRequest[T]`.
 Se n5ão houver uma implementação direta de `FromRequest[T]`, Selva procurará nos
 tipos base de `T` até que uma implementação seja encontrada ou um erro será retornado.
@@ -225,7 +225,7 @@ async def handler(request: Request, param: Param):
     await respond_text(request.response, param.request_path)
 ```
 
-Se a implementação de `FromRequest` lançar um erro, o tratador não é chamado.
+Se a implementação de `FromRequest` lançar um erro, o handler não é chamado.
 E se o erro for uma subclassse de `selva.web.error.HTTPError`, por exemplo `HTTPUnauthorizedException`,
 uma resposta será produzida de acordo como o erro.
 

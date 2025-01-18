@@ -1,11 +1,11 @@
 # Roteamento
 
-Roteamento é definido pelos decoradores nas funções tratadoras.
+Roteamento é definido pelos decoradores nos handlers.
 
 ## Parâmetros de caminho
 
-Parâmetros podem ser definidos no caminho dos tratadores utilizando a sintaxe `:parameter_name`,
-onde `parameter_name` deve ser o nome do argumento na assinatura do tratador.
+Parâmetros podem ser definidos no caminho dos handlers utilizando a sintaxe `:parameter_name`,
+onde `parameter_name` deve ser o nome do argumento na assinatura do handler.
 
 ```python
 from typing import Annotated
@@ -19,7 +19,7 @@ async def handler(request: Request, name: Annotated[str, FromPath]):
     await respond_text(request.response, f"Hello, {name}!")
 ```
 
-Aqui foi usado `Annotated` e `FromPath` para indicar que o argumento do tratador
+Aqui foi usado `Annotated` e `FromPath` para indicar que o argumento do handler
 deve ser vinculado ao parâmetro do caminho da requisição. Mais sobre isso será explicado
 nas seções seguintes.
 
@@ -42,7 +42,7 @@ async def handler(request: Request, path: Annotated[str, FromPath]):
     await respond_text(request.response, f"Hello, {name}!")
 ```
 
-Para uma requisição como `GET hello/Python/World`, o tratador retornará
+Para uma requisição como `GET hello/Python/World`, o handler retornará
 `Hello, Python World!`.
 
 Você pode combinar ambos os tipos de parâmetros sem problemas:
@@ -56,7 +56,7 @@ Você pode combinar ambos os tipos de parâmetros sem problemas:
 
 A conversão de parâmetros é realizada através de anotações de tipo nos parâmetros.
 O framework tentará encontrar um conversor adequado ao tipo do parâmetro e então
-converter o valor antes de chamar o tratador.
+converter o valor antes de chamar o handler.
 
 ```python
 from typing import Annotated
@@ -108,6 +108,6 @@ async def handler(request: Request, model: Annotated[MyModel, FromPath]):
     await respond_text(request.response, str(model))
 ```
 
-Se a implementação de `Converter` lançar um erro, o tratador não será chamado.
+Se a implementação de `Converter` lançar um erro, o handler não será chamado.
 E se o erro for uma subclasse de `selva.web.error.HTTPError`, por exemplo,
 `HTTPUnauthorizedException`, uma resposta será produzida de acordo com o erro.

@@ -1,7 +1,7 @@
 # Serviços
 
 Serviços são tipos registrados no contêiner de injeção de dependências que podem
-ser injetados em outros serviços e tratadores. Eles são definidos com o decorador
+ser injetados em outros serviços e handlers. Eles são definidos com o decorador
 `@service`.
 
 ```python

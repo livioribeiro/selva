@@ -3,7 +3,7 @@
 Em um projeto Selva, você precisa definir pelo menos o `application`.
 
 Pode ser um módulo ou um pacote Python e representa o código principal do projeto.
-Quaisquer tratadores e serviços definidos sob ele serão descobertos e registrados.
+Quaisquer handlers e serviços definidos sob ele serão descobertos e registrados.
 
 Se o seu projeto é pequeno, você pode apenas definir o módulo `application.py`,
 mas você pode ter qualquer estrutura que quiser dentro do pacote `application`.
