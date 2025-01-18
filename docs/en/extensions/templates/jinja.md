@@ -10,13 +10,12 @@ To use jinja templates, first install the `jinja` extra:
 pip install selva[jinja]
 ```
 
-Then activate the extension:
+Then activate the extension in the configuration file:
 
-=== "configuration/settings.yaml"
-    ```yaml
-    extensions:
-      - selva.ext.templates.jinja
-    ```
+```yaml
+extensions:
+  - selva.ext.templates.jinja
+```
 
 To render templates, inject the `selva.ext.templates.jinja.JinjaTemplate` dependency
 and call its `respond` method:
@@ -52,7 +51,7 @@ and call its `respond` method:
 
 ## Render templates to string
 
-The `JinjaTemplate` class provide methods to render templates into a str, instead
+The `JinjaTemplate` class provide methods to render templates into a `str`, instead
 of rendering to the response.
 
 The method `JinjaTempate.render` accepts a template name and returns a string with the
@@ -101,11 +100,16 @@ templates:
       - extension1
       - extensions2
     optimized: true
-    undefined: "package.module.Class" # dotted path to python class
-    finalize: "package.module.function" # dotted path to python function
-    autoescape: "package.module.function" # dotted path to python function
-    loader: "package.module.variable" # dotted path to python variable
+    # dotted path to python class
+    undefined: "package.module.Class"
+    # dotted path to python function
+    finalize: "package.module.function"
+    # dotted path to python function
+    autoescape: "package.module.function"
+    # dotted path to python variable
+    loader: "package.module:variable"
     cache_size: 1
     auto_reload: true
-    bytecode_cache: "package.module.variable" # dotted path to python variable
+    # dotted path to python variable
+    bytecode_cache: "package.module:variable"
 ```

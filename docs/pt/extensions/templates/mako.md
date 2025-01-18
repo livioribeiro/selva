@@ -1,25 +1,24 @@
 # Mako
 
-This extension provides support for Mako templates.
+Esta extensão provê suporte para templates Mako.
 
-## Usage
+## Utilização
 
-To use mako templates, first install the `mako` extra:
+Para utilizar templates Mako, primeiro instale o extra `mako`:
 
 ```shell
 pip install selva[mako]
 ```
 
-Then activate the extension:
+Depois ative a extensão no arquivo de configuração:
 
-=== "configuration/settings.yaml"
-    ```yaml
-    extensions:
-      - selva.ext.templates.mako
-    ```
+```yaml
+extensions:
+  - selva.ext.templates.mako
+```
 
-To render templates, inject the `selva.ext.templates.mako.MakoTemplate` dependency
-and call its `respond` method:
+Para renderizar templates, injete a dependência `selva.ext.templates.mako.MakoTemplate`
+e chame o método `respond`:
 
 === "application.py"
 
@@ -50,25 +49,23 @@ and call its `respond` method:
     </html>
     ```
 
-## Render templates to string
+## Renderizar templates para string
 
-The `MakoTemplate` class provide methods to render templates into a str, instead
-of rendering to the response.
+A classe `MakoTemplate` provê métodos para renderizar templates para `str`, ao invés
+de renderizar para a resposta.
 
-The method `MakoTempate.render` accepts a template name and returns a string with the
-rendered template.
-
-The method `MakoTempate.render_str` accepts a template string, compiles it and returns
-the result.
+O método `MakoTempate.render` aceita um nome de template e retorna uma string com
+o template renderizado.
 
 ```python
 rendered = template.render("template.html", {"variable": "value"})
 rendered = template.render_str("${variable}", {"variable": "value"})
 ```
 
-## Configuration
+## Configuração
 
-Mako can be configured through the `settings.yaml`. For example, to activate filesystem checks:
+Mako pode ser configurado através do `settings.yaml`. Por exemplo, para ativar a
+opção "filesystem_checks":
 
 ```yaml
 templates:
@@ -78,7 +75,7 @@ templates:
     filesystem_checks: true
 ```
 
-Full list of settings:
+Lista completa de configurações:
 
 ```yaml
 templates:
@@ -89,13 +86,17 @@ templates:
     filesystem_checks: false
     collection_size: 100
     format_exceptions: false
-    error_handler: "package.module.function" # dotted path to a python function
-    encoding_errors: "strict" # or "ignore", "replace", "xmlcharrefreplace", "htmlentityreplace"
+    # caminho para uma função python
+    error_handler: "package.module.function"
+    encoding_errors: "strict" # ou "ignore", "replace", "xmlcharrefreplace", "htmlentityreplace"
     cache_enabled: true
     cache_impl: "beaker"
-    cache_args: "package.module:variable" # dotted path to a python variable
-    modulename_callable: "package.module.function" # dotted path to a python function
-    module_writer: "package.module.function" # dotted path to a python function
+    # caminho para uma variável python
+    cache_args: "package.module:variable"
+    # caminho para uma função python
+    modulename_callable: "package.module.function"
+    # caminho para uma função python
+    module_writer: "package.module.function"
     default_filters: []
     buffer_filters: []
     strict_undefined: false
@@ -103,7 +104,10 @@ templates:
     future_imports: []
     enable_loop: true
     input_encoding: "utf-8"
-    preprocessor: "package.module.function" # dotted path to a python function
-    lexer_cls: "package.module.Class" # dotted path to a python class
-    include_error_handler: "package.module.function" # dotted path to a python function
+    # caminho para uma função python
+    preprocessor: "package.module.function"
+    # caminho para uma classe python
+    lexer_cls: "package.module.Class"
+    # caminho para uma função python
+    include_error_handler: "package.module.function"
 ```

@@ -10,13 +10,12 @@ To use mako templates, first install the `mako` extra:
 pip install selva[mako]
 ```
 
-Then activate the extension:
+Then activate the extension in the configuration file:
 
-=== "configuration/settings.yaml"
-    ```yaml
-    extensions:
-      - selva.ext.templates.mako
-    ```
+```yaml
+extensions:
+  - selva.ext.templates.mako
+```
 
 To render templates, inject the `selva.ext.templates.mako.MakoTemplate` dependency
 and call its `respond` method:
@@ -52,7 +51,7 @@ and call its `respond` method:
 
 ## Render templates to string
 
-The `MakoTemplate` class provide methods to render templates into a str, instead
+The `MakoTemplate` class provide methods to render templates into a `str`, instead
 of rendering to the response.
 
 The method `MakoTempate.render` accepts a template name and returns a string with the
@@ -89,13 +88,17 @@ templates:
     filesystem_checks: false
     collection_size: 100
     format_exceptions: false
-    error_handler: "package.module.function" # dotted path to a python function
+    # dotted path to a python function
+    error_handler: "package.module.function"
     encoding_errors: "strict" # or "ignore", "replace", "xmlcharrefreplace", "htmlentityreplace"
     cache_enabled: true
     cache_impl: "beaker"
-    cache_args: "package.module:variable" # dotted path to a python variable
-    modulename_callable: "package.module.function" # dotted path to a python function
-    module_writer: "package.module.function" # dotted path to a python function
+    # dotted path to a python variable
+    cache_args: "package.module:variable"
+    # dotted path to a python function
+    modulename_callable: "package.module.function"
+    # dotted path to a python function
+    module_writer: "package.module.function"
     default_filters: []
     buffer_filters: []
     strict_undefined: false
@@ -103,7 +106,10 @@ templates:
     future_imports: []
     enable_loop: true
     input_encoding: "utf-8"
-    preprocessor: "package.module.function" # dotted path to a python function
-    lexer_cls: "package.module.Class" # dotted path to a python class
-    include_error_handler: "package.module.function" # dotted path to a python function
+    # dotted path to a python function
+    preprocessor: "package.module.function"
+    # dotted path to a python class
+    lexer_cls: "package.module.Class"
+    # dotted path to a python function
+    include_error_handler: "package.module.function"
 ```
