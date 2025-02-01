@@ -85,3 +85,9 @@ async def post_data_pydantic(request: Request, data: A[MyModel, FromBody]):
 @post("pydantic/list")
 async def post_data_pydantic_list(request: Request, data: A[list[MyModel], FromBody]):
     await respond_json(request.response, {"data": [d.model_dump() for d in data]})
+
+
+@get("multiple")
+@get("annotations")
+async def multiple_annotations(request: Request):
+    await respond_json(request.response, {"path": request.path})
