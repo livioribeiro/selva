@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker, create_async
 from selva.configuration.settings import Settings
 from selva.di.container import Container
 from selva.di.decorator import service
+from selva.ext.data.sqlalchemy.middleware import SESSION
 from selva.ext.data.sqlalchemy.settings import (
     SqlAlchemyEngineSettings,
     SqlAlchemySettings,
@@ -72,3 +73,9 @@ async def sessionmaker_service(
         args.append(engine)
 
     return async_sessionmaker(*args, **kwargs)
+
+
+@service
+class ScopedSession:
+    def get(self):
+        return SESSION.get(self)
