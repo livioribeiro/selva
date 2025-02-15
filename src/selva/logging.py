@@ -29,7 +29,6 @@ def setup(settings: Settings):
         raise ValueError("Unknown log format")
 
     processors = [
-        structlog.stdlib.filter_by_level,
         structlog.contextvars.merge_contextvars,
         structlog.processors.TimeStamper(fmt="iso"),
         structlog.stdlib.add_logger_name,
