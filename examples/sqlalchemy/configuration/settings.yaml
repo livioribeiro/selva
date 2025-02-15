@@ -1,6 +1,9 @@
 extensions:
   - selva.ext.data.sqlalchemy
 
+middleware:
+  - selva.ext.data.sqlalchemy.middleware.request_scoped_session
+
 data:
   sqlalchemy:
     session:
