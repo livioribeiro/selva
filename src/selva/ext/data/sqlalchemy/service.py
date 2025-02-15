@@ -77,5 +77,5 @@ async def sessionmaker_service(
 
 @service
 class ScopedSession:
-    def get(self):
-        return SESSION.get(self)
+    def __getattr__(self, name: str):
+        return getattr(SESSION.get(), name)

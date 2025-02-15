@@ -30,6 +30,6 @@ data:
 
 logging:
   format: console
-  root: debug
+  root: info
   level:
     application: info

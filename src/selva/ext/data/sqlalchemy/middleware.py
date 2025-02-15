@@ -1,5 +1,4 @@
 from contextvars import ContextVar
-import logging
 
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
