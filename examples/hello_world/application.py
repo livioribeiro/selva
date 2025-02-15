@@ -1,4 +1,6 @@
 import asyncio
+import logging
+from asyncio import CancelledError
 from typing import Annotated as A
 
 import structlog
@@ -34,7 +36,7 @@ class Greeter:
 
 @startup
 async def startup_hook(greeter: A[Greeter, Inject]):
-    logger.info(greeter.greet("startup"))
+    logging.getLogger(__name__).info("startup")
 
 
 @background
@@ -42,8 +44,12 @@ async def background_hook(greeter: Greeter):
     i = 1
 
     while True:
-        await asyncio.sleep(5)
-        logger.info(greeter.greet(f"background {i}"))
+        try:
+            await asyncio.sleep(5)
+        except CancelledError:
+            break
+
+        logger.info("background", iteration=i)
         if i == 99:
             i = 1
         else:
