@@ -5,10 +5,10 @@ from sqlalchemy.ext.asyncio import async_sessionmaker
 from selva.configuration.settings import Settings
 from selva.di.container import Container
 
-SESSION = ContextVar("session")
+SESSION = ContextVar("sqlalchemy session")
 
 
-async def request_scoped_session(app, settings: Settings, container: Container):
+async def scoped_session(app, _settings: Settings, container: Container):
     sessionmaker = await container.get(async_sessionmaker)
 
     async def middleware(scope, receive, send):

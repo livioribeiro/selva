@@ -100,7 +100,7 @@ class StaticFilesMiddleware(BaseFilesMiddleware):
                 raise
 
 
-async def static_files_middleware(app, settings: Settings, di: Container):
+async def static_files_middleware(app, settings: Settings, _di: Container):
     settings = settings.staticfiles
     path = settings.path.lstrip("/")
     root = Path(settings.root).resolve().absolute()
@@ -135,7 +135,7 @@ async def static_files_middleware(app, settings: Settings, di: Container):
     return StaticFilesMiddleware(app, path, root, filelist, mappings)
 
 
-def uploaded_files_middleware(app, settings: Settings, di: Container):
+def uploaded_files_middleware(app, settings: Settings, _di: Container):
     settings = settings.uploadedfiles
     path = settings.path.lstrip("/")
     root = Path(settings.root).resolve()

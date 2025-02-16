@@ -7,7 +7,7 @@ from selva.configuration.settings import Settings
 from selva.di.container import Container
 
 
-async def request_id_middleware(app, settings: Settings, di: Container):
+async def request_id_middleware(app, _settings: Settings, _di: Container):
     async def handler(scope, receive, send):
         request = Request(scope, receive, send)
 
