@@ -4,6 +4,7 @@ from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker
 
 from selva.di import Inject, service
+from selva.ext.data.sqlalchemy.service import ScopedSession
 
 from .model import Base, MyModel, OtherBase, OtherModel
 
@@ -12,6 +13,7 @@ from .model import Base, MyModel, OtherBase, OtherModel
 class DefaultDBService:
     engine: A[AsyncEngine, Inject]
     sessionmaker: A[async_sessionmaker, Inject]
+    session: A[ScopedSession, Inject]
 
     async def initialize(self):
         async with self.engine.connect() as conn:
@@ -27,14 +29,14 @@ class DefaultDBService:
             return await conn.scalar(text("SELECT sqlite_version()"))
 
     async def get_model(self) -> MyModel:
-        async with self.sessionmaker() as session:
-            return await session.scalar(select(MyModel).limit(1))
+        return await self.session.scalar(select(MyModel).limit(1))
 
 
 @service
 class OtherDBService:
     engine: A[AsyncEngine, Inject(name="other")]
     sessionmaker: A[async_sessionmaker, Inject]
+    session: A[ScopedSession, Inject]
 
     async def initialize(self):
         async with self.engine.connect() as conn:
@@ -51,5 +53,4 @@ class OtherDBService:
             return await conn.scalar(text("SELECT version()"))
 
     async def get_model(self) -> OtherModel:
-        async with self.sessionmaker() as session:
-            return await session.scalar(select(OtherModel).limit(1))
+        return await self.session.scalar(select(OtherModel).limit(1))

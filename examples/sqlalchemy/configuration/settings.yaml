@@ -1,6 +1,9 @@
 extensions:
   - selva.ext.data.sqlalchemy
 
+middleware:
+  - selva.ext.data.sqlalchemy.middleware.scoped_session
+
 data:
   sqlalchemy:
     session:
@@ -27,6 +30,6 @@ data:
 
 logging:
   format: console
-  root: debug
+  root: info
   level:
     application: info

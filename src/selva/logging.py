@@ -42,6 +42,11 @@ def setup(settings: Settings):
 
     processors.append(renderer)
 
+    extra_loggers = {
+        "sqlalchemy.engine.Engine": {"handlers": ["console"], "propagate": False},
+        "uvicorn": {"handlers": ["console"], "propagate": False},
+    }
+
     logging_config = {
         "version": 1,
         "disable_existing_loggers": False,
@@ -61,7 +66,7 @@ def setup(settings: Settings):
             "handlers": ["console"],
             "level": settings.logging.get("root", "WARN").upper(),
         },
-        "loggers": {
+        "loggers": extra_loggers | {
             module: {"level": level.upper()}
             for module, level in settings.logging.get("level", {}).items()
         },

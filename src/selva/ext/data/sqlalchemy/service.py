@@ -1,15 +1,35 @@
+from typing import TypeAlias
+
 import structlog
-from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import (
+    AsyncEngine,
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+)
 
 from selva.configuration.settings import Settings
 from selva.di.container import Container
 from selva.di.decorator import service
+from selva.ext.data.sqlalchemy.middleware import SESSION
 from selva.ext.data.sqlalchemy.settings import (
     SqlAlchemyEngineSettings,
     SqlAlchemySettings,
 )
 
 logger = structlog.get_logger()
+
+# Type alias to provide autocomplete
+ScopedSession: TypeAlias = AsyncSession
+
+
+@service(provides=ScopedSession)
+class ScopedSessionImpl:
+    def __getattribute__(self, name: str):
+        try:
+            return getattr(SESSION.get(), name)
+        except LookupError:
+            raise RuntimeError("ScopedSession outside request")
 
 
 def make_engine_service(name: str):
