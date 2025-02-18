@@ -18,33 +18,37 @@ configuration file:
 extensions:
   - selva.ext.data.sqlalchemy # (1)
 
+middleware:
+  - selva.ext.data.sqlalchemy.middleware.scoped_session # (2)
+
 data:
   sqlalchemy:
     connections:
-      default: # (2)
+      default: # (3)
         url: "sqlite+aiosqlite:///var/db.sqlite3"
 
-      postgres: # (3)
+      postgres: # (4)
         url: "postgresql+asyncpg://user:pass@localhost/dbname"
 
-      mysql: # (4)
+      mysql: # (5)
         url: "mysql+aiomysql://user:pass@localhost/dbname"
 
-      oracle: # (5)
+      oracle: # (6)
         url: "oracle+oracledb_async://user:pass@localhost/DBNAME"
         # or "oracle+oracledb_async://user:pass@localhost/?service_name=DBNAME"
 ```
 
 1.  Activate the sqlalchemy extension
-2.  "default" connection will be registered without a name
-3.  Connection registered with name "postgres"
-4.  Connection registered with name "mysql"
-5.  Connection registered with name "oracle"
+2.  Activate the scoped session middleware
+3.  "default" connection will be registered without a name
+4.  Connection registered with name "postgres"
+5.  Connection registered with name "mysql"
+6.  Connection registered with name "oracle"
 
 Once we define the connections, we can inject `AsyncEngine` into our services.
 For each connection, an instance of `AsyncEngine` will be registered, the `default`
-connection will be registered wihout a name, and the other will be registered with
-their respective names:
+connection will be registered without a name, and the other will be registered with
+their respective names.
 
 ```python
 from typing import Annotated
@@ -62,6 +66,33 @@ class MyService:
     engine_mysql: Annotated[AsyncEngine, Inject(name="mysql")]
     engine_oracle: Annotated[AsyncEngine, Inject(name="oracle")]
 ```
+
+## Scoped Session
+
+If the `selva.ext.data.sqlalchemy.middleware.scoped_session` middleware is enabled,
+the `selva.ext.data.sqlalchemy.ScopedSession` service will be registered. It provides
+access to an instance of `AsyncSession` that is available for the duration of the
+request:
+
+```python
+from typing import Annotated
+from sqlalchemy import text
+from selva.di import service, Inject
+from selva.ext.data.sqlalchemy import ScopedSession
+
+
+@service
+class MyService:
+    session: Annotated[ScopedSession, Inject]
+
+    async def method(self) -> int:
+        return await self.session.scalar(text("select 1"))
+```
+
+The `ScopedSession` service is a proxy to an instance of `AsyncSession` that is created
+by the `selva.ext.data.sqlalchemy.middleware.scoped_session` middleware.
+
+## Configuration
 
 Database connections can also be defined with username and password separated from
 the url, or even with individual components:

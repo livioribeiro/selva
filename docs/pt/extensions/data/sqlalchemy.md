@@ -18,28 +18,32 @@ Com os drivers instalados, nós podemos definir as conexões no arquivo de confi
 extensions:
   - selva.ext.data.sqlalchemy # (1)
 
+middleware:
+  - selva.ext.data.sqlalchemy.middleware.scoped_session # (2)
+
 data:
   sqlalchemy:
     connections:
-      default: # (2)
+      default: # (3)
         url: "sqlite+aiosqlite:///var/db.sqlite3"
 
-      postgres: # (3)
+      postgres: # (4)
         url: "postgresql+asyncpg://user:pass@localhost/dbname"
 
-      mysql: # (4)
+      mysql: # (5)
         url: "mysql+aiomysql://user:pass@localhost/dbname"
 
-      oracle: # (5)
+      oracle: # (6)
         url: "oracle+oracledb_async://user:pass@localhost/DBNAME"
         # ou "oracle+oracledb_async://user:pass@localhost/?service_name=DBNAME"
 ```
 
 1.  Ativar a extensão sqlalchemy
-2.  A conexão "default" será registrada sem um nome
-3.  Conexão registrada com nome "postgres"
-4.  Conexão registrada com nome "mysql"
-5.  Conexão registrada com nome "oracle"
+2.  Ativar o middleware de scoped session
+3.  A conexão "default" será registrada sem um nome
+4.  Conexão registrada com nome "postgres"
+5.  Conexão registrada com nome "mysql"
+6.  Conexão registrada com nome "oracle"
 
 Uma vez definidas as conexões, nós podemos injetar `AsyncEngine` nos nossos serviços.
 Para cada conexão, uma instância de `AsyncEngine` será registrada, a conexão `default`
@@ -62,6 +66,32 @@ class MyService:
     engine_mysql: Annotated[AsyncEngine, Inject(name="mysql")]
     engine_oracle: Annotated[AsyncEngine, Inject(name="oracle")]
 ```
+
+## Scoped Session
+
+Se o middleware `selva.ext.data.sqlalchemy.middleware.scoped_session` for ativado,
+o serviço `selva.ext.data.sqlalchemy.ScopedSession` será registrado. Ele provê acesso
+a uma instância de `AsyncSession` que fica disponível pela duração da requisição.
+
+```python
+from typing import Annotated
+from sqlalchemy import text
+from selva.di import service, Inject
+from selva.ext.data.sqlalchemy import ScopedSession
+
+
+@service
+class MyService:
+    session: Annotated[ScopedSession, Inject]
+
+    async def method(self) -> int:
+        return await self.session.scalar(text("select 1"))
+```
+
+O serviço `ScopedSession` é um proxy para a instância de `AsyncSession` que é criado
+pelo middeware `selva.ext.data.sqlalchemy.middleware.scoped_session`.
+
+## Configuração
 
 Conexões de bancos de dados podem ser definidas com usuário e senha separados da
 url, ou até com componentes individuais:
