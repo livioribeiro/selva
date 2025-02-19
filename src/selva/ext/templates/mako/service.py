@@ -1,11 +1,13 @@
+import asyncio
+from http import HTTPStatus
 from typing import Annotated
 
-from asgikit.responses import Response, respond_text
 from mako.lookup import TemplateLookup
 
-from selva.configuration import Settings
+from selva.conf import Settings
 from selva.di import Inject, service
 from selva.ext.templates.mako.settings import MakoTemplateSettings
+from selva.web import Response, HTMLResponse
 
 
 @service
@@ -23,22 +25,23 @@ class MakoTemplate:
         self.lookup = TemplateLookup(**kwargs)
 
     # pylint: disable=too-many-arguments
-    async def respond(
+    async def response(
         self,
-        response: Response,
         template_name: str,
         context: dict,
         *,
-        content_type: str | None = None,
-    ):
-        if content_type:
-            response.content_type = content_type
-        elif not response.content_type:
-            response.content_type = "text/html"
+        status=HTTPStatus.OK,
+        headers=None,
+        content_type="text/html",
+    ) -> Response:
+        content_type = content_type or "text/html"
+        headers = headers or {}
 
         template = self.lookup.get_template(template_name)
-        rendered = template.render(**context)
-        await respond_text(response, rendered)
+        rendered = await asyncio.to_thread(template.render, **context)
+        return HTMLResponse(
+            rendered, status_code=status, headers=headers, media_type=content_type
+        )
 
     async def render(self, template_name: str, context: dict) -> str:
         template = self.lookup.get_template(template_name)

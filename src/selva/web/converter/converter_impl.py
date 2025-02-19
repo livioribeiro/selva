@@ -1,50 +1,26 @@
 from http import HTTPStatus
 
 import pydantic
-from asgikit.requests import Body, read_form, read_json
 from pydantic import BaseModel as PydanticModel
 
-from selva.web.converter import Form, Json
+from selva.web.http import Request
 from selva.web.converter.decorator import register_converter
 from selva.web.exception import HTTPBadRequestException, HTTPException
 
 
-@register_converter(Body, Json)
-class RequestBodyJsonConverter:
-    async def convert(self, body: Body, _original_type: type) -> dict | list:
-        if not body.content_type or "application/json" not in body.content_type:
-            raise HTTPException(status=HTTPStatus.UNSUPPORTED_MEDIA_TYPE)
-
-        return await read_json(body)
-
-
-@register_converter(Body, Form)
-class RequestBodyFormConverter:
-    async def convert(self, body: Body, _original_type: type) -> dict:
-        if (
-            not body.content_type
-            or "application/x-www-form-urlencoded" not in body.content_type
-        ):
-            raise HTTPException(status=HTTPStatus.UNSUPPORTED_MEDIA_TYPE)
-
-        return await read_form(body)
-
-
-@register_converter(Body, PydanticModel)
-class RequestBodyPydanticConverter:
+@register_converter(Request, PydanticModel)
+class RequestPydanticConverter:
     async def convert(
         self,
-        body: Body,
+        request: Request,
         original_type: type[PydanticModel],
     ) -> PydanticModel:
         # TODO: make request body decoding extensible
-        if body.content_type and "application/json" in body.content_type:
-            data = await read_json(body)
-        elif (
-            body.content_type
-            and "application/x-www-form-urlencoded" in body.content_type
-        ):
-            data = await read_form(body)
+        content_type = request.headers.get("content-type")
+        if content_type and "application/json" in content_type:
+            data = await request.json()
+        elif content_type and "application/x-www-form-urlencoded" in content_type:
+            data = await request.form()
         else:
             raise HTTPException(status=HTTPStatus.UNSUPPORTED_MEDIA_TYPE)
 
@@ -54,15 +30,16 @@ class RequestBodyPydanticConverter:
             raise HTTPBadRequestException() from err
 
 
-@register_converter(Body, list[PydanticModel])
-class RequestBodyPydanticListConverter:
+@register_converter(Request, list[PydanticModel])
+class RequestPydanticListConverter:
     async def convert(
         self,
-        body: Body,
+        request: Request,
         original_type: type[list[PydanticModel]],
     ) -> list[PydanticModel]:
-        if body.content_type and "application/json" in body.content_type:
-            data = await read_json(body)
+        content_type = request.headers.get("content-type")
+        if content_type and "application/json" in content_type:
+            data = await request.json()
         else:
             raise HTTPException(status=HTTPStatus.UNSUPPORTED_MEDIA_TYPE)
 

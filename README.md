@@ -24,14 +24,12 @@ touch application.py
 Create a handler:
 
 ```python
-from asgikit.requests import Request
-from asgikit.responses import respond_text
-from selva.web import get
+from selva.web import Request, get
 
 
 @get
 async def hello(request: Request):
-    await respond_text(request.response, "Hello, World!")
+    await request.respond("Hello, World!")
 ```
 
 Run application with `uvicorn` (Selva will automatically load `application.py`):

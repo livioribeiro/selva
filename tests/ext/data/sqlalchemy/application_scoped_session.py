@@ -1,6 +1,5 @@
 from typing import Annotated
 
-from asgikit.responses import respond_text
 from sqlalchemy import text
 
 from selva.di import Inject, service
@@ -19,4 +18,4 @@ class MyService:
 @get
 async def index(request, my_service: Annotated[MyService, Inject]):
     value = await my_service.select()
-    await respond_text(request.response, str(value))
+    await request.respond(str(value))

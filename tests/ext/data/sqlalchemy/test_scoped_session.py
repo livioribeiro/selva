@@ -1,8 +1,8 @@
 import pytest
 from httpx import ASGITransport, AsyncClient
 
-from selva.configuration.defaults import default_settings
-from selva.configuration.settings import Settings
+from selva.conf.defaults import default_settings
+from selva.conf.settings import Settings
 from selva.web.application import Selva
 
 
@@ -12,9 +12,7 @@ async def test_application():
         | {
             "application": f"{__package__}.application_scoped_session",
             "extensions": ["selva.ext.data.sqlalchemy"],
-            "middleware": [
-                "selva.ext.data.sqlalchemy.middleware.scoped_session"
-            ],
+            "middleware": ["selva.ext.data.sqlalchemy.middleware.scoped_session"],
             "data": {
                 "sqlalchemy": {
                     "connections": {"default": {"url": "sqlite+aiosqlite:///:memory:"}}
@@ -39,9 +37,7 @@ async def test_scoped_session_outside_request_should_fail():
         | {
             "application": f"{__package__}.application_scoped_session_startup",
             "extensions": ["selva.ext.data.sqlalchemy"],
-            "middleware": [
-                "selva.ext.data.sqlalchemy.middleware.scoped_session"
-            ],
+            "middleware": ["selva.ext.data.sqlalchemy.middleware.scoped_session"],
             "data": {
                 "sqlalchemy": {
                     "connections": {"default": {"url": "sqlite+aiosqlite:///:memory:"}}

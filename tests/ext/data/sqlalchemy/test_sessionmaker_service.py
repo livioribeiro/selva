@@ -3,8 +3,8 @@ from sqlalchemy import String, select
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
-from selva.configuration.defaults import default_settings
-from selva.configuration.settings import Settings
+from selva.conf.defaults import default_settings
+from selva.conf.settings import Settings
 from selva.ext.data.sqlalchemy.service import sessionmaker_service
 
 

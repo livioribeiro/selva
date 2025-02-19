@@ -23,7 +23,7 @@ The configuration values can be accessed by injecting `selva.configuration.Setti
 
 ```python
 from typing import Annotated
-from selva.configuration import Settings
+from selva.conf import Settings
 from selva.di import Inject, service
 
 
@@ -36,7 +36,7 @@ The `Settings` object is a `dict` like object that can also be accessed
 using property syntax:
 
 ```python
-from selva.configuration import Settings
+from selva.conf import Settings
 
 settings = Settings({"config": "value"})
 assert settings["config"] == "value"

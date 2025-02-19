@@ -2,7 +2,7 @@ import asyncio
 
 from celery import Celery
 
-from selva.configuration.settings import get_settings
+from selva.conf.settings import get_settings
 from selva.di import Container
 
 from .service import Greeter

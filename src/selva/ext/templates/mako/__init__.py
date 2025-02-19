@@ -1,6 +1,6 @@
 from importlib.util import find_spec
 
-from selva.configuration.settings import Settings
+from selva.conf.settings import Settings
 from selva.di.container import Container
 from selva.ext.templates.mako.service import MakoTemplate
 

@@ -2,20 +2,24 @@ import copy
 import os
 from collections.abc import Mapping
 from copy import deepcopy
-from functools import cache
 from pathlib import Path
 from typing import Any
 
 import structlog
 from ruamel.yaml import YAML
 
-from selva.configuration.defaults import default_settings
-from selva.configuration.environment import (
+from selva.conf.defaults import default_settings
+from selva.conf.environment import (
     parse_settings_from_env,
     replace_variables_recursive,
 )
 
-__all__ = ("Settings", "SettingsError", "get_settings")
+__all__ = (
+    "Settings",
+    "SettingsError",
+    "get_settings",
+    "get_settings_for_profile",
+)
 
 logger = structlog.get_logger(__name__)
 
@@ -87,35 +91,41 @@ class SettingsError(Exception):
         self.path = path
 
 
-@cache
 def get_settings() -> Settings:
-    return _get_settings_nocache()
+    return get_settings_meta()[0]
 
 
-def _get_settings_nocache() -> Settings:
+def get_settings_meta() -> tuple[Settings, list[tuple[Path, str | None, bool]]]:
     # get default settings
     settings = deepcopy(default_settings)
+    settings_files = []
 
     # merge with main settings file (settings.yaml)
-    profile_settings = get_settings_for_profile()
+    profile_settings, profile_settings_file = get_settings_for_profile()
     merge_recursive(settings, profile_settings)
+    settings_files.append(profile_settings_file)
 
     # merge with profile settings files (settings_$SELVA_PROFILE.yaml)
     if active_profile_list := os.getenv(SELVA_PROFILE):
         for active_profile in active_profile_list.split(","):
             active_profile = active_profile.strip()
-            profile_settings = get_settings_for_profile(active_profile)
+            profile_settings, profile_settings_file = get_settings_for_profile(
+                active_profile
+            )
             merge_recursive(settings, profile_settings)
+            settings_files.append(profile_settings_file)
 
     # merge with environment variables (SELVA_*)
     from_env_vars = parse_settings_from_env(os.environ)
     merge_recursive(settings, from_env_vars)
 
     settings = replace_variables_recursive(settings, os.environ)
-    return Settings(settings)
+    return Settings(settings), settings_files
 
 
-def get_settings_for_profile(profile: str = None) -> dict:
+def get_settings_for_profile(
+    profile: str = None,
+) -> tuple[dict, tuple[Path, str | None, bool]]:
     settings_file = os.getenv(SETTINGS_FILE_ENV, DEFAULT_SETTINGS_FILE)
     settings_dir_path = Path(os.getenv(SETTINGS_DIR_ENV, DEFAULT_SETTINGS_DIR))
     settings_file_path = settings_dir_path / settings_file
@@ -130,13 +140,10 @@ def get_settings_for_profile(profile: str = None) -> dict:
     try:
         yaml = YAML(typ="safe")
         result = yaml.load(settings_file_path) or {}
-        logger.info("settings loaded", settings_file=settings_file_path)
-        return result
-    except FileNotFoundError:
-        if profile:
-            logger.warning("settings file not found", settings_file=settings_file_path)
 
-        return {}
+        return result, (settings_file_path, profile, True)
+    except FileNotFoundError:
+        return {}, (settings_file_path, profile, False)
     except Exception as err:
         raise SettingsError(settings_file_path) from err
 

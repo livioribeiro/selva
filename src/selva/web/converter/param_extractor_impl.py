@@ -1,5 +1,4 @@
-from asgikit.requests import Request
-
+from selva.web.http import Request
 from selva.web.converter.decorator import register_param_extractor
 from selva.web.converter.error import PathParamNotFoundError
 from selva.web.converter.param_extractor import (
@@ -50,7 +49,7 @@ class FromQueryExtractor:
         else:
             name = parameter_name
 
-        return request.query.get(name)
+        return request.query_params.get(name)
 
 
 @register_param_extractor(FromHeader)
@@ -93,4 +92,4 @@ class FromCookieExtractor:
         else:
             name = parameter_name
 
-        return request.cookie.get(name)
+        return request.cookies.get(name)

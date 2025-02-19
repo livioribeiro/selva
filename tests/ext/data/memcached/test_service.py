@@ -3,8 +3,8 @@ from importlib.util import find_spec
 
 import pytest
 
-from selva.configuration import Settings
-from selva.configuration.defaults import default_settings
+from selva.conf import Settings
+from selva.conf.defaults import default_settings
 from selva.ext.data.memcached.service import make_service, parse_memcached_address
 
 MEMCACHED_ADDR = os.getenv("MEMCACHED_ADDR")

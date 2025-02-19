@@ -1,7 +1,7 @@
 from collections.abc import Awaitable
 from typing import Any, Protocol, TypeVar, runtime_checkable
 
-from asgikit.requests import Request
+from selva.web.http import Request
 
 __all__ = ("FromRequest",)
 

@@ -1,6 +1,5 @@
 from typing import Annotated
 
-from asgikit.responses import respond_text
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine
 
@@ -14,4 +13,4 @@ async def index(request, engine: Annotated[AsyncEngine, Inject(name="other")]):
         result = await conn.execute(text("select sqlite_version()"))
         version = result.first()[0]
 
-    await respond_text(request.response, version)
+    await request.respond(version)

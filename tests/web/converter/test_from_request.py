@@ -1,13 +1,9 @@
 import pytest
-from asgikit.requests import Request
 from pydantic import BaseModel
 
 from selva.di.container import Container
-from selva.web.converter import Form, Json
 from selva.web.converter.converter_impl import (
-    RequestBodyFormConverter,
-    RequestBodyJsonConverter,
-    RequestBodyPydanticListConverter,
+    RequestPydanticListConverter,
 )
 from selva.web.converter.error import (
     FromBodyOnWrongHttpMethodError,
@@ -36,57 +32,11 @@ from selva.web.converter.param_extractor_impl import (
     FromPathExtractor,
     FromQueryExtractor,
 )
-
-
-async def test_body_from_request_wrong_http_method_should_fail(ioc: Container):
-    ioc.register(RequestBodyJsonConverter)
-    from_request = BodyFromRequest(ioc)
-
-    async def receive():
-        return {
-            "type": "http.request",
-            "body": b'{"field": "value"}',
-            "more_body": False,
-        }
-
-    scope = {
-        "type": "http",
-        "method": "GET",
-        "headers": [(b"content-type", b"application/json")],
-    }
-
-    request = Request(scope, receive, None)
-
-    with pytest.raises(FromBodyOnWrongHttpMethodError):
-        await from_request.from_request(request, Json, "parameter", None, False)
-
-
-async def test_body_from_request(ioc: Container):
-    ioc.register(RequestBodyJsonConverter)
-    from_request = BodyFromRequest(ioc)
-
-    async def receive():
-        return {
-            "type": "http.request",
-            "body": b'{"field": "value"}',
-            "more_body": False,
-        }
-
-    scope = {
-        "type": "http",
-        "method": "POST",
-        "headers": [(b"content-type", b"application/json")],
-    }
-
-    request = Request(scope, receive, None)
-
-    result = await from_request.from_request(request, Json, "parameter", None, False)
-    assert isinstance(result, dict)
-    assert result["field"] == "value"
+from selva.web.http import Request
 
 
 async def test_body_list_from_request(ioc: Container):
-    ioc.register(RequestBodyPydanticListConverter)
+    ioc.register(RequestPydanticListConverter)
     from_request = BodyFromRequest(ioc)
 
     class MyModel(BaseModel):
@@ -117,52 +67,6 @@ async def test_body_list_from_request(ioc: Container):
     ]
 
 
-async def test_form_from_request(ioc: Container):
-    ioc.register(RequestBodyFormConverter)
-    from_request = BodyFromRequest(ioc)
-
-    async def receive():
-        return {
-            "type": "http.request",
-            "body": b"field=value",
-            "more_body": False,
-        }
-
-    scope = {
-        "type": "http",
-        "method": "POST",
-        "headers": [(b"content-type", b"application/x-www-form-urlencoded")],
-    }
-
-    request = Request(scope, receive, None)
-
-    result = await from_request.from_request(request, Form, "parameter", None, False)
-    assert isinstance(result, dict)
-    assert result["field"] == "value"
-
-
-async def test_missing_converter_should_fail(ioc: Container):
-    from_request = BodyFromRequest(ioc)
-
-    async def receive():
-        return {
-            "type": "http.request",
-            "body": b'{"field": "value"}',
-            "more_body": False,
-        }
-
-    scope = {
-        "type": "http",
-        "method": "POST",
-        "headers": [(b"content-type", b"application/json")],
-    }
-
-    request = Request(scope, receive, None)
-
-    with pytest.raises(MissingConverterImplError):
-        await from_request.from_request(request, Json, "parameter", None, False)
-
-
 async def test_path_param_from_request(ioc: Container):
     ioc.define(Container, ioc)
     ioc.register(StrParamConverter)
@@ -171,9 +75,8 @@ async def test_path_param_from_request(ioc: Container):
 
     from_request = await ioc.get(FromRequest[FromPath])
 
-    scope = {"type": "http", "method": "GET"}
+    scope = {"type": "http", "method": "GET", "path_params": {"param": "value"}}
     request = Request(scope, None, None)
-    request.attributes["path_params"] = {"param": "value"}
 
     result = await from_request.from_request(request, str, "param", FromPath, False)
     assert result == "value"
@@ -187,9 +90,8 @@ async def test_path_param_from_request_missing_param_should_fail(ioc: Container)
 
     from_request = await ioc.get(FromRequest[FromPath])
 
-    scope = {"type": "http", "method": "GET"}
+    scope = {"type": "http", "method": "GET", "path_params": {}}
     request = Request(scope, None, None)
-    request.attributes["path_params"] = {}
 
     with pytest.raises(PathParamNotFoundError):
         await from_request.from_request(request, str, "param", FromPath, False)
@@ -250,9 +152,9 @@ async def test_missing_param_extractor_should_fail(ioc: Container):
     scope = {
         "type": "http",
         "method": "GET",
+        "path_params": {"param": "value"},
     }
     request = Request(scope, None, None)
-    request.attributes["path_params"] = {"param": "value"}
 
     with pytest.raises(MissingRequestParamExtractorImplError):
         await from_request.from_request(request, str, "param", FromPath, False)

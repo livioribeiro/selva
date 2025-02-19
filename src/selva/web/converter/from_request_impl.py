@@ -3,8 +3,7 @@ from abc import ABC
 from http import HTTPMethod
 from typing import Annotated, Any, TypeVar, get_args, get_origin
 
-from asgikit.requests import Body, Request
-
+from selva.web.http import Request
 from selva._util.base_types import get_base_types
 from selva._util.maybe_async import maybe_async
 from selva.di.container import Container
@@ -55,9 +54,9 @@ class BodyFromRequest(FromBody):
 
         for base_type in search_types:
             if converter := await self.di.get(
-                Converter[Body, base_type], optional=True
+                Converter[Request, base_type], optional=True
             ):
-                return await maybe_async(converter.convert(request.body, original_type))
+                return await maybe_async(converter.convert(request, original_type))
 
         raise MissingConverterImplError(original_type)
 

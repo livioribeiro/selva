@@ -1,6 +1,6 @@
 from aiomcache import Client, FlagClient
 
-from selva.configuration.settings import Settings
+from selva.conf.settings import Settings
 from selva.di.decorator import service
 
 from .settings import MemcachedSettings

@@ -1,11 +1,12 @@
 import inspect
+import types
+import typing
 import warnings
 from collections.abc import Callable, Iterable
 from http import HTTPMethod
 from typing import NamedTuple
 
-from asgikit.requests import Request
-
+from selva.web.http import Request, WebSocket
 from selva.web.handler.parse import assert_params_annotated
 from selva.web.routing.exception import (
     HandlerMissingRequestArgumentError,
@@ -15,21 +16,6 @@ from selva.web.routing.exception import (
 
 ATTRIBUTE_HANDLER = "__selva_web_action__"
 ATTRIBUTE_WEBSOCKET = "__selva_web_websocket__"
-
-
-# class HandlerType(Enum):
-#     GET = HTTPMethod.GET
-#     HEAD = HTTPMethod.HEAD
-#     POST = HTTPMethod.POST
-#     PUT = HTTPMethod.PUT
-#     PATCH = HTTPMethod.PATCH
-#     DELETE = HTTPMethod.DELETE
-#     OPTIONS = HTTPMethod.OPTIONS
-#     WEBSOCKET = None
-#
-#     @property
-#     def is_websocket(self) -> bool:
-#         return self is HandlerType.WEBSOCKET
 
 
 class HandlerInfo(NamedTuple):
@@ -51,8 +37,14 @@ def _check_handler(handler: Callable):
         raise HandlerMissingRequestArgumentError(handler)
 
     req_param = params[0].annotation
-    if req_param is not inspect.Signature.empty and req_param is not Request:
-        raise HandlerRequestTypeError(handler)
+    if req_param is not inspect.Signature.empty:
+        if req_param is types.UnionType or typing.get_origin(req_param) is typing.Union:
+            req_types = set(typing.get_args(req_param))
+            # there are no other types than Request and Websocket
+            if req_types.difference({Request, WebSocket}):
+                raise HandlerRequestTypeError(handler)
+        elif req_param not in {Request, WebSocket}:
+            raise HandlerRequestTypeError(handler)
 
 
 def route(method: HTTPMethod | Iterable[HTTPMethod], path: str | None):

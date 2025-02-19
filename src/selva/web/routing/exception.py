@@ -1,4 +1,4 @@
-from asgikit.requests import Request
+from selva.web.http import Request
 
 
 class DuplicateRouteError(Exception):

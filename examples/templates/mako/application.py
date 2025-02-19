@@ -1,10 +1,8 @@
 from typing import Annotated as A
 
-from asgikit.requests import Request
-
 from selva.di import Inject
 from selva.ext.templates.mako import MakoTemplate
-from selva.web import get
+from selva.web import Request, get
 
 
 @get
@@ -18,4 +16,6 @@ async def index(request: Request, template: A[MakoTemplate, Inject]):
             {"name": "Item 3", "number": 333},
         ],
     }
-    await template.respond(request.response, "index.html", context)
+
+    response = await template.response("index.html", context)
+    await request.respond(response)

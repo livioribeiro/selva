@@ -3,7 +3,7 @@ from importlib.util import find_spec
 
 import pytest
 
-from selva.configuration.settings import _get_settings_nocache
+from selva.conf.settings import get_settings
 from selva.ext.data.memcached.service import make_service
 
 MEMCACHED_ADDR = os.getenv("MEMCACHED_ADDR")
@@ -17,7 +17,7 @@ pytestmark = [
 
 async def test_address_from_environment_variables(monkeypatch):
     monkeypatch.setenv("SELVA__DATA__MEMCACHED__DEFAULT__ADDRESS", MEMCACHED_ADDR)
-    settings = _get_settings_nocache()
+    settings = get_settings()
 
     addr = MEMCACHED_ADDR.split(":")
     host = addr[0]

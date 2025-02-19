@@ -30,8 +30,9 @@ que recebe os argumentos `selva.di.Container` e `selva.configuration.Settings`.
 Ela é chamada durante a inicialização da aplicação e pode ser uma função assíncrona.
 
 ```python
-from selva.configuration import Settings
+from selva.conf import Settings
 from selva.di import Container
+
 
 async def init_extension(container: Container, settings: Settings):
     pass

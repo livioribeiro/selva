@@ -5,8 +5,8 @@ import pytest
 from sqlalchemy import make_url, text
 from sqlalchemy.ext.asyncio import create_async_engine
 
-from selva.configuration.defaults import default_settings
-from selva.configuration.settings import Settings
+from selva.conf.defaults import default_settings
+from selva.conf.settings import Settings
 from selva.ext.data.sqlalchemy.service import make_engine_service, sessionmaker_service
 
 from .test_service import _test_engine_service

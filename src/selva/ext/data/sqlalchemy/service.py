@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 
-from selva.configuration.settings import Settings
+from selva.conf.settings import Settings
 from selva.di.container import Container
 from selva.di.decorator import service
 from selva.ext.data.sqlalchemy.middleware import SESSION

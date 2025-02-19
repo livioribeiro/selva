@@ -1,7 +1,7 @@
 from httpx import ASGITransport, AsyncClient
 
-from selva.configuration import Settings
-from selva.configuration.defaults import default_settings
+from selva.conf import Settings
+from selva.conf.defaults import default_settings
 from selva.web.application import Selva
 
 

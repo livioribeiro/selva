@@ -3,14 +3,14 @@ import traceback
 from http import HTTPStatus
 
 import structlog
-from asgikit.errors.websocket import WebSocketDisconnectError, WebSocketError
-from asgikit.requests import Request
-from asgikit.responses import respond_status, respond_text
-from asgikit.websockets import WebSocket
+from starlette.responses import PlainTextResponse
+from starlette.websockets import WebSocketState, WebSocketDisconnect
+
+from selva.web.http import Request, WebSocket, Response
 
 from selva._util.import_item import import_item
 from selva._util.maybe_async import maybe_async
-from selva.configuration.settings import Settings, get_settings
+from selva.conf.settings import Settings, get_settings
 from selva.di.call import call_with_dependencies
 from selva.di.container import Container
 from selva.ext.error import ExtensionMissingInitFunctionError, ExtensionNotFoundError
@@ -25,11 +25,18 @@ logger = structlog.get_logger()
 
 
 def _init_settings(settings: Settings | None) -> Settings:
+    settings_files = []
     if not settings:
-        settings = get_settings()
+        settings, settings_files = get_settings()
 
     logging_setup = import_item(settings.logging.setup)
     logging_setup(settings)
+
+    for settings_file, profile, found in settings_files:
+        if found:
+            logger.info("settings loaded", settings_file=settings_file)
+        elif profile:
+            logger.warning("settings file not found", settings_file=settings_file)
 
     return settings
 
@@ -155,22 +162,24 @@ class Selva:
                 break
 
     async def _handle_request(self, scope, receive, send):
-        request = Request(scope, receive, send)
-
         try:
             await self.handler(scope, receive, send)
-        except (WebSocketDisconnectError, WebSocketError):
-            logger.exception("websocket error")
-            await request.websocket.close()
+        except WebSocketDisconnect:
+            logger.info("websocket disconnect", client=scope["client"])
+            await send({"type": "websocket.close"})
         except WebSocketException as err:
-            await request.websocket.close(err.code, err.reason)
+            await send(
+                {
+                    "type": "websocket.close",
+                    "code": err.code,
+                    "reason": err.reason or "",
+                }
+            )
         except HTTPException as err:
-            if websocket := request.websocket:
+            if scope["type"] == "websocket":
                 logger.exception("websocket request raised HTTPException")
-                await websocket.close()
+                await send({"type": "websocket.close"})
                 return
-
-            response = request.response
 
             if cause := err.__cause__:
                 logger.exception(cause)
@@ -178,55 +187,65 @@ class Selva:
             else:
                 stack_trace = None
 
-            if response.is_started:
-                logger.error("response has already started")
-                await response.end()
+            if scope["__finished__"]:
+                logger.error("request already finished")
                 return
 
-            if response.is_finished:
-                logger.error("response is finished")
-                return
-
+            request = Request(scope, receive, send)
             if stack_trace:
-                response.status = err.status
-                await respond_text(response, stack_trace)
+                response = PlainTextResponse(stack_trace, status_code=err.status)
+                await request.respond(response)
             else:
-                await respond_status(response, status=err.status)
+                await request.respond(err.status)
         except Exception:
             logger.exception("error processing request")
 
-            request.response.status = HTTPStatus.INTERNAL_SERVER_ERROR
-            await respond_text(request.response, traceback.format_exc())
+            if scope["type"] == "http":
+                status = HTTPStatus.INTERNAL_SERVER_ERROR
+                request = Request(scope, receive, send)
+                await request.respond(status)
+            else:
+                await send({"type": "websocket.close"})
 
     async def _request_handler(self, scope, receive, send):
-        request = Request(scope, receive, send)
-        path = request.path
+        if scope["type"] == "http":
+            request = Request(scope, receive, send)
+            method = request.method
 
-        logger.debug(
-            "handling request",
-            method=str(request.method),
-            path=path,
-            query=request.query,
-        )
+            logger.debug(
+                "handling http request",
+                method=str(request.method),
+                path=request.url.path,
+                query=request.query_params,
+            )
+        else:
+            request = WebSocket(scope, receive, send)
+            method = None
 
-        match = self.router.match(request.method, path)
+            logger.debug(
+                "handling websocket",
+                path=request.url.path,
+                query=request.query_params,
+            )
+
+        path = request.url.path
+        match = self.router.match(method, path)
 
         if not match:
             raise HTTPNotFoundException()
 
         action = match.route.action
         path_params = match.params
-        request["path_params"] = path_params
+        request.scope["path_params"] = path_params
 
         await call_handler(self.di, action, request, skip=1)
 
-        response = request.response
-
-        if ws := request.websocket:
-            if ws.state != WebSocket.State.CLOSED:
+        if isinstance(request, WebSocket):
+            ws: WebSocket = request
+            if ws.client_state != WebSocketState.CONNECTED:
                 logger.warning("closing websocket")
                 await ws.close()
-        elif not response.is_started:
-            await respond_status(response, HTTPStatus.INTERNAL_SERVER_ERROR)
-        elif not response.is_finished:
-            await response.end()
+        elif not request.scope["__finished__"]:
+            await request.respond(
+                Response(status_code=HTTPStatus.INTERNAL_SERVER_ERROR)
+            )

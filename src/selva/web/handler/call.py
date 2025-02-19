@@ -3,13 +3,12 @@ import inspect
 from collections.abc import Callable
 from typing import Any
 
-from asgikit.requests import Request
-
 from selva._util.maybe_async import maybe_async
 from selva.di.container import Container
 from selva.web.converter.error import MissingFromRequestImplError
 from selva.web.converter.from_request import FromRequest
 from selva.web.handler.parse import parse_handler_params
+from selva.web.http import Request
 
 
 async def call_handler(

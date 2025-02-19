@@ -1,8 +1,6 @@
-from asgikit.responses import respond_text
-
-from selva.web import get
+from selva.web import Request, get
 
 
 @get
-async def index(request):
-    await respond_text(request.response, "Ok")
+async def index(request: Request):
+    await request.respond("Ok")

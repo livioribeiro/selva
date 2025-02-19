@@ -1,12 +1,13 @@
+from http import HTTPStatus
 from pathlib import Path
 from typing import Annotated
 
-from asgikit.responses import Response, respond_stream, respond_text
 from jinja2 import Environment, FileSystemLoader
 
-from selva.configuration import Settings
+from selva.conf import Settings
 from selva.di import Inject, service
 from selva.ext.templates.jinja.settings import JinjaTemplateSettings
+from selva.web import Response, HTMLResponse, StreamingResponse
 
 
 @service
@@ -29,28 +30,36 @@ class JinjaTemplate:
         self.environment = Environment(enable_async=True, **kwargs)
 
     # pylint: disable=too-many-arguments
-    async def respond(
+    async def response(
         self,
-        response: Response,
         template_name: str,
         context: dict,
         *,
-        content_type: str | None = None,
+        status=HTTPStatus.OK,
+        headers=None,
+        content_type="text/html",
         stream: bool = False,
-    ):
-        if content_type:
-            response.content_type = content_type
-        elif not response.content_type:
-            response.content_type = "text/html"
+    ) -> Response:
+        content_type = content_type or "text/html"
+        headers = headers or {}
 
         template = self.environment.get_template(template_name)
 
         if stream:
             render_stream = template.generate_async(context)
-            await respond_stream(response, render_stream)
+            response = StreamingResponse(
+                render_stream,
+                status_code=status,
+                media_type=content_type,
+                headers=headers,
+            )
         else:
             rendered = await template.render_async(context)
-            await respond_text(response, rendered)
+            response = HTMLResponse(
+                rendered, status_code=status, media_type=content_type, headers=headers
+            )
+
+        return response
 
     async def render(self, template_name: str, context: dict) -> str:
         template = self.environment.get_template(template_name)

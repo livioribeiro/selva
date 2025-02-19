@@ -2,7 +2,7 @@ from contextvars import ContextVar
 
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
-from selva.configuration.settings import Settings
+from selva.conf.settings import Settings
 from selva.di.container import Container
 
 SESSION = ContextVar("sqlalchemy session")

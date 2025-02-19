@@ -7,11 +7,10 @@ from email.utils import formatdate
 from pathlib import Path
 
 import structlog
-from asgikit.requests import Request
-from asgikit.responses import respond_file
 
-from selva.configuration import Settings
+from selva.conf import Settings
 from selva.di import Container
+from selva.web.http import Request, FileResponse
 from selva.web.exception import HTTPNotFoundException
 
 logger = structlog.get_logger()
@@ -36,7 +35,7 @@ class BaseFilesMiddleware(ABC):
                 raise HTTPNotFoundException()
 
             request = Request(scope, receive, send)
-            await respond_file(request.response, file_to_serve)
+            await request.respond(FileResponse(file_to_serve))
         else:
             await self.app(scope, receive, send)
 
@@ -79,11 +78,10 @@ class StaticFilesMiddleware(BaseFilesMiddleware):
             file_data = self.filelist[file_to_serve]
             content_type, content_length, last_modified = file_data
 
-            # use Request to set response headers
-            request = Request(scope, None, None)
-            request.response.content_type = content_type
-            request.response.content_length = content_length
-            request.response.header("last-modified", last_modified)
+            response = FileResponse(file_to_serve)
+            response.content_type = content_type
+            response.content_length = content_length
+            response.headers.append("last-modified", last_modified)
 
             return file_to_serve
 

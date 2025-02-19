@@ -1,13 +1,11 @@
 from typing import Annotated as A
 
 import structlog
-from asgikit.errors.websocket import WebSocketDisconnectError
-from asgikit.requests import Request
-from asgikit.websockets import WebSocket
+from starlette.websockets import WebSocketDisconnect
 
+from selva.web.http import WebSocket
 from selva.di import Inject, service
 from selva.web import websocket
-from selva.web.exception import WebSocketException
 
 logger = structlog.get_logger()
 
@@ -17,20 +15,19 @@ class WebSocketService:
     def __init__(self):
         self.clients: dict[str, WebSocket] = {}
 
-    async def handle_websocket(self, request: Request):
-        client = str(request.client)
-        ws = request.websocket
-        self.clients[client] = ws
+    async def handle_websocket(self, websocket: WebSocket):
+        client = f"{websocket.client.host}:{websocket.client.port}"
+        self.clients[client] = websocket
 
-        logger.info("client connected", client=repr(client))
+        logger.info("client connected", client=client)
 
         while True:
             try:
-                message = await ws.receive()
-                logger.info("client message", content=message, client=repr(client))
+                message = await websocket.receive_text()
+                logger.info("client message", content=message, client=client)
                 await self.broadcast(message)
-            except (WebSocketDisconnectError, WebSocketException):
-                logger.info("client disconnected", client=repr(client))
+            except WebSocketDisconnect:
+                logger.info("client disconnected", client=client)
                 del self.clients[client]
                 break
 
@@ -40,13 +37,13 @@ class WebSocketService:
 
         for client, ws in self.clients.items():
             try:
-                await ws.send(message)
-            except (WebSocketDisconnectError, WebSocketException):
+                await ws.send_text(message)
+            except WebSocketDisconnect:
                 del self.clients[client]
-                logger.info("client disconnected", client=repr(client))
+                logger.info("client disconnected", client=client)
 
 
 @websocket("/chat")
-async def chat(request: Request, handler: A[WebSocketService, Inject]):
-    await request.websocket.accept()
-    await handler.handle_websocket(request)
+async def chat(websocket: WebSocket, handler: A[WebSocketService, Inject]):
+    await websocket.accept()
+    await handler.handle_websocket(websocket)

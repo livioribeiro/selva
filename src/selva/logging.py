@@ -4,7 +4,7 @@ import sys
 
 import structlog
 
-from selva.configuration.settings import Settings
+from selva.conf.settings import Settings
 
 
 def setup(settings: Settings):
@@ -42,9 +42,30 @@ def setup(settings: Settings):
 
     processors.append(renderer)
 
+    root_level = settings.logging.get("root", "WARN").upper()
+
     extra_loggers = {
-        "sqlalchemy.engine.Engine": {"handlers": ["console"], "propagate": False},
-        "uvicorn": {"handlers": ["console"], "propagate": False},
+        "sqlalchemy.engine.Engine": {
+            "level": root_level,
+            "handlers": ["console"],
+        },
+        "uvicorn": {
+            "level": root_level,
+            "handlers": ["console"],
+        },
+        "_granian": {
+            "level": root_level,
+            "handlers": ["console"],
+        },
+        "granian.access": {
+            "level": root_level,
+            "handlers": ["console"],
+        },
+    }
+
+    loggers = {
+        module: {"level": level.upper(), "handlers": ["console"]}
+        for module, level in settings.logging.get("level", {}).items()
     }
 
     logging_config = {
@@ -64,12 +85,9 @@ def setup(settings: Settings):
         },
         "root": {
             "handlers": ["console"],
-            "level": settings.logging.get("root", "WARN").upper(),
+            "level": root_level,
         },
-        "loggers": extra_loggers | {
-            module: {"level": level.upper()}
-            for module, level in settings.logging.get("level", {}).items()
-        },
+        "loggers": extra_loggers | loggers,
     }
 
     logging.config.dictConfig(logging_config)

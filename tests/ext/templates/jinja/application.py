@@ -2,58 +2,32 @@ from typing import Annotated
 
 from selva.di import Inject
 from selva.ext.templates.jinja import JinjaTemplate
-from selva.web import get
+from selva.web import Request, get
 
 
 @get("/render")
-async def render(request, template: Annotated[JinjaTemplate, Inject]):
-    await template.respond(
-        request.response,
-        "template.html",
-        {"variable": "Jinja"},
-    )
+async def render(request: Request, template: Annotated[JinjaTemplate, Inject]):
+    response = await template.response("template.html", {"variable": "Jinja"})
+    await request.respond(response)
 
 
 @get("/stream")
-async def stream(request, template: Annotated[JinjaTemplate, Inject]):
-    await template.respond(
-        request.response,
+async def stream(request: Request, template: Annotated[JinjaTemplate, Inject]):
+    response = await template.response(
         "template.html",
         {"variable": "Jinja"},
         stream=True,
     )
+    await request.respond(response)
 
 
-@get("/define_content_type")
-async def define_content_type(request, template: Annotated[JinjaTemplate, Inject]):
-    await template.respond(
-        request.response,
-        "template.html",
-        {"variable": "Jinja"},
-        content_type="text/defined",
-    )
-
-
-@get("/override_content_type")
-async def override_content_type(request, template: Annotated[JinjaTemplate, Inject]):
-    request.response.content_type = "text/plain"
-
-    await template.respond(
-        request.response,
-        "template.html",
-        {"variable": "Jinja"},
-        content_type="text/overriden",
-    )
-
-
-@get("/content_type_from_response")
-async def content_type_from_response(
-    request, template: Annotated[JinjaTemplate, Inject]
+@get("/content_type")
+async def define_content_type(
+    request: Request, template: Annotated[JinjaTemplate, Inject]
 ):
-    request.response.content_type = "text/from_response"
-
-    await template.respond(
-        request.response,
+    response = await template.response(
         "template.html",
         {"variable": "Jinja"},
+        content_type="text/plain",
     )
+    await request.respond(response)

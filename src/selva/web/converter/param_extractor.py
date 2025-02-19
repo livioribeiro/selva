@@ -1,7 +1,7 @@
 from abc import ABC
 from typing import Protocol, TypeVar, runtime_checkable
 
-from asgikit.requests import Request
+from selva.web.http import Request
 
 T = TypeVar("T")
 

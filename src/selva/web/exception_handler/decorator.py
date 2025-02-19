@@ -1,7 +1,7 @@
 from collections.abc import Awaitable, Callable
 from typing import NamedTuple, TypeAlias, TypeVar
 
-from asgikit.requests import Request
+from selva.web.http import Request
 
 T_ERR = TypeVar("T_ERR", bound=BaseException)
 

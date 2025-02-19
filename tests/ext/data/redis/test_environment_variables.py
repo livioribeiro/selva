@@ -4,7 +4,7 @@ from urllib.parse import urlparse
 
 import pytest
 
-from selva.configuration.settings import _get_settings_nocache
+from selva.conf.settings import get_settings
 from selva.ext.data.redis.service import make_service
 
 REDIS_URL = os.getenv("REDIS_URL")
@@ -19,7 +19,7 @@ pytestmark = [
 
 async def test_url_from_environment_variables(monkeypatch):
     monkeypatch.setenv("SELVA__DATA__REDIS__DEFAULT__URL", REDIS_URL)
-    settings = _get_settings_nocache()
+    settings = get_settings()
 
     async for redis in make_service("default")(settings):
         connection_kwargs = redis.connection_pool.connection_kwargs
@@ -38,7 +38,7 @@ async def test_url_username_password_from_environment_variables(monkeypatch):
     monkeypatch.setenv("SELVA__DATA__REDIS__DEFAULT__URL", url)
     monkeypatch.setenv("SELVA__DATA__REDIS__DEFAULT__USERNAME", username)
     monkeypatch.setenv("SELVA__DATA__REDIS__DEFAULT__PASSWORD", password)
-    settings = _get_settings_nocache()
+    settings = get_settings()
 
     async for redis in make_service("default")(settings):
         connection_kwargs = redis.connection_pool.connection_kwargs
@@ -62,7 +62,7 @@ async def test_url_components_from_environment_variables(monkeypatch):
     monkeypatch.setenv("SELVA__DATA__REDIS__DEFAULT__USERNAME", username)
     monkeypatch.setenv("SELVA__DATA__REDIS__DEFAULT__PASSWORD", password)
 
-    settings = _get_settings_nocache()
+    settings = get_settings()
 
     async for redis in make_service("default")(settings):
         connection_kwargs = redis.connection_pool.connection_kwargs

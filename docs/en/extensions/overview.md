@@ -30,8 +30,9 @@ with arguments `selva.di.Container` and `selva.configuration.Settings`. It is ca
 during the startup phase of the application and may also be a coroutine.
 
 ```python
-from selva.configuration import Settings
+from selva.conf import Settings
 from selva.di import Container
+
 
 async def init_extension(container: Container, settings: Settings):
     pass

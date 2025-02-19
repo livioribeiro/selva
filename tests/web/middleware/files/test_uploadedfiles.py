@@ -5,8 +5,8 @@ from pathlib import Path
 import pytest
 from httpx import ASGITransport, AsyncClient
 
-from selva.configuration import Settings
-from selva.configuration.defaults import default_settings
+from selva.conf import Settings
+from selva.conf.defaults import default_settings
 from selva.web.application import Selva
 from selva.web.middleware.files import uploaded_files_middleware
 

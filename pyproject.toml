@@ -30,17 +30,17 @@ dynamic = ["version"]
 requires-python = ">=3.11"
 
 dependencies = [
-    "asgikit~=0.12.2",
-    "pydantic~=2.10.3",
+    "starlette~=0.45.3",
+    "pydantic~=2.10.6",
     "python-dotenv~=1.0.1",
-    "ruamel.yaml~=0.18.6",
+    "ruamel.yaml~=0.18.10",
     "structlog~=25.1.0",
 ]
 
 [project.optional-dependencies]
-jinja = ["jinja2~=3.1.4"]
-mako = ["mako~=1.3.8"]
-sqlalchemy = ["SQLAlchemy[asyncio]~=2.0.36"]
+jinja = ["jinja2~=3.1.5"]
+mako = ["mako~=1.3.9"]
+sqlalchemy = ["SQLAlchemy[asyncio]~=2.0.38"]
 redis = ["redis~=5.2.1"]
 memcached = ["aiomcache~=0.8.2"]
 
@@ -51,21 +51,21 @@ dev = [
 ]
 test = [
     "pytest~=8.3.4",
-    "pytest-asyncio~=0.25.0",
-    "coverage~=7.6.9",
+    "pytest-asyncio~=0.25.3",
+    "coverage~=7.6.12",
     "httpx~=0.28.1",
-    "aiosqlite~=0.20.0",
-    "psycopg[binary]~=3.2.3",
+    "aiosqlite~=0.21.0",
+    "psycopg[binary]~=3.2.4",
 ]
 lint = [
-    "pylint~=3.3.3",
-    "ruff~=0.8",
-    "mypy~=1.13",
-    "isort~=5.13",
+    "pylint~=3.3",
+    "ruff~=0.9",
+    "mypy~=1.15",
+    "isort~=6.0",
 ]
 docs = [
-    "mkdocs-material~=9.5.49",
-    "mkdocs-static-i18n[material]~=1.2.3",
+    "mkdocs-material~=9.6.4",
+    "mkdocs-static-i18n[material]~=1.3.0",
 ]
 
 [tool.pdm]

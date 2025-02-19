@@ -2,8 +2,8 @@ import copy
 
 import pytest
 
-from selva.configuration.defaults import default_settings
-from selva.configuration.settings import Settings
+from selva.conf.defaults import default_settings
+from selva.conf.settings import Settings
 from selva.ext.error import ExtensionMissingInitFunctionError, ExtensionNotFoundError
 from selva.web.application import Selva
 

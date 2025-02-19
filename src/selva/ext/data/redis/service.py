@@ -1,6 +1,6 @@
 from redis.asyncio import Redis
 
-from selva.configuration.settings import Settings
+from selva.conf.settings import Settings
 from selva.di.decorator import service
 
 from .settings import RedisSettings

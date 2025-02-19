@@ -4,8 +4,8 @@ from http import HTTPStatus
 import pytest
 from httpx import ASGITransport, AsyncClient
 
-from selva.configuration.defaults import default_settings
-from selva.configuration.settings import Settings
+from selva.conf.defaults import default_settings
+from selva.conf.settings import Settings
 from selva.web.application import Selva
 
 REDIS_URL = os.environ.get("REDIS_URL")

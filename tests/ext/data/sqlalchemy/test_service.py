@@ -1,8 +1,8 @@
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 
-from selva.configuration.defaults import default_settings
-from selva.configuration.settings import Settings
+from selva.conf.defaults import default_settings
+from selva.conf.settings import Settings
 from selva.di.container import Container
 from selva.ext.data.sqlalchemy.service import (
     engine_dict_service,

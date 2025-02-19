@@ -4,8 +4,6 @@ from asyncio import CancelledError
 from typing import Annotated as A
 
 import structlog
-from asgikit.requests import Request
-from asgikit.responses import respond_json
 from pydantic import BaseModel
 
 from selva.di import Inject, service
@@ -19,6 +17,7 @@ from selva.web import (
     post,
     startup,
 )
+from selva.web.http import Request
 
 logger = structlog.get_logger()
 
@@ -65,7 +64,7 @@ async def greet_query(
 ):
     greeting = greeter.greet(name)
     logger.info(greeting, name=name, number=number)
-    await respond_json(request.response, {"greeting": greeting, "number": number})
+    await request.respond({"greeting": greeting, "number": number})
 
 
 @get("/:name")
@@ -75,25 +74,25 @@ async def greet_path(
     name: A[str, FromPath],
 ):
     greeting = greeter.greet(name)
-    await respond_json(request.response, {"greeting": greeting})
+    await request.respond({"greeting": greeting})
 
 
 @post
 async def post_data(request: Request, body: A[Json, FromBody]):
-    await respond_json(request.response, {"result": body})
+    await request.respond({"result": body})
 
 
 @post("pydantic")
 async def post_data_pydantic(request: Request, data: A[MyModel, FromBody]):
-    await respond_json(request.response, data.model_dump())
+    await request.respond(data.model_dump())
 
 
 @post("pydantic/list")
 async def post_data_pydantic_list(request: Request, data: A[list[MyModel], FromBody]):
-    await respond_json(request.response, {"data": [d.model_dump() for d in data]})
+    await request.respond({"data": [d.model_dump() for d in data]})
 
 
 @get("multiple")
 @get("annotations")
 async def multiple_annotations(request: Request):
-    await respond_json(request.response, {"path": request.path})
+    await request.respond({"path": request.url.path})

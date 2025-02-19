@@ -1,2 +1,6 @@
 extensions:
   - selva.ext.templates.jinja
+
+logging:
+  format: console
+  root: info

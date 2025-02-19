@@ -2,10 +2,10 @@ import functools
 from functools import cache
 
 import structlog
-from asgikit.requests import Request
+from selva.web.http import Request
 
 from selva._util.base_types import get_base_types
-from selva.configuration.settings import Settings
+from selva.conf.settings import Settings
 from selva.di.container import Container
 from selva.web.exception_handler.decorator import ExceptionHandlerType
 from selva.web.exception_handler.discover import find_exception_handlers

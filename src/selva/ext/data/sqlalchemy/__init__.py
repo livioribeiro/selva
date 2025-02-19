@@ -1,6 +1,6 @@
 from importlib.util import find_spec
 
-from selva.configuration.settings import Settings
+from selva.conf.settings import Settings
 from selva.di.container import Container
 from selva.ext.data.sqlalchemy.middleware import scoped_session
 from selva.ext.data.sqlalchemy.service import (
@@ -26,8 +26,6 @@ def init_extension(container: Container, settings: Settings):
     container.register(engine_dict_service)
     container.register(sessionmaker_service)
 
-    middleware_name = (
-        f"{scoped_session.__module__}.{scoped_session.__name__}"
-    )
+    middleware_name = f"{scoped_session.__module__}.{scoped_session.__name__}"
     if middleware_name in settings.middleware:
         container.register(ScopedSessionImpl)
