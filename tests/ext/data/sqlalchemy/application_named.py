@@ -8,7 +8,7 @@ from selva.web import get
 
 
 @get
-async def index(request, engine: Annotated[AsyncEngine, Inject(name="other")]):
+async def index(request, engine: Annotated[AsyncEngine, Inject("other")]):
     async with engine.begin() as conn:
         result = await conn.execute(text("select sqlite_version()"))
         version = result.first()[0]

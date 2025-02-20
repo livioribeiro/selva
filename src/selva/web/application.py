@@ -10,7 +10,7 @@ from selva.web.http import Request, WebSocket, Response
 
 from selva._util.import_item import import_item
 from selva._util.maybe_async import maybe_async
-from selva.conf.settings import Settings, get_settings
+from selva.conf.settings import Settings, get_settings_meta
 from selva.di.call import call_with_dependencies
 from selva.di.container import Container
 from selva.ext.error import ExtensionMissingInitFunctionError, ExtensionNotFoundError
@@ -27,7 +27,7 @@ logger = structlog.get_logger()
 def _init_settings(settings: Settings | None) -> Settings:
     settings_files = []
     if not settings:
-        settings, settings_files = get_settings()
+        settings, settings_files = get_settings_meta()
 
     logging_setup = import_item(settings.logging.setup)
     logging_setup(settings)

@@ -7,7 +7,7 @@ from selva.web import get
 
 
 @get
-async def index(request, memcached: Annotated[Client, Inject(name="other")]):
+async def index(request, memcached: Annotated[Client, Inject("other")]):
     await memcached.set(b"key", b"value")
     result = (await memcached.get(b"key")).decode("utf-8")
 

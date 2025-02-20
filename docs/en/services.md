@@ -136,8 +136,8 @@ class ServiceB: pass
 
 @service
 class OtherService:
-    dependency_a: Annotated[Interface, Inject(name="A")]
-    dependency_b: Annotated[Interface, Inject(name="B")]
+    dependency_a: Annotated[Interface, Inject("A")]
+    dependency_b: Annotated[Interface, Inject("B")]
 ```
 
 ### Optional dependencies
@@ -201,7 +201,7 @@ from some_library import SomeClass
 @service
 async def some_class_factory(
     dependency: MyService,
-    other: Annotated[OtherService, Inject(name="service_name")]
+    other: Annotated[OtherService, Inject("service_name")]
 ) -> SomeClass:
     return SomeClass()
 ```
@@ -264,7 +264,7 @@ def factory() -> SomeClass:
 
 @service
 class MyService:
-    dependency: Annotated[SomeClass, Inject(name="service_name")]
+    dependency: Annotated[SomeClass, Inject("service_name")]
 ```
 
 ### Optional dependencies
@@ -282,7 +282,7 @@ from some_library import SomeClass
 @service
 async def some_class_factory(
     dependency: MyService,
-    other: Annotated[OtherService, Inject(name="service_name")] = None
+    other: Annotated[OtherService, Inject("service_name")] = None
 ) -> SomeClass:
     if other:
         ...

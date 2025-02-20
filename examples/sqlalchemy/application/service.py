@@ -34,7 +34,7 @@ class DefaultDBService:
 
 @service
 class OtherDBService:
-    engine: A[AsyncEngine, Inject(name="other")]
+    engine: A[AsyncEngine, Inject("other")]
     sessionmaker: A[async_sessionmaker, Inject]
     session: A[ScopedSession, Inject]
 

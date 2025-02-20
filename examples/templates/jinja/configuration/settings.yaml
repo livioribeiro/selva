@@ -10,3 +10,5 @@ templates:
 
 logging:
   format: console
+  level:
+    uvicorn: info

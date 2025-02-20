@@ -18,6 +18,7 @@ __all__ = (
     "Settings",
     "SettingsError",
     "get_settings",
+    "get_settings_meta",
     "get_settings_for_profile",
 )
 

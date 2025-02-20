@@ -15,7 +15,7 @@ class NamedService:
 
 @service
 class ServiceWithNamedDep:
-    dependent: Annotated[NamedService, Inject(name="1")]
+    dependent: Annotated[NamedService, Inject("1")]
 
 
 class Interface:
@@ -48,7 +48,7 @@ async def test_unnamed_dependency_with_named_service_should_fail(ioc: Container)
 
     @service
     class DependentService:
-        dependent: Annotated[Service, Inject(name="1")]
+        dependent: Annotated[Service, Inject("1")]
 
     ioc.register(NamedService)
     ioc.register(DependentService)

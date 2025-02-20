@@ -45,7 +45,7 @@ class MyService:
     redis: Annotated[Redis, Inject]
 
     # named service
-    other_redis: Annotated[Redis, Inject(name="other")]
+    other_redis: Annotated[Redis, Inject("other")]
 ```
 
 Conexões Redis também podem ser definidas com nome de usuário e senha separados

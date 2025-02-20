@@ -106,7 +106,7 @@ def test_parse_service_spec_optional_dependency():
 
 
 def test_parse_service_spec_named_dependency():
-    def factory(dependency: Annotated[str, Inject(name="test")]) -> object:
+    def factory(dependency: Annotated[str, Inject("test")]) -> object:
         pass
 
     result = parse_service_spec(factory)

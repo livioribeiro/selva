@@ -62,9 +62,9 @@ class MyService:
     engine: Annotated[AsyncEngine, Inject]
 
     # named services
-    engine_postgres: Annotated[AsyncEngine, Inject(name="postgres")]
-    engine_mysql: Annotated[AsyncEngine, Inject(name="mysql")]
-    engine_oracle: Annotated[AsyncEngine, Inject(name="oracle")]
+    engine_postgres: Annotated[AsyncEngine, Inject("postgres")]
+    engine_mysql: Annotated[AsyncEngine, Inject("mysql")]
+    engine_oracle: Annotated[AsyncEngine, Inject("oracle")]
 ```
 
 ## Scoped Session

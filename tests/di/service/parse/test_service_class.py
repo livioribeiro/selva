@@ -110,7 +110,7 @@ def test_parse_service_spec_non_inject_dependency():
 
 def test_parse_service_spec_named_dependency():
     class ServiceClass:
-        dependency: Annotated[str, Inject(name="test")]
+        dependency: Annotated[str, Inject("test")]
 
     result = parse_service_spec(ServiceClass)
     assert result == ServiceSpec(

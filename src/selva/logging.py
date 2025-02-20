@@ -64,7 +64,7 @@ def setup(settings: Settings):
     }
 
     loggers = {
-        module: {"level": level.upper(), "handlers": ["console"]}
+        module: {"level": level.upper(), "handlers": ["console"], "propagate": False}
         for module, level in settings.logging.get("level", {}).items()
     }
 

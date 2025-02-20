@@ -6,7 +6,7 @@ from selva.conf.defaults import default_settings
 from selva.conf.settings import Settings
 from selva.web.application import Selva
 
-path = str(Path(__file__).parent.absolute())
+path = str((Path(__file__).parent / "templates").absolute())
 settings = Settings(
     default_settings
     | {

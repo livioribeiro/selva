@@ -40,7 +40,7 @@ class MakoTemplate:
         template = self.lookup.get_template(template_name)
         rendered = await asyncio.to_thread(template.render, **context)
         return HTMLResponse(
-            rendered, status_code=status, headers=headers, media_type=content_type
+            rendered, status=status, headers=headers, content_type=content_type
         )
 
     async def render(self, template_name: str, context: dict) -> str:

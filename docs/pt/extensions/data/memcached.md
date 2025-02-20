@@ -45,7 +45,7 @@ class MyService:
     memcached: Annotated[Memcached, Inject]
 
     # named service
-    other_memcached: Annotated[Memcached, Inject(name="other")]
+    other_memcached: Annotated[Memcached, Inject("other")]
 ```
 
 ## Utilizando variáveis de ambiente

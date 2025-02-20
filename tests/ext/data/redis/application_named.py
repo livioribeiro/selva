@@ -7,7 +7,7 @@ from selva.web import get
 
 
 @get
-async def index(request, redis: Annotated[Redis, Inject(name="other")]):
+async def index(request, redis: Annotated[Redis, Inject("other")]):
     await redis.set("key", "value")
     result = (await redis.get("key")).decode("utf-8")
 

@@ -6,6 +6,7 @@ staticfiles:
     /: index.html
 
 logging:
+  format: console
+  root: info
   level:
     application: INFO
-  format: console
