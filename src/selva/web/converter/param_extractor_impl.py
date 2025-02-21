@@ -8,13 +8,6 @@ from selva.web.converter.param_extractor import (
     FromQuery,
 )
 
-__all__ = (
-    "FromPath",
-    "FromQuery",
-    "FromHeader",
-    "FromCookie",
-)
-
 
 @register_param_extractor(FromPath)
 class FromPathExtractor:

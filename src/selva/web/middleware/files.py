@@ -54,7 +54,9 @@ class BaseFilesMiddleware(ABC):
         self.root = root
 
     @abstractmethod
-    def get_file_to_serve(self, scope: dict) -> tuple[str, os.stat_result | None] | None:
+    def get_file_to_serve(
+        self, scope: dict
+    ) -> tuple[str, os.stat_result | None] | None:
         pass
 
     async def __call__(self, scope, receive, send):

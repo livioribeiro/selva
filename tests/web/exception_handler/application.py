@@ -1,5 +1,4 @@
 from selva.web.exception_handler.decorator import exception_handler
-from selva.web.http import Request
 from selva.web.routing.decorator import get
 
 

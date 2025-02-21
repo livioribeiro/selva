@@ -17,5 +17,4 @@ async def index(request: Request, template: A[MakoTemplate, Inject]):
         ],
     }
 
-    response = await template.response("index.html", context)
-    await request.respond(response)
+    await template.respond(request, "index.html", context)

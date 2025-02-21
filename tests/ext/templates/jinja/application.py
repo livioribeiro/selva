@@ -1,26 +1,30 @@
 from typing import Annotated
 
-from jinja2 import Template
-
 from selva.di import Inject
-from selva.web import Request, HTMLResponse, StreamingResponse, get
+from selva.ext.templates.jinja import JinjaTemplate
+from selva.web import Request, get
 
 
 @get("/render")
-async def render(request: Request, template: Annotated[Template, Inject("template.html")]):
-    response = await template.render_async({"variable": "Jinja"})
-    await request.respond(HTMLResponse(response))
+async def render(request: Request, template: Annotated[JinjaTemplate, Inject]):
+    await template.respond(request, "template.html", {"variable": "Jinja"})
 
 
 @get("/stream")
-async def stream(request: Request, template: Annotated[Template, Inject("template.html")]):
-    response = template.stream({"variable": "Jinja"})
-    await request.respond(StreamingResponse(response, content_type="text/html"))
+async def stream(request: Request, template: Annotated[JinjaTemplate, Inject]):
+    await template.respond(
+        request,
+        "template.html",
+        {"variable": "Jinja"},
+        stream=True,
+    )
 
 
 @get("/content_type")
-async def define_content_type(
-    request: Request, template: Annotated[Template, Inject("template.html")]
-):
-    response = await template.render_async({"variable": "Jinja"})
-    await request.respond(HTMLResponse(response, content_type="text/plain"))
+async def content_type(request: Request, template: Annotated[JinjaTemplate, Inject]):
+    await template.respond(
+        request,
+        "template.html",
+        {"variable": "Jinja"},
+        content_type="text/plain",
+    )

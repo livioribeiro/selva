@@ -40,3 +40,16 @@ async def test_stream():
     assert response.status_code == 200
     assert response.text == "Jinja"
     assert "Content-Length" not in response.headers
+
+
+async def test_content_type():
+    app = Selva(settings)
+    await app._lifespan_startup()
+
+    client = AsyncClient(transport=ASGITransport(app=app))
+    response = await client.get("http://localhost:8000/content_type")
+
+    assert response.status_code == 200
+    assert response.text == "Jinja"
+    assert response.headers["Content-Length"] == str(len("Jinja"))
+    assert "text/plain" in response.headers["Content-Type"]

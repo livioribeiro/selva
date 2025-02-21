@@ -1,6 +1,5 @@
 import inspect
 from abc import ABC
-from http import HTTPMethod
 from typing import Annotated, Any, TypeVar, get_args, get_origin
 
 from selva.web.http import Request
@@ -11,11 +10,7 @@ from selva.di.error import ServiceNotFoundError
 from selva.di.inject import Inject
 from selva.web.converter.converter import Converter
 from selva.web.converter.decorator import register_from_request
-from selva.web.converter.error import (
-    FromBodyOnWrongHttpMethodError,
-    MissingConverterImplError,
-    MissingRequestParamExtractorImplError,
-)
+from selva.web.converter.error import MissingRequestParamExtractorImplError
 from selva.web.converter.param_extractor import (
     FromBody,
     FromCookie,
@@ -35,13 +30,10 @@ class BodyFromRequest(FromBody):
         self,
         request: Request,
         original_type: type,
-        parameter_name: str,
+        _parameter_name: str,
         _metadata,
         _optional: bool,
     ) -> Any:
-        if request.method not in (HTTPMethod.POST, HTTPMethod.PUT, HTTPMethod.PATCH):
-            raise FromBodyOnWrongHttpMethodError(parameter_name)
-
         if (origin := get_origin(original_type)) is list:
             search_type = get_args(original_type)[0]
             search_types = [
@@ -58,7 +50,7 @@ class BodyFromRequest(FromBody):
             ):
                 return await maybe_async(converter.convert(request, original_type))
 
-        raise MissingConverterImplError(original_type)
+        raise ServiceNotFoundError(original_type)
 
 
 T_EXTRACTOR = TypeVar("T_EXTRACTOR")

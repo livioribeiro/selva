@@ -1,13 +1,11 @@
 from typing import Annotated as A
 
-from jinja2 import Template
-
 from selva.di import Inject
-from selva.web import Request, HTMLResponse, get
+from selva.web import Request, get
+from selva.ext.templates.jinja import JinjaTemplate
 
 
 @get
-async def index(request: Request, template: A[Template, Inject("index.html")]):
+async def index(request: Request, template: A[JinjaTemplate, Inject]):
     context = dict(title="Selva", heading="Heading")
-    response = await template.render_async(**context)
-    await request.respond(HTMLResponse(response))
+    await template.respond(request, "index.html", context)

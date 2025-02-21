@@ -1,4 +1,3 @@
-import os
 from pathlib import Path
 
 import pytest
@@ -9,7 +8,7 @@ from selva.conf.settings import (
     SettingsError,
     get_settings,
     get_settings_for_profile,
-    merge_recursive,
+    _merge_recursive,
 )
 
 
@@ -291,7 +290,7 @@ def test_invalid_yaml_should_fail(monkeypatch):
     ],
 )
 def test_merge_recursive(settings, extra, expected):
-    merge_recursive(settings, extra)
+    _merge_recursive(settings, extra)
 
     assert settings == expected
 

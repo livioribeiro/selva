@@ -40,10 +40,29 @@ class Response(BaseResponse):
         headers: dict[str, str] | None = None,
         content_type: str | None = None,
     ):
-        super().__init__(content, status_code=status, headers=headers, media_type=content_type)
+        super().__init__(
+            content, status_code=status, headers=headers, media_type=content_type
+        )
+
+    @property
+    def status(self) -> HTTPStatus:
+        return HTTPStatus(self.status_code)
+
+    @status.setter
+    def status(self, value: HTTPStatus):
+        self.status_code = value.value
+
+    @property
+    def content_type(self) -> str:
+        self.status_code = HTTPStatus.OK
+        return self.media_type
+
+    @content_type.setter
+    def content_type(self, value: str):
+        self.media_type = value
 
 
-class HTMLResponse(BaseHTMLResponse):
+class HTMLResponse(Response, BaseHTMLResponse):
     def __init__(
         self,
         content: typing.Any = None,
@@ -51,10 +70,12 @@ class HTMLResponse(BaseHTMLResponse):
         headers: dict[str, str] | None = None,
         content_type: str | None = None,
     ):
-        super().__init__(content, status_code=status, headers=headers, media_type=content_type)
+        BaseHTMLResponse.__init__(
+            self, content, status_code=status, headers=headers, media_type=content_type
+        )
 
 
-class PlainTextResponse(BasePlainTextResponse):
+class PlainTextResponse(Response, BasePlainTextResponse):
     def __init__(
         self,
         content: str = None,
@@ -62,31 +83,35 @@ class PlainTextResponse(BasePlainTextResponse):
         headers: dict[str, str] | None = None,
         content_type: str | None = None,
     ):
-        super().__init__(content, status_code=status, headers=headers, media_type=content_type)
+        BasePlainTextResponse.__init__(
+            self, content, status_code=status, headers=headers, media_type=content_type
+        )
 
 
-class JSONResponse(BaseJSONResponse):
+class JSONResponse(Response, BaseJSONResponse):
     def __init__(
-            self,
-            content: typing.Any = None,
-            status: HTTPStatus = HTTPStatus.OK,
-            headers: dict[str, str] | None = None,
-            content_type: str | None = None,
+        self,
+        content: typing.Any = None,
+        status: HTTPStatus = HTTPStatus.OK,
+        headers: dict[str, str] | None = None,
+        content_type: str | None = None,
     ):
-        super().__init__(content, status_code=status, headers=headers, media_type=content_type)
+        BaseJSONResponse.__init__(
+            self, content, status_code=status, headers=headers, media_type=content_type
+        )
 
 
-class RedirectResponse(BaseRedirectResponse):
+class RedirectResponse(Response, BaseRedirectResponse):
     def __init__(
         self,
         url: str | URL,
         status: HTTPStatus = HTTPStatus.TEMPORARY_REDIRECT,
         headers: dict[str, str] | None = None,
     ):
-        super().__init__(url, status_code=status, headers=headers)
+        BaseRedirectResponse.__init__(self, url, status_code=status, headers=headers)
 
 
-class StreamingResponse(BaseStreamingResponse):
+class StreamingResponse(Response, BaseStreamingResponse):
     def __init__(
         self,
         content: ContentStream,
@@ -94,10 +119,12 @@ class StreamingResponse(BaseStreamingResponse):
         headers: dict[str, str] | None = None,
         content_type: str | None = None,
     ):
-        super().__init__(content, status_code=status, headers=headers, media_type=content_type)
+        BaseStreamingResponse.__init__(
+            self, content, status_code=status, headers=headers, media_type=content_type
+        )
 
 
-class FileResponse(BaseFileResponse):
+class FileResponse(Response, BaseFileResponse):
     def __init__(
         self,
         path: str | os.PathLike[str],
@@ -109,7 +136,8 @@ class FileResponse(BaseFileResponse):
         method: str | None = None,
         content_disposition_type: str = "attachment",
     ):
-        super().__init__(
+        BaseFileResponse.__init__(
+            self,
             path,
             status_code=status,
             headers=headers,
@@ -117,7 +145,7 @@ class FileResponse(BaseFileResponse):
             filename=filename,
             stat_result=stat_result,
             method=method,
-            content_disposition_type=content_disposition_type
+            content_disposition_type=content_disposition_type,
         )
 
 

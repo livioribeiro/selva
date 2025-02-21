@@ -103,7 +103,7 @@ def get_settings_meta() -> tuple[Settings, list[tuple[Path, str | None, bool]]]:
 
     # merge with main settings file (settings.yaml)
     profile_settings, profile_settings_file = get_settings_for_profile()
-    merge_recursive(settings, profile_settings)
+    _merge_recursive(settings, profile_settings)
     settings_files.append(profile_settings_file)
 
     # merge with profile settings files (settings_$SELVA_PROFILE.yaml)
@@ -113,12 +113,12 @@ def get_settings_meta() -> tuple[Settings, list[tuple[Path, str | None, bool]]]:
             profile_settings, profile_settings_file = get_settings_for_profile(
                 active_profile
             )
-            merge_recursive(settings, profile_settings)
+            _merge_recursive(settings, profile_settings)
             settings_files.append(profile_settings_file)
 
     # merge with environment variables (SELVA_*)
     from_env_vars = parse_settings_from_env(os.environ)
-    merge_recursive(settings, from_env_vars)
+    _merge_recursive(settings, from_env_vars)
 
     settings = replace_variables_recursive(settings, os.environ)
     return Settings(settings), settings_files
@@ -149,11 +149,11 @@ def get_settings_for_profile(
         raise SettingsError(settings_file_path) from err
 
 
-def merge_recursive(destination: dict, source: dict):
+def _merge_recursive(destination: dict, source: dict):
     for key in source:
         if key in destination and all(
             isinstance(arg[key], dict) for arg in (destination, source)
         ):
-            merge_recursive(destination[key], source[key])
+            _merge_recursive(destination[key], source[key])
         else:
             destination[key] = deepcopy(source[key])

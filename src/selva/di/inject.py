@@ -1,4 +1,4 @@
-from typing import Annotated, NamedTuple, Self, TypeVar
+from typing import Self, TypeVar
 
 T = TypeVar("T")
 
