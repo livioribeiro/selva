@@ -13,5 +13,5 @@ async def render(request: Request, template: Annotated[MakoTemplate, Inject]):
 @get("/content_type")
 async def define_content_type(request, template: Annotated[MakoTemplate, Inject]):
     await template.respond(
-        request, "template.html", {"variable": "Mako"}, content_type="text/plain"
+        request, "template.html", {"variable": "Mako"}, media_type="text/plain"
     )

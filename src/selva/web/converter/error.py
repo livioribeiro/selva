@@ -1,6 +1,5 @@
-from selva.web.converter.converter import Converter
 from selva.web.converter.from_request import FromRequest
-from selva.web.converter.param_extractor import FromBody, ParamExtractor
+from selva.web.converter.param_extractor import ParamExtractor
 
 
 class MissingFromRequestImplError(Exception):

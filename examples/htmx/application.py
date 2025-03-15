@@ -14,19 +14,16 @@ click_count = 0
 @get
 async def index(request: Request, template: A[JinjaTemplate, Inject]):
     global click_count
-    response = await template.response("index.html", {"click_count": click_count})
-    await request.respond(response)
+    await template.respond(request, "index.html", {"click_count": click_count})
     logger.warning("index", click_count=click_count)
 
 
 @post("/clicked")
 async def clicked(request: Request, template: A[JinjaTemplate, Inject]):
     global click_count
-
     click_count += 1
 
     rendered = await template.render("click-count.html", {"click_count": click_count})
-
     await request.respond(rendered + "Clicked!")
 
     logger.info("clicked", click_count=click_count)

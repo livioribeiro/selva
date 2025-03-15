@@ -26,5 +26,5 @@ async def content_type(request: Request, template: Annotated[JinjaTemplate, Inje
         request,
         "template.html",
         {"variable": "Jinja"},
-        content_type="text/plain",
+        media_type="text/plain",
     )

@@ -1,7 +1,5 @@
 from typing import Annotated as A
 
-from asgikit.responses import respond_json
-
 from selva.di import Inject, service
 from selva.web import exception_handler, get
 
@@ -18,7 +16,7 @@ class MyException(Exception):
 
 @exception_handler(MyException)
 async def handle_exception(err, request, my_service: A[MyService, Inject]):
-    await respond_json(request.response, my_service.parse_exception(err))
+    await request.respond(my_service.parse_exception(err))
 
 
 @get

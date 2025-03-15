@@ -91,7 +91,7 @@ async def test_pydantic_model_with_wrong_content_type_should_fail():
 
     with pytest.raises(HTTPException) as err:
         await converter.convert(request, Model)
-    assert err.value.status == HTTPStatus.UNSUPPORTED_MEDIA_TYPE
+    assert err.value.status_code == HTTPStatus.UNSUPPORTED_MEDIA_TYPE
 
 
 async def test_pydantic_model_with_invalid_data_should_fail():
@@ -116,7 +116,7 @@ async def test_pydantic_model_with_invalid_data_should_fail():
 
     with pytest.raises(HTTPException) as err:
         await converter.convert(request, Model)
-    assert err.value.status == HTTPStatus.BAD_REQUEST
+    assert err.value.status_code == HTTPStatus.BAD_REQUEST
 
 
 async def test_pydantic_model_list_from_request():
@@ -169,7 +169,7 @@ async def test_pydantic_model_list_with_wrong_content_type_should_fail():
     with pytest.raises(HTTPException) as err:
         await converter.convert(request, list[Model])
 
-    assert err.value.status == HTTPStatus.UNSUPPORTED_MEDIA_TYPE
+    assert err.value.status_code == HTTPStatus.UNSUPPORTED_MEDIA_TYPE
 
 
 async def test_pydantic_model_list_with_invalid_data_should_fail():
@@ -194,4 +194,4 @@ async def test_pydantic_model_list_with_invalid_data_should_fail():
 
     with pytest.raises(HTTPException) as err:
         await converter.convert(request, list[Model])
-    assert err.value.status == HTTPStatus.BAD_REQUEST
+    assert err.value.status_code == HTTPStatus.BAD_REQUEST

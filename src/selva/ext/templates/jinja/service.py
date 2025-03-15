@@ -30,18 +30,26 @@ class JinjaTemplate:
     settings: Annotated[Settings, Inject]
     environment: Annotated[Environment, Inject]
 
+    async def render(
+        self,
+        template_name: str,
+        context: dict,
+    ):
+        template = self.environment.get_template(template_name)
+        return await template.render_async(context)
+
     # pylint: disable=too-many-arguments
     async def response(
         self,
         template_name: str,
         context: dict,
         *,
-        status=HTTPStatus.OK,
+        status_code=HTTPStatus.OK,
         headers: dict = None,
-        content_type="text/html",
+        media_type="text/html",
         stream: bool = False,
     ) -> Response:
-        content_type = content_type or "text/html"
+        media_type = media_type or "text/html"
         headers = headers or {}
 
         template = self.environment.get_template(template_name)
@@ -50,14 +58,17 @@ class JinjaTemplate:
             render_stream = template.generate_async(context)
             response = StreamingResponse(
                 render_stream,
-                status=status,
-                content_type=content_type,
+                status_code=status_code,
+                media_type=media_type,
                 headers=headers,
             )
         else:
             rendered = await template.render_async(context)
             response = HTMLResponse(
-                rendered, status=status, content_type=content_type, headers=headers
+                rendered,
+                status_code=status_code,
+                media_type=media_type,
+                headers=headers,
             )
 
         return response
@@ -68,17 +79,17 @@ class JinjaTemplate:
         template_name: str,
         context: dict,
         *,
-        status=HTTPStatus.OK,
+        status_code=HTTPStatus.OK,
         headers: dict = None,
-        content_type="text/html",
+        media_type="text/html",
         stream: bool = False,
     ):
         response = await self.response(
             template_name,
             context,
-            status=status,
+            status_code=status_code,
             headers=headers,
-            content_type=content_type,
+            media_type=media_type,
             stream=stream,
         )
 

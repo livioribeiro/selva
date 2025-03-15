@@ -11,7 +11,6 @@ from selva.web import (
     FromBody,
     FromPath,
     FromQuery,
-    Json,
     background,
     get,
     post,
@@ -78,7 +77,8 @@ async def greet_path(
 
 
 @post
-async def post_data(request: Request, body: A[Json, FromBody]):
+async def post_data(request: Request):
+    body = await request.json()
     await request.respond({"result": body})
 
 

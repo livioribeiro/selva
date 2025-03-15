@@ -1,4 +1,5 @@
 import asyncio
+from functools import cache
 
 from celery import Celery
 
@@ -10,16 +11,12 @@ from .service import Greeter
 app = Celery("hello", broker="redis://localhost:6379/2")
 
 
-_di_container = None
-
-
+@cache
 def di_container() -> Container:
-    global _di_container
-    if _di_container is None:
-        settings = get_settings()
-        _di_container = Container()
-        _di_container.scan(settings.application)
-    return _di_container
+    settings = get_settings()
+    container = Container()
+    container.scan(settings.application)
+    return container
 
 
 @app.task

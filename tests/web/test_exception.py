@@ -31,9 +31,9 @@ from selva.web.exception import (
 )
 def test_correct_status(error_cls, status: HTTPStatus):
     error = error_cls()
-    assert error.status == status
+    assert error.status_code == status
 
 
 def test_custom_http_exception():
-    error = HTTPException(status=HTTPStatus.IM_A_TEAPOT)
-    assert error.status == HTTPStatus.IM_A_TEAPOT
+    error = HTTPException(status_code=HTTPStatus.IM_A_TEAPOT)
+    assert error.status_code == HTTPStatus.IM_A_TEAPOT

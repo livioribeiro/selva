@@ -3,9 +3,8 @@ from typing import Annotated as A
 import structlog
 from starlette.websockets import WebSocketDisconnect
 
-from selva.web.http import WebSocket
 from selva.di import Inject, service
-from selva.web import websocket
+from selva.web import WebSocket, websocket
 
 logger = structlog.get_logger()
 
@@ -15,15 +14,15 @@ class WebSocketService:
     def __init__(self):
         self.clients: dict[str, WebSocket] = {}
 
-    async def handle_websocket(self, websocket: WebSocket):
-        client = f"{websocket.client.host}:{websocket.client.port}"
-        self.clients[client] = websocket
+    async def handle_websocket(self, ws: WebSocket):
+        client = f"{ws.client.host}:{ws.client.port}"
+        self.clients[client] = ws
 
         logger.info("client connected", client=client)
 
         while True:
             try:
-                message = await websocket.receive_text()
+                message = await ws.receive_text()
                 logger.info("client message", content=message, client=client)
                 await self.broadcast(message)
             except WebSocketDisconnect:
@@ -44,6 +43,6 @@ class WebSocketService:
 
 
 @websocket("/chat")
-async def chat(websocket: WebSocket, handler: A[WebSocketService, Inject]):
-    await websocket.accept()
-    await handler.handle_websocket(websocket)
+async def chat(ws: WebSocket, handler: A[WebSocketService, Inject]):
+    await ws.accept()
+    await handler.handle_websocket(ws)

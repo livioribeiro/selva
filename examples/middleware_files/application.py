@@ -13,5 +13,4 @@ async def index(request: Request):
     )
     result = f"<html><body><ul>{result}</ul></body></html>"
 
-    response = HTMLResponse(result)
-    await request.respond(response)
+    await request.respond(HTMLResponse(result))

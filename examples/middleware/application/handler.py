@@ -3,7 +3,7 @@ from typing import Annotated as A
 
 from selva.di import Inject
 from selva.web import get
-from selva.web.http import Request, Response
+from selva.web.http import Request
 
 from .auth import User
 from .service import Greeter
@@ -22,8 +22,7 @@ async def protected(request: Request, user: User):
 
 @get("/logout")
 async def logout(request: Request):
-    response = Response(
-        status_code=HTTPStatus.UNAUTHORIZED,
+    await request.respond(
+        HTTPStatus.UNAUTHORIZED,
         headers={"WWW-Authenticate": 'Basic realm="localhost:8000"'},
     )
-    await request.respond(response)

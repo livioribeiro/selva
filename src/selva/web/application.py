@@ -193,10 +193,10 @@ class Selva:
 
             request = Request(scope, receive, send)
             if stack_trace:
-                response = PlainTextResponse(stack_trace, status_code=err.status)
+                response = PlainTextResponse(stack_trace, status_code=err.status_code)
                 await request.respond(response)
             else:
-                await request.respond(err.status)
+                await request.respond(err.status_code)
         except Exception:
             logger.exception("error processing request")
 

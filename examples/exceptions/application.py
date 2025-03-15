@@ -11,4 +11,4 @@ async def not_found(request):
 
 @get("/im-a-teapot")
 async def im_a_teapot(request):
-    raise HTTPException(status=HTTPStatus.IM_A_TEAPOT)
+    raise HTTPException(status_code=HTTPStatus.IM_A_TEAPOT)

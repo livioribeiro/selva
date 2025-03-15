@@ -1,10 +1,11 @@
 import base64
 from datetime import datetime
 from http import HTTPStatus
+from urllib.parse import unquote_plus
 
 import structlog
-from asgikit.requests import Request
-from asgikit.responses import respond_status
+
+from selva.web import Request
 
 logger = structlog.get_logger()
 
@@ -19,20 +20,22 @@ def auth_middleware(app, settings, di):
             authn = request.headers.get("authorization")
 
             if not authn:
-                request.response.header(
-                    "WWW-Authenticate", 'Basic realm="localhost:8000/protected"'
+                await request.respond(
+                    HTTPStatus.UNAUTHORIZED,
+                    headers={
+                        "WWW-Authenticate": 'Basic realm="localhost:8000/protected"'
+                    },
                 )
-                await respond_status(request.response, HTTPStatus.UNAUTHORIZED)
                 return
 
             authn = authn.removeprefix("Basic").strip()
             user, password = base64.urlsafe_b64decode(authn).decode().split(":")
             if not (user == auth_user and password == auth_pass):
-                await respond_status(request.response, HTTPStatus.UNAUTHORIZED)
+                await request.respond(HTTPStatus.UNAUTHORIZED)
                 return
 
             logger.info("user logged in", user=user, password=password)
-            request["user"] = user
+            scope["user"] = user
 
         await app(scope, receive, send)
 
@@ -60,22 +63,23 @@ def logging_middleware(app, settings, di):
         if user := scope.get("user"):
             logger.info("user", user=user.name)
 
-        if scope["type"] == "websocket":
-            await app(scope, receive, send)
-            return
-
         await app(scope, receive, send)
 
-        request = Request(scope, receive, send)
-        client = f"{request.client[0]}:{request.client[1]}"
-        request_line = f"{request.method} {request.path} HTTP/{request.http_version}"
-        status = request.response.status
+        if scope["type"] == "websocket":
+            return
+
+        client = f"{scope['client'][0]}:{scope['client'][1]}"
+        query_string = ""
+        if qs := scope.get("query_string"):
+            query_string = "?" + unquote_plus(qs.decode())
+        request_line = f"{scope['method']} {scope['path']}{query_string} HTTP/{scope['http_version']}"
+        status = scope["__response__"]["status_code"]
 
         logger.info(
             "request",
             client=client,
             request_line=request_line,
-            status=status.value,
+            status_code=status.value,
             status_phrase=status.phrase,
         )
 

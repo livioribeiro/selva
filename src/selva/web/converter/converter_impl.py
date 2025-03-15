@@ -22,7 +22,7 @@ class RequestPydanticConverter:
         elif content_type and "application/x-www-form-urlencoded" in content_type:
             data = await request.form()
         else:
-            raise HTTPException(status=HTTPStatus.UNSUPPORTED_MEDIA_TYPE)
+            raise HTTPException(status_code=HTTPStatus.UNSUPPORTED_MEDIA_TYPE)
 
         try:
             return original_type.model_validate(data)
@@ -41,7 +41,7 @@ class RequestPydanticListConverter:
         if content_type and "application/json" in content_type:
             data = await request.json()
         else:
-            raise HTTPException(status=HTTPStatus.UNSUPPORTED_MEDIA_TYPE)
+            raise HTTPException(status_code=HTTPStatus.UNSUPPORTED_MEDIA_TYPE)
 
         adapter = pydantic.TypeAdapter(original_type)
 

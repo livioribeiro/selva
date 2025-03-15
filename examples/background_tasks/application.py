@@ -1,20 +1,18 @@
 import asyncio
 
 import structlog
-from asgikit.requests import Request
-from asgikit.responses import respond_json
 
-from selva.web import get
+from selva.web import Request, get
 
 logger = structlog.get_logger()
 
 
 @get
 async def background_task(request: Request):
-    name = request.query.get("name", "World")
+    name = request.query_params.get("name", "World")
     message = f"Hello, {name}!"
 
-    await respond_json(request.response, {"message": message})
+    await request.respond({"message": message})
 
     await asyncio.sleep(5)
     logger.info(message)

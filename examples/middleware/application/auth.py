@@ -1,7 +1,6 @@
 from dataclasses import dataclass
 
-from asgikit.requests import Request
-
+from selva.web import Request
 from selva.web.converter.decorator import register_from_request
 from selva.web.exception import HTTPUnauthorizedException
 
@@ -21,7 +20,7 @@ class UserFromRequest:
         metadata,
         optional: bool,
     ) -> User | None:
-        if user := request.attributes.get("user"):
+        if user := request.user:
             return User(user)
 
         if optional:

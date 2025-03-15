@@ -28,17 +28,17 @@ class MakoTemplate:
         template_name: str,
         context: dict,
         *,
-        status=HTTPStatus.OK,
-        headers=None,
-        content_type="text/html",
+        status_code=HTTPStatus.OK,
+        headers: dict[str, str] | None = None,
+        media_type="text/html",
     ) -> Response:
-        content_type = content_type or "text/html"
+        media_type = media_type or "text/html"
         headers = headers or {}
 
         template = self.lookup.get_template(template_name)
         rendered = template.render(**context)
         return HTMLResponse(
-            rendered, status=status, headers=headers, content_type=content_type
+            rendered, status_code=status_code, headers=headers, media_type=media_type
         )
 
     async def respond(
@@ -47,15 +47,15 @@ class MakoTemplate:
         template_name: str,
         context: dict,
         *,
-        status=HTTPStatus.OK,
-        headers=None,
-        content_type="text/html",
+        status_code=HTTPStatus.OK,
+        headers: dict[str, str] | None = None,
+        media_type="text/html",
     ):
         response = self.response(
             template_name,
             context,
-            status=status,
+            status_code=status_code,
             headers=headers,
-            content_type=content_type,
+            media_type=media_type,
         )
         await request.respond(response)

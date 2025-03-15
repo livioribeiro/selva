@@ -1,19 +1,16 @@
-import typing
 import os
-from functools import singledispatchmethod
+from functools import singledispatchmethod, cached_property
 from http import HTTPMethod, HTTPStatus
 
-from starlette.datastructures import URL
 from starlette.requests import Request as BaseRequest
 from starlette.responses import (
-    ContentStream,
-    Response as BaseResponse,
-    HTMLResponse as BaseHTMLResponse,
-    PlainTextResponse as BasePlainTextResponse,
-    JSONResponse as BaseJSONResponse,
-    RedirectResponse as BaseRedirectResponse,
-    StreamingResponse as BaseStreamingResponse,
-    FileResponse as BaseFileResponse,
+    Response,
+    HTMLResponse,
+    PlainTextResponse,
+    JSONResponse,
+    RedirectResponse,
+    StreamingResponse,
+    FileResponse,
 )
 from starlette.types import Scope, Receive, Send
 from starlette.websockets import WebSocket
@@ -32,123 +29,6 @@ __all__ = (
 )
 
 
-class Response(BaseResponse):
-    def __init__(
-        self,
-        content: typing.Any = None,
-        status: HTTPStatus = HTTPStatus.OK,
-        headers: dict[str, str] | None = None,
-        content_type: str | None = None,
-    ):
-        super().__init__(
-            content, status_code=status, headers=headers, media_type=content_type
-        )
-
-    @property
-    def status(self) -> HTTPStatus:
-        return HTTPStatus(self.status_code)
-
-    @status.setter
-    def status(self, value: HTTPStatus):
-        self.status_code = value.value
-
-    @property
-    def content_type(self) -> str:
-        self.status_code = HTTPStatus.OK
-        return self.media_type
-
-    @content_type.setter
-    def content_type(self, value: str):
-        self.media_type = value
-
-
-class HTMLResponse(Response, BaseHTMLResponse):
-    def __init__(
-        self,
-        content: typing.Any = None,
-        status: HTTPStatus = HTTPStatus.OK,
-        headers: dict[str, str] | None = None,
-        content_type: str | None = None,
-    ):
-        BaseHTMLResponse.__init__(
-            self, content, status_code=status, headers=headers, media_type=content_type
-        )
-
-
-class PlainTextResponse(Response, BasePlainTextResponse):
-    def __init__(
-        self,
-        content: str = None,
-        status: HTTPStatus = HTTPStatus.OK,
-        headers: dict[str, str] | None = None,
-        content_type: str | None = None,
-    ):
-        BasePlainTextResponse.__init__(
-            self, content, status_code=status, headers=headers, media_type=content_type
-        )
-
-
-class JSONResponse(Response, BaseJSONResponse):
-    def __init__(
-        self,
-        content: typing.Any = None,
-        status: HTTPStatus = HTTPStatus.OK,
-        headers: dict[str, str] | None = None,
-        content_type: str | None = None,
-    ):
-        BaseJSONResponse.__init__(
-            self, content, status_code=status, headers=headers, media_type=content_type
-        )
-
-
-class RedirectResponse(Response, BaseRedirectResponse):
-    def __init__(
-        self,
-        url: str | URL,
-        status: HTTPStatus = HTTPStatus.TEMPORARY_REDIRECT,
-        headers: dict[str, str] | None = None,
-    ):
-        BaseRedirectResponse.__init__(self, url, status_code=status, headers=headers)
-
-
-class StreamingResponse(Response, BaseStreamingResponse):
-    def __init__(
-        self,
-        content: ContentStream,
-        status: HTTPStatus = HTTPStatus.OK,
-        headers: dict[str, str] | None = None,
-        content_type: str | None = None,
-    ):
-        BaseStreamingResponse.__init__(
-            self, content, status_code=status, headers=headers, media_type=content_type
-        )
-
-
-class FileResponse(Response, BaseFileResponse):
-    def __init__(
-        self,
-        path: str | os.PathLike[str],
-        status: HTTPStatus = HTTPStatus.OK,
-        headers: dict[str, str] | None = None,
-        content_type: str | None = None,
-        filename: str | None = None,
-        stat_result: os.stat_result | None = None,
-        method: str | None = None,
-        content_disposition_type: str = "attachment",
-    ):
-        BaseFileResponse.__init__(
-            self,
-            path,
-            status_code=status,
-            headers=headers,
-            media_type=content_type,
-            filename=filename,
-            stat_result=stat_result,
-            method=method,
-            content_disposition_type=content_disposition_type,
-        )
-
-
 class Request(BaseRequest):
     def __init__(self, scope: Scope, receive: Receive, send: Send):
         super().__init__(scope, receive, send)
@@ -156,7 +36,7 @@ class Request(BaseRequest):
         self.__send = send
         self.scope["__finished__"] = False
 
-    @property
+    @cached_property
     def method(self) -> HTTPMethod:
         return HTTPMethod(super().method)
 
@@ -164,20 +44,65 @@ class Request(BaseRequest):
     async def respond(self, response: Response):
         await response(self.scope, self.__receive, self.__send)
         self.scope["__finished__"] = True
+        self.scope["__response__"] = {
+            "status_code": response.status_code,
+        }
 
     @respond.register
-    async def _(self, response: str):
-        await self.respond(PlainTextResponse(response))
-
-    @respond.register(list)
-    @respond.register(dict)
-    async def _(self, response: list | dict):
-        await self.respond(JSONResponse(response))
+    async def _(
+        self,
+        response: str,
+        status_code: HTTPStatus = HTTPStatus.OK,
+        headers: dict[str, str] | None = None,
+        media_type: str | None = None,
+    ):
+        await self.respond(
+            PlainTextResponse(
+                response,
+                status_code=status_code,
+                headers=headers,
+                media_type=media_type,
+            )
+        )
 
     @respond.register
-    async def _(self, response: os.PathLike):
-        await self.respond(FileResponse(response))
+    async def _(
+        self,
+        response: list | dict,
+        status_code: HTTPStatus = HTTPStatus.OK,
+        headers: dict[str, str] | None = None,
+        media_type: str | None = None,
+    ):
+        await self.respond(
+            JSONResponse(
+                response,
+                status_code=status_code,
+                headers=headers,
+                media_type=media_type,
+            )
+        )
 
     @respond.register
-    async def _(self, response: HTTPStatus):
-        await self.respond(Response(status=response))
+    async def _(
+        self,
+        response: os.PathLike,
+        status_code: HTTPStatus = HTTPStatus.OK,
+        headers: dict[str, str] | None = None,
+        media_type: str | None = None,
+    ):
+        await self.respond(
+            FileResponse(
+                response,
+                status_code=status_code,
+                headers=headers,
+                media_type=media_type,
+            )
+        )
+
+    @respond.register
+    async def _(
+        self,
+        response: HTTPStatus,
+        headers: dict[str, str] | None = None,
+    ):
+        await self.respond(Response(status_code=response, headers=headers))
